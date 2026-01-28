@@ -197,10 +197,33 @@ export function ChannelConfigDialog({
     }
   };
 
+  const getEmbedCode = (tenantId: string): string => {
+    const baseUrl = window.location.origin;
+    return `<!-- ChatFlow Widget -->
+<script>
+  window.ChatFlowConfig = {
+    tenantId: '${tenantId}',
+    position: 'bottom-right',
+    primaryColor: '#6366f1'
+  };
+</script>
+<script src="${baseUrl}/chat-widget.js" defer></script>`;
+  };
+
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
+
+  const copyEmbedCode = async () => {
+    if (currentTenant) {
+      await navigator.clipboard.writeText(getEmbedCode(currentTenant.id));
+      setCopiedEmbed(true);
+      setTimeout(() => setCopiedEmbed(false), 2000);
+    }
+  };
+
   if (fields.length === 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ChannelBadge channelType={channelType} size="sm" />
@@ -210,11 +233,44 @@ export function ChannelConfigDialog({
               Web Chat doesn't require any credentials. It's ready to use!
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              You can embed the chat widget on your website by adding the widget script to your site.
-            </p>
-          </div>
+          
+          {currentTenant && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm font-medium">Embed Code</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Copy this code and paste it before the closing &lt;/body&gt; tag on your website
+                </p>
+              </div>
+              <div className="relative">
+                <pre className="bg-muted rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
+                  {getEmbedCode(currentTenant.id)}
+                </pre>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyEmbedCode}
+                  className="absolute top-2 right-2"
+                >
+                  {copiedEmbed ? (
+                    <>
+                      <Check className="h-3 w-3 mr-1" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <strong>Note:</strong> For production, use your published app URL or custom domain instead of the preview URL.
+              </p>
+            </div>
+          )}
+
           <div className="flex justify-end">
             <Button onClick={() => onOpenChange(false)}>Close</Button>
           </div>
