@@ -18,16 +18,16 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { signIn, user, loading } = useAuth();
+  const { signIn, user, loading, dataLoaded } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Redirect logged-in users away from auth page
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && dataLoaded) {
       navigate('/', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, dataLoaded, navigate]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
