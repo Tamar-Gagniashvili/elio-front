@@ -77,7 +77,7 @@ export default function Inbox() {
     };
   }, [currentTenant, filterStatus]);
 
-  // Fetch messages for selected conversation
+  // Fetch messages for selected conversation and mark as read
   useEffect(() => {
     if (!selectedConversation) {
       setMessages([]);
@@ -98,7 +98,26 @@ export default function Inbox() {
       }
     };
 
+    const markAsRead = async () => {
+      // Reset unread count on conversation
+      await supabase
+        .from('conversations')
+        .update({ unread_count: 0 })
+        .eq('id', selectedConversation.id);
+
+      // Update local state
+      setSelectedConversation((prev) => prev ? { ...prev, unread_count: 0 } : null);
+      setConversations((prev) => 
+        prev.map((c) => c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c)
+      );
+    };
+
     fetchMessages();
+    
+    // Mark as read when opening conversation
+    if (selectedConversation.unread_count > 0) {
+      markAsRead();
+    }
 
     // Subscribe to new messages
     const channel = supabase
@@ -120,7 +139,7 @@ export default function Inbox() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversation]);
+  }, [selectedConversation?.id]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation || !user) return;
