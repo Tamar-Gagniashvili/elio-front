@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,17 +7,17 @@ import { Loader2 } from 'lucide-react';
 export default function Index() {
   const navigate = useNavigate();
   const { user, loading, memberships, currentTenant } = useAuth();
+  const [roleChecked, setRoleChecked] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
+  // First effect: Check super_admin role
   useEffect(() => {
-    if (loading) return;
-
-    if (!user) {
-      navigate('/auth');
+    if (loading || !user) {
+      setRoleChecked(false);
       return;
     }
 
-    // Check if user is super admin first - this takes priority
-    const checkRoleAndRedirect = async () => {
+    const checkRole = async () => {
       const { data } = await supabase
         .from('user_roles')
         .select('role')
@@ -25,25 +25,38 @@ export default function Index() {
         .eq('role', 'super_admin')
         .maybeSingle();
 
-      if (data) {
-        // User is super admin, go to admin dashboard
-        navigate('/admin', { replace: true });
-        return;
-      }
-      
-      // Not super admin - check tenant memberships
-      if (memberships.length === 0) {
-        // No workspace, go to onboarding
-        navigate('/onboarding', { replace: true });
-      } else if (currentTenant) {
-        // Has workspace and tenant selected, go to inbox
-        navigate('/inbox', { replace: true });
-      }
-      // If memberships exist but no currentTenant yet, wait for useAuth to auto-select
+      setIsSuperAdmin(!!data);
+      setRoleChecked(true);
     };
 
-    checkRoleAndRedirect();
-  }, [user, loading, memberships, currentTenant, navigate]);
+    checkRole();
+  }, [user, loading]);
+
+  // Second effect: Handle redirects after role is checked
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      navigate('/auth', { replace: true });
+      return;
+    }
+
+    // Wait for role check to complete
+    if (!roleChecked) return;
+
+    if (isSuperAdmin) {
+      navigate('/admin', { replace: true });
+      return;
+    }
+
+    // Not super admin - check tenant memberships
+    if (memberships.length === 0) {
+      navigate('/onboarding', { replace: true });
+    } else if (currentTenant) {
+      navigate('/inbox', { replace: true });
+    }
+    // If memberships exist but no currentTenant yet, wait for useAuth to auto-select
+  }, [user, loading, roleChecked, isSuperAdmin, memberships, currentTenant, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
