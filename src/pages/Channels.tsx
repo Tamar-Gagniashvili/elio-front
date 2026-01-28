@@ -5,37 +5,20 @@ import { Channel, ChannelType, CHANNEL_CONFIG } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ChannelBadge } from '@/components/ChannelBadge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Settings, ExternalLink } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-
-const availableChannels: { type: ChannelType; description: string; difficulty: string }[] = [
-  { type: 'web_chat', description: 'Embed a chat widget on your website', difficulty: 'Easy' },
-  { type: 'telegram', description: 'Connect your Telegram bot', difficulty: 'Medium' },
-  { type: 'whatsapp', description: 'WhatsApp Business API integration', difficulty: 'Advanced' },
-  { type: 'messenger', description: 'Facebook Messenger for business', difficulty: 'Advanced' },
-  { type: 'instagram', description: 'Instagram Direct Messages', difficulty: 'Advanced' },
-  { type: 'sms', description: 'SMS via Twilio or similar', difficulty: 'Medium' },
-];
+import { Settings, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { ChannelConfigDialog } from '@/components/channels/ChannelConfigDialog';
 
 export default function Channels() {
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [enabledChannelTypes, setEnabledChannelTypes] = useState<ChannelType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<ChannelType | null>(null);
-  const [channelName, setChannelName] = useState('');
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const { currentTenant, currentMembership } = useAuth();
   const { toast } = useToast();
@@ -44,7 +27,12 @@ export default function Channels() {
   useEffect(() => {
     if (!currentTenant) return;
 
-    const fetchChannels = async () => {
+    const fetchData = async () => {
+      // Get enabled channels for this tenant (set by super admin)
+      const enabledTypes = (currentTenant.enabled_channels || ['web_chat']) as ChannelType[];
+      setEnabledChannelTypes(enabledTypes);
+
+      // Fetch existing channel configurations
       const { data, error } = await supabase
         .from('channels')
         .select('*')
@@ -59,42 +47,102 @@ export default function Channels() {
       setIsLoading(false);
     };
 
-    fetchChannels();
+    fetchData();
   }, [currentTenant]);
 
-  const handleAddChannel = async () => {
-    if (!currentTenant || !selectedType || !channelName.trim()) return;
+  // Get or create channel for a type
+  const getChannelForType = (type: ChannelType): Channel | undefined => {
+    return channels.find((c) => c.channel_type === type);
+  };
 
-    const { data, error } = await supabase
+  const isChannelConfigured = (channel: Channel): boolean => {
+    const config = channel.config as Record<string, string> | null;
+    if (!config) return false;
+    
+    // Web chat doesn't need config
+    if (channel.channel_type === 'web_chat') return true;
+    
+    // Check if at least one credential field is filled
+    return Object.keys(config).some((key) => config[key]?.trim());
+  };
+
+  const handleConfigureChannel = async (type: ChannelType) => {
+    if (!currentTenant) return;
+
+    let channel = getChannelForType(type);
+    
+    // If channel doesn't exist, create it first
+    if (!channel) {
+      const { data, error } = await supabase
+        .from('channels')
+        .insert({
+          tenant_id: currentTenant.id,
+          channel_type: type,
+          name: CHANNEL_CONFIG[type].label,
+          is_active: false,
+          config: {},
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to create channel',
+          variant: 'destructive',
+        });
+        return;
+      }
+      channel = data as Channel;
+      setChannels((prev) => [channel!, ...prev]);
+    }
+
+    setSelectedChannel(channel);
+    setConfigDialogOpen(true);
+  };
+
+  const handleSaveConfig = async (config: Record<string, string>) => {
+    if (!selectedChannel) return;
+
+    setIsSaving(true);
+    const { error } = await supabase
       .from('channels')
-      .insert({
-        tenant_id: currentTenant.id,
-        channel_type: selectedType,
-        name: channelName.trim(),
-        is_active: true,
-      })
-      .select()
-      .single();
+      .update({ config })
+      .eq('id', selectedChannel.id);
 
     if (error) {
       toast({
         title: 'Error',
-        description: 'Failed to add channel',
+        description: 'Failed to save configuration',
         variant: 'destructive',
       });
     } else {
-      setChannels((prev) => [data as Channel, ...prev]);
-      setIsAddDialogOpen(false);
-      setSelectedType(null);
-      setChannelName('');
+      setChannels((prev) =>
+        prev.map((c) =>
+          c.id === selectedChannel.id ? { ...c, config } : c
+        )
+      );
       toast({
-        title: 'Channel added',
-        description: `${CHANNEL_CONFIG[selectedType].label} channel has been added`,
+        title: 'Configuration saved',
+        description: `${CHANNEL_CONFIG[selectedChannel.channel_type].label} credentials have been saved`,
       });
+      setConfigDialogOpen(false);
     }
+    setIsSaving(false);
   };
 
   const toggleChannel = async (channel: Channel) => {
+    // Check if channel is configured before enabling
+    if (!channel.is_active && !isChannelConfigured(channel)) {
+      toast({
+        title: 'Configuration required',
+        description: 'Please configure the channel credentials first',
+        variant: 'destructive',
+      });
+      handleConfigureChannel(channel.channel_type);
+      return;
+    }
+
     const { error } = await supabase
       .from('channels')
       .update({ is_active: !channel.is_active })
@@ -115,142 +163,112 @@ export default function Channels() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Channels</h1>
-            <p className="text-muted-foreground">
-              Connect messaging channels to receive customer conversations
-            </p>
-          </div>
-          {isAdmin && (
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Channel
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Add a new channel</DialogTitle>
-                  <DialogDescription>
-                    Connect a messaging platform to receive customer messages
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4 py-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    {availableChannels.map((ch) => (
-                      <button
-                        key={ch.type}
-                        onClick={() => {
-                          setSelectedType(ch.type);
-                          setChannelName(CHANNEL_CONFIG[ch.type].label);
-                        }}
-                        className={`p-3 border rounded-lg text-left transition-colors ${
-                          selectedType === ch.type
-                            ? 'border-primary bg-accent'
-                            : 'hover:bg-muted'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <ChannelBadge channelType={ch.type} size="sm" />
-                          <span className="font-medium text-sm">
-                            {CHANNEL_CONFIG[ch.type].label}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{ch.description}</p>
-                        <Badge variant="secondary" className="mt-2 text-[10px]">
-                          {ch.difficulty}
-                        </Badge>
-                      </button>
-                    ))}
-                  </div>
-
-                  {selectedType && (
-                    <div className="space-y-2 pt-2">
-                      <Label>Channel Name</Label>
-                      <Input
-                        value={channelName}
-                        onChange={(e) => setChannelName(e.target.value)}
-                        placeholder="e.g., Website Chat"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddChannel} disabled={!selectedType || !channelName.trim()}>
-                    Add Channel
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Channels</h1>
+          <p className="text-muted-foreground">
+            Configure your messaging channels to receive customer conversations
+          </p>
         </div>
 
         <div className="space-y-4">
-          {channels.length === 0 ? (
+          {enabledChannelTypes.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                  <Plus className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="font-semibold mb-1">No channels configured</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add your first channel to start receiving messages
+                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="font-semibold mb-1">No channels enabled</h3>
+                <p className="text-sm text-muted-foreground">
+                  Contact your administrator to enable messaging channels for your workspace
                 </p>
-                {isAdmin && (
-                  <Button onClick={() => setIsAddDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Channel
-                  </Button>
-                )}
               </CardContent>
             </Card>
           ) : (
-            channels.map((channel) => (
-              <Card key={channel.id}>
-                <CardContent className="py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <ChannelBadge channelType={channel.channel_type} size="lg" />
-                      <div>
-                        <h3 className="font-semibold">{channel.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {CHANNEL_CONFIG[channel.channel_type].label}
-                        </p>
+            enabledChannelTypes.map((type) => {
+              const channel = getChannelForType(type);
+              const configured = channel ? isChannelConfigured(channel) : false;
+              const isWebChat = type === 'web_chat';
+
+              return (
+                <Card key={type}>
+                  <CardContent className="py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <ChannelBadge channelType={type} size="lg" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{CHANNEL_CONFIG[type].label}</h3>
+                            {configured || isWebChat ? (
+                              <Badge variant="secondary" className="text-primary">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                {isWebChat ? 'Ready' : 'Configured'}
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Not configured
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {channel?.name || CHANNEL_CONFIG[type].label}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        {channel && (
+                          <Badge variant={channel.is_active ? 'default' : 'secondary'}>
+                            {channel.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        )}
+                        {isAdmin && (
+                          <>
+                            {channel && (configured || isWebChat) && (
+                              <Switch
+                                checked={channel.is_active}
+                                onCheckedChange={() => toggleChannel(channel)}
+                              />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleConfigureChannel(type)}
+                            >
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                      <Badge variant={channel.is_active ? 'default' : 'secondary'}>
-                        {channel.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                      {isAdmin && (
-                        <>
-                          <Switch
-                            checked={channel.is_active}
-                            onCheckedChange={() => toggleChannel(channel)}
-                          />
-                          <Button variant="ghost" size="icon">
-                            <Settings className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
+
+        {selectedChannel && (
+          <ChannelConfigDialog
+            open={configDialogOpen}
+            onOpenChange={setConfigDialogOpen}
+            channelType={selectedChannel.channel_type}
+            currentConfig={(selectedChannel.config as Record<string, string>) || {}}
+            onSave={handleSaveConfig}
+            isLoading={isSaving}
+          />
+        )}
       </div>
     </AppLayout>
   );
