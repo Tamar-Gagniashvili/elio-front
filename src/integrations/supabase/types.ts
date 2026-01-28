@@ -313,25 +313,34 @@ export type Database = {
       tenants: {
         Row: {
           created_at: string
+          enabled_channels: string[] | null
           id: string
+          is_active: boolean | null
           logo_url: string | null
           name: string
+          pricing_monthly: number | null
           slug: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          enabled_channels?: string[] | null
           id?: string
+          is_active?: boolean | null
           logo_url?: string | null
           name: string
+          pricing_monthly?: number | null
           slug: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          enabled_channels?: string[] | null
           id?: string
+          is_active?: boolean | null
           logo_url?: string | null
           name?: string
+          pricing_monthly?: number | null
           slug?: string
           updated_at?: string
         }
@@ -374,7 +383,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "owner" | "admin" | "sales"
+      app_role: "owner" | "admin" | "sales" | "super_admin"
       channel_type:
         | "web_chat"
         | "telegram"
@@ -511,7 +520,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "admin", "sales"],
+      app_role: ["owner", "admin", "sales", "super_admin"],
       channel_type: [
         "web_chat",
         "telegram",
