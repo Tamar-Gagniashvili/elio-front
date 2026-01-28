@@ -1,1 +1,16 @@
 project_id = "mnsbodgadunlsqbirevx"
+
+[functions.create-user]
+verify_jwt = false
+
+[functions.webhook-telegram]
+verify_jwt = false
+
+[functions.webhook-whatsapp]
+verify_jwt = false
+
+[functions.webhook-messenger]
+verify_jwt = false
+
+[functions.webhook-instagram]
+verify_jwt = false
