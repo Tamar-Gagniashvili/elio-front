@@ -72,7 +72,7 @@ export default function Onboarding() {
           is_active: true,
         });
 
-      setCurrentTenant(tenant);
+      setCurrentTenant(tenant as unknown as import('@/lib/types').Tenant);
       
       toast({
         title: 'Workspace created!',

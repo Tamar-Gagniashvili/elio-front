@@ -1,11 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 export default function Index() {
   const navigate = useNavigate();
   const { user, loading, memberships, currentTenant } = useAuth();
+  const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
     if (loading) return;
@@ -15,14 +17,29 @@ export default function Index() {
       return;
     }
 
-    // User is logged in
-    if (memberships.length === 0) {
-      // No workspace, go to onboarding
-      navigate('/onboarding');
-    } else if (currentTenant) {
-      // Has workspace, go to inbox
-      navigate('/inbox');
-    }
+    // Check if user is super admin
+    const checkSuperAdmin = async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'super_admin')
+        .maybeSingle();
+
+      if (data) {
+        // User is super admin, go to admin dashboard
+        navigate('/admin');
+      } else if (memberships.length === 0) {
+        // No workspace, go to onboarding
+        navigate('/onboarding');
+      } else if (currentTenant) {
+        // Has workspace, go to inbox
+        navigate('/inbox');
+      }
+      setCheckingRole(false);
+    };
+
+    checkSuperAdmin();
   }, [user, loading, memberships, currentTenant, navigate]);
 
   return (

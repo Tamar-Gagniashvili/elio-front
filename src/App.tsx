@@ -11,6 +11,7 @@ import Inbox from "./pages/Inbox";
 import Contacts from "./pages/Contacts";
 import Channels from "./pages/Channels";
 import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/channels" element={<Channels />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
