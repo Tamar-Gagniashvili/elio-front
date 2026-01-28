@@ -125,6 +125,29 @@ export default function Inbox() {
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation || !user) return;
 
+    const channelType = selectedConversation.contact?.channel_type;
+
+    // If this is a Telegram conversation, send via Telegram API first
+    if (channelType === 'telegram') {
+      const { data, error: telegramError } = await supabase.functions.invoke('send-telegram', {
+        body: {
+          conversation_id: selectedConversation.id,
+          content
+        }
+      });
+
+      if (telegramError) {
+        console.error('Error sending to Telegram:', telegramError);
+        toast({
+          title: 'Error',
+          description: 'Failed to send message to Telegram',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    // Save message to database
     const { error } = await supabase.from('messages').insert({
       conversation_id: selectedConversation.id,
       sender_type: 'agent',
