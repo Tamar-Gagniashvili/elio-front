@@ -1,13 +1,16 @@
 export type ChannelType = 'web_chat' | 'telegram' | 'whatsapp' | 'messenger' | 'instagram' | 'sms';
 export type ConversationStatus = 'open' | 'assigned' | 'resolved' | 'archived';
 export type MessageSenderType = 'contact' | 'agent' | 'system';
-export type AppRole = 'owner' | 'admin' | 'sales';
+export type AppRole = 'super_admin' | 'owner' | 'admin' | 'sales';
 
 export interface Tenant {
   id: string;
   name: string;
   slug: string;
   logo_url?: string;
+  pricing_monthly?: number;
+  enabled_channels?: ChannelType[];
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +90,12 @@ export interface Message {
   created_at: string;
 }
 
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: AppRole;
+}
+
 export const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: string; color: string }> = {
   web_chat: { label: 'Web Chat', icon: 'MessageCircle', color: 'channel-web' },
   telegram: { label: 'Telegram', icon: 'Send', color: 'channel-telegram' },
@@ -95,3 +104,5 @@ export const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: string; 
   instagram: { label: 'Instagram', icon: 'Instagram', color: 'channel-instagram' },
   sms: { label: 'SMS', icon: 'Phone', color: 'channel-sms' },
 };
+
+export const ALL_CHANNELS: ChannelType[] = ['web_chat', 'telegram', 'whatsapp', 'messenger', 'instagram', 'sms'];
