@@ -5,6 +5,61 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Get next sales rep using round-robin
+async function getNextSalesRep(supabase: any, tenantId: string) {
+  const { data: salesReps, error: salesError } = await supabase
+    .from('tenant_memberships')
+    .select('user_id')
+    .eq('tenant_id', tenantId)
+    .eq('role', 'sales')
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+
+  if (salesError || !salesReps || salesReps.length === 0) {
+    console.log('No sales reps found for tenant:', tenantId)
+    return null
+  }
+
+  let { data: distribution } = await supabase
+    .from('chat_distribution')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .single()
+
+  if (!distribution) {
+    const { data: newDist, error: distError } = await supabase
+      .from('chat_distribution')
+      .insert({
+        tenant_id: tenantId,
+        assignment_index: 0,
+        last_assigned_user_id: null
+      })
+      .select()
+      .single()
+
+    if (distError) {
+      console.error('Error creating distribution:', distError)
+      return salesReps[0].user_id
+    }
+    distribution = newDist
+  }
+
+  const nextIndex = distribution.assignment_index % salesReps.length
+  const nextSalesRep = salesReps[nextIndex].user_id
+
+  await supabase
+    .from('chat_distribution')
+    .update({
+      assignment_index: distribution.assignment_index + 1,
+      last_assigned_user_id: nextSalesRep,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', distribution.id)
+
+  console.log(`Assigned to sales rep at index ${nextIndex}:`, nextSalesRep)
+  return nextSalesRep
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -22,7 +77,6 @@ Deno.serve(async (req) => {
     console.log('WhatsApp verification request:', { mode, token, tenantId })
 
     if (mode === 'subscribe' && tenantId) {
-      // Get channel to verify token
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -62,7 +116,6 @@ Deno.serve(async (req) => {
     const body = await req.json()
     console.log('WhatsApp webhook received:', JSON.stringify(body, null, 2))
 
-    // Process WhatsApp Cloud API webhook
     const entry = body.entry?.[0]
     const changes = entry?.changes?.[0]
     const value = changes?.value
@@ -129,13 +182,17 @@ Deno.serve(async (req) => {
       .single()
 
     if (!conversation) {
+      // Get next sales rep for assignment
+      const assignedTo = await getNextSalesRep(supabase, tenantId)
+
       const { data: newConversation, error: convError } = await supabase
         .from('conversations')
         .insert({
           tenant_id: tenantId,
           contact_id: dbContact.id,
           channel_id: channel?.id,
-          status: 'open',
+          status: assignedTo ? 'assigned' : 'open',
+          assigned_to: assignedTo,
           last_message_at: new Date().toISOString(),
           last_message_preview: text.substring(0, 100)
         })
@@ -147,6 +204,7 @@ Deno.serve(async (req) => {
         throw convError
       }
       conversation = newConversation
+      console.log('Created new conversation with assignment:', assignedTo)
     } else {
       await supabase
         .from('conversations')
