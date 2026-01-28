@@ -128,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem('currentTenantId');
+    window.location.href = '/auth';
   };
 
   const handleSetCurrentTenant = (tenant: Tenant | null) => {
