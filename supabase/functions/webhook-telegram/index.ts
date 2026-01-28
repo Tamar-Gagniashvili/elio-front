@@ -5,6 +5,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Verify Telegram webhook secret token
+async function verifyTelegramSignature(req: Request, channel: any): Promise<boolean> {
+  // Telegram sends the secret token in X-Telegram-Bot-Api-Secret-Token header
+  const secretToken = req.headers.get('X-Telegram-Bot-Api-Secret-Token')
+  const storedToken = (channel?.config as any)?.secret_token
+  
+  // If no secret token is configured, log warning but allow (backward compatibility)
+  if (!storedToken) {
+    console.warn('No secret_token configured for Telegram channel - signature verification skipped')
+    return true
+  }
+  
+  if (!secretToken) {
+    console.error('Missing X-Telegram-Bot-Api-Secret-Token header')
+    return false
+  }
+  
+  return secretToken === storedToken
+}
+
 // Get next sales rep using round-robin
 async function getNextSalesRep(supabase: any, tenantId: string) {
   // Get all active sales reps for this tenant
@@ -86,6 +106,33 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Find channel first to verify signature
+    const { data: channel } = await supabase
+      .from('channels')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('channel_type', 'telegram')
+      .eq('is_active', true)
+      .single()
+
+    if (!channel) {
+      console.error('Telegram channel not found for tenant:', tenantId)
+      return new Response(JSON.stringify({ error: 'Channel not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Verify Telegram signature
+    const isValid = await verifyTelegramSignature(req, channel)
+    if (!isValid) {
+      console.error('Invalid Telegram signature for tenant:', tenantId)
+      return new Response('Unauthorized', { 
+        status: 401,
+        headers: corsHeaders 
+      })
+    }
+
     const body = await req.json()
     console.log('Telegram webhook received:', JSON.stringify(body, null, 2))
 
@@ -133,15 +180,6 @@ Deno.serve(async (req) => {
       }
       contact = newContact
     }
-
-    // Find channel
-    const { data: channel } = await supabase
-      .from('channels')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('channel_type', 'telegram')
-      .eq('is_active', true)
-      .single()
 
     // Find or create conversation
     let { data: conversation } = await supabase

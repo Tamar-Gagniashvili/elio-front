@@ -5,6 +5,51 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Verify Facebook/WhatsApp webhook signature using HMAC SHA-256
+async function verifyFacebookSignature(req: Request, bodyText: string, appSecret: string | undefined): Promise<boolean> {
+  const signature = req.headers.get('X-Hub-Signature-256')
+  
+  // If no app_secret is configured, log warning but allow (backward compatibility)
+  if (!appSecret) {
+    console.warn('No app_secret configured for WhatsApp channel - signature verification skipped')
+    return true
+  }
+  
+  if (!signature) {
+    console.error('Missing X-Hub-Signature-256 header')
+    return false
+  }
+  
+  // Signature format: sha256=<hash>
+  const expectedPrefix = 'sha256='
+  if (!signature.startsWith(expectedPrefix)) {
+    console.error('Invalid signature format')
+    return false
+  }
+  
+  const providedHash = signature.slice(expectedPrefix.length)
+  
+  // Calculate expected hash using Web Crypto API
+  const encoder = new TextEncoder()
+  const keyData = encoder.encode(appSecret)
+  const messageData = encoder.encode(bodyText)
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  
+  const signatureBuffer = await crypto.subtle.sign('HMAC', key, messageData)
+  const expectedHash = Array.from(new Uint8Array(signatureBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  
+  return providedHash === expectedHash
+}
+
 // Get next sales rep using round-robin
 async function getNextSalesRep(supabase: any, tenantId: string) {
   const { data: salesReps, error: salesError } = await supabase
@@ -113,7 +158,38 @@ Deno.serve(async (req) => {
       })
     }
 
-    const body = await req.json()
+    // Read body as text first for signature verification
+    const bodyText = await req.text()
+    
+    // Find channel to get app_secret for signature verification
+    const { data: channel } = await supabase
+      .from('channels')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('channel_type', 'whatsapp')
+      .eq('is_active', true)
+      .single()
+
+    if (!channel) {
+      console.error('WhatsApp channel not found for tenant:', tenantId)
+      return new Response(JSON.stringify({ error: 'Channel not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Verify Facebook/WhatsApp signature
+    const appSecret = (channel.config as any)?.app_secret
+    const isValid = await verifyFacebookSignature(req, bodyText, appSecret)
+    if (!isValid) {
+      console.error('Invalid WhatsApp signature for tenant:', tenantId)
+      return new Response('Unauthorized', { 
+        status: 401,
+        headers: corsHeaders 
+      })
+    }
+
+    const body = JSON.parse(bodyText)
     console.log('WhatsApp webhook received:', JSON.stringify(body, null, 2))
 
     const entry = body.entry?.[0]
@@ -162,15 +238,6 @@ Deno.serve(async (req) => {
       }
       dbContact = newContact
     }
-
-    // Find channel
-    const { data: channel } = await supabase
-      .from('channels')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('channel_type', 'whatsapp')
-      .eq('is_active', true)
-      .single()
 
     // Find or create conversation
     let { data: conversation } = await supabase
