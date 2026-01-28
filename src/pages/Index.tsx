@@ -16,7 +16,7 @@ export default function Index() {
       return;
     }
 
-    // Check if user is super admin
+    // Check if user is super admin first - this takes priority
     const checkRoleAndRedirect = async () => {
       const { data } = await supabase
         .from('user_roles')
@@ -27,18 +27,19 @@ export default function Index() {
 
       if (data) {
         // User is super admin, go to admin dashboard
-        navigate('/admin');
-      } else if (memberships.length === 0) {
+        navigate('/admin', { replace: true });
+        return;
+      }
+      
+      // Not super admin - check tenant memberships
+      if (memberships.length === 0) {
         // No workspace, go to onboarding
-        navigate('/onboarding');
+        navigate('/onboarding', { replace: true });
       } else if (currentTenant) {
         // Has workspace and tenant selected, go to inbox
-        navigate('/inbox');
-      } else if (memberships.length > 0) {
-        // Has memberships but no current tenant selected yet
-        // This means tenant data is still loading, wait for it
-        // The useAuth hook will auto-select first tenant
+        navigate('/inbox', { replace: true });
       }
+      // If memberships exist but no currentTenant yet, wait for useAuth to auto-select
     };
 
     checkRoleAndRedirect();
