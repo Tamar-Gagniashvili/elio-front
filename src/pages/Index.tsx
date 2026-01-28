@@ -6,13 +6,13 @@ import { Loader2 } from 'lucide-react';
 
 export default function Index() {
   const navigate = useNavigate();
-  const { user, loading, memberships, currentTenant } = useAuth();
+  const { user, loading, dataLoaded, memberships, currentTenant } = useAuth();
   const [roleChecked, setRoleChecked] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  // First effect: Check super_admin role
+  // First effect: Check super_admin role once user and data are loaded
   useEffect(() => {
-    if (loading || !user) {
+    if (loading || !user || !dataLoaded) {
       setRoleChecked(false);
       return;
     }
@@ -30,7 +30,7 @@ export default function Index() {
     };
 
     checkRole();
-  }, [user, loading]);
+  }, [user, loading, dataLoaded]);
 
   // Second effect: Handle redirects after role is checked
   useEffect(() => {
@@ -41,8 +41,8 @@ export default function Index() {
       return;
     }
 
-    // Wait for role check to complete
-    if (!roleChecked) return;
+    // Wait for both data loaded AND role check to complete
+    if (!dataLoaded || !roleChecked) return;
 
     if (isSuperAdmin) {
       navigate('/admin', { replace: true });
@@ -56,7 +56,7 @@ export default function Index() {
       navigate('/inbox', { replace: true });
     }
     // If memberships exist but no currentTenant yet, wait for useAuth to auto-select
-  }, [user, loading, roleChecked, isSuperAdmin, memberships, currentTenant, navigate]);
+  }, [user, loading, dataLoaded, roleChecked, isSuperAdmin, memberships, currentTenant, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

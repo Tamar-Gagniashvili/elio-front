@@ -11,6 +11,7 @@ interface AuthContextType {
   currentTenant: Tenant | null;
   currentMembership: TenantMembership | null;
   loading: boolean;
+  dataLoaded: boolean; // New: indicates if user data has been fetched
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [currentMembership, setCurrentMembership] = useState<TenantMembership | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -45,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setMemberships([]);
           setCurrentTenant(null);
           setCurrentMembership(null);
+          setDataLoaded(false);
           setLoading(false);
         }
       }
@@ -103,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
+      setDataLoaded(true);
       setLoading(false);
     }
   };
@@ -153,6 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentTenant,
         currentMembership,
         loading,
+        dataLoaded,
         signIn,
         signUp,
         signOut,
