@@ -184,7 +184,7 @@
 
   // Elements
   var toggleBtn = document.getElementById('chatflow-toggle');
-  var window = document.getElementById('chatflow-window');
+  var chatWindow = document.getElementById('chatflow-window');
   var closeBtn = document.getElementById('chatflow-close');
   var content = document.getElementById('chatflow-content');
   var title = document.getElementById('chatflow-title');
@@ -328,7 +328,7 @@
   // Event handlers
   toggleBtn.onclick = function() {
     state.isOpen = !state.isOpen;
-    window.classList.toggle('open', state.isOpen);
+    chatWindow.classList.toggle('open', state.isOpen);
     
     if (state.isOpen && !content.innerHTML) {
       if (state.isStarted && state.conversationId) {
@@ -341,7 +341,7 @@
 
   closeBtn.onclick = function() {
     state.isOpen = false;
-    window.classList.remove('open');
+    chatWindow.classList.remove('open');
   };
 
   init();
