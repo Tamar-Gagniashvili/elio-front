@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChannelType, CHANNEL_CONFIG } from '@/lib/types';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ChannelBadge } from '@/components/ChannelBadge';
-import { ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { ExternalLink, Eye, EyeOff, Copy, Check } from 'lucide-react';
 
 interface ChannelCredentialField {
   key: string;
@@ -22,7 +23,7 @@ interface ChannelCredentialField {
 }
 
 const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
-  web_chat: [], // No credentials needed
+  web_chat: [],
   telegram: [
     {
       key: 'bot_token',
@@ -50,6 +51,12 @@ const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
       key: 'business_account_id',
       label: 'Business Account ID',
       placeholder: '123456789012345',
+      type: 'text',
+    },
+    {
+      key: 'verify_token',
+      label: 'Webhook Verify Token',
+      placeholder: 'your_custom_verify_token',
       type: 'text',
     },
   ],
@@ -94,6 +101,12 @@ const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
       placeholder: '17841400000000000',
       type: 'text',
     },
+    {
+      key: 'verify_token',
+      label: 'Webhook Verify Token',
+      placeholder: 'your_custom_verify_token',
+      type: 'text',
+    },
   ],
   sms: [
     {
@@ -118,6 +131,23 @@ const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
   ],
 };
 
+const getWebhookUrl = (channelType: ChannelType, tenantId: string): string | null => {
+  const baseUrl = 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1';
+  
+  switch (channelType) {
+    case 'telegram':
+      return `${baseUrl}/webhook-telegram?tenant_id=${tenantId}`;
+    case 'whatsapp':
+      return `${baseUrl}/webhook-whatsapp?tenant_id=${tenantId}`;
+    case 'messenger':
+      return `${baseUrl}/webhook-messenger?tenant_id=${tenantId}`;
+    case 'instagram':
+      return `${baseUrl}/webhook-instagram?tenant_id=${tenantId}`;
+    default:
+      return null;
+  }
+};
+
 interface ChannelConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -137,13 +167,17 @@ export function ChannelConfigDialog({
 }: ChannelConfigDialogProps) {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const { currentTenant } = useAuth();
 
   const fields = CHANNEL_CREDENTIALS[channelType];
+  const webhookUrl = currentTenant ? getWebhookUrl(channelType, currentTenant.id) : null;
 
   useEffect(() => {
     if (open) {
       setConfig(currentConfig || {});
       setShowPasswords({});
+      setCopiedWebhook(false);
     }
   }, [open, currentConfig]);
 
@@ -155,7 +189,13 @@ export function ChannelConfigDialog({
     setShowPasswords((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const isConfigured = fields.every((field) => config[field.key]?.trim());
+  const copyWebhookUrl = async () => {
+    if (webhookUrl) {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopiedWebhook(true);
+      setTimeout(() => setCopiedWebhook(false), 2000);
+    }
+  };
 
   if (fields.length === 0) {
     return (
@@ -185,7 +225,7 @@ export function ChannelConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ChannelBadge channelType={channelType} size="sm" />
@@ -196,7 +236,35 @@ export function ChannelConfigDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        {webhookUrl && (
+          <div className="bg-muted rounded-lg p-3 space-y-2">
+            <Label className="text-sm font-medium">Webhook URL</Label>
+            <p className="text-xs text-muted-foreground">
+              Copy this URL and paste it into your {CHANNEL_CONFIG[channelType].label} settings
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                value={webhookUrl}
+                readOnly
+                className="text-xs font-mono bg-background"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={copyWebhookUrl}
+                className="shrink-0"
+              >
+                {copiedWebhook ? (
+                  <Check className="h-4 w-4 text-primary" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4 py-2">
           {fields.map((field) => (
             <div key={field.key} className="space-y-2">
               <div className="flex items-center justify-between">
