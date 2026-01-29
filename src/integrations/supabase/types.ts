@@ -171,7 +171,7 @@ export type Database = {
       contact_notes: {
         Row: {
           color: string | null
-          contact_id: string
+          contact_id: string | null
           content: string
           created_at: string
           created_by: string
@@ -183,7 +183,7 @@ export type Database = {
         }
         Insert: {
           color?: string | null
-          contact_id: string
+          contact_id?: string | null
           content: string
           created_at?: string
           created_by: string
@@ -195,7 +195,7 @@ export type Database = {
         }
         Update: {
           color?: string | null
-          contact_id?: string
+          contact_id?: string | null
           content?: string
           created_at?: string
           created_by?: string
