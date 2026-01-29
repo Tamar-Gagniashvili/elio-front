@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useLinkedContacts } from '@/hooks/useLinkedContacts';
 import { Contact } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getStatusColorClasses } from '@/pages/Statuses';
@@ -12,18 +13,13 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, X, Tag } from 'lucide-react';
+import { Loader2, Check, Tag, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LeadStatus {
   id: string;
   name: string;
   color: string;
-}
-
-interface ContactStatus {
-  id: string;
-  status_id: string;
 }
 
 interface ManageStatusDialogProps {
@@ -41,18 +37,21 @@ export function ManageStatusDialog({
 }: ManageStatusDialogProps) {
   const { user, currentTenant } = useAuth();
   const { toast } = useToast();
+  const { linkedContactIds, isLinked } = useLinkedContacts(
+    contact.id, 
+    currentTenant?.id || ''
+  );
   
   const [availableStatuses, setAvailableStatuses] = useState<LeadStatus[]>([]);
   const [assignedStatusIds, setAssignedStatusIds] = useState<Set<string>>(new Set());
-  const [contactStatusMap, setContactStatusMap] = useState<Map<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (open && currentTenant) {
+    if (open && currentTenant && linkedContactIds.length > 0) {
       fetchData();
     }
-  }, [open, currentTenant, contact.id]);
+  }, [open, currentTenant, linkedContactIds]);
 
   const fetchData = async () => {
     if (!currentTenant) return;
@@ -66,24 +65,20 @@ export function ManageStatusDialog({
       .eq('tenant_id', currentTenant.id)
       .order('created_at');
 
-    // Fetch assigned statuses for this contact
+    // Fetch assigned statuses for ALL linked contacts
     const { data: assignedData } = await supabase
       .from('contact_statuses')
-      .select('id, status_id')
-      .eq('contact_id', contact.id);
+      .select('status_id')
+      .in('contact_id', linkedContactIds);
 
     setAvailableStatuses(statusesData || []);
     
     const assignedIds = new Set<string>();
-    const statusMap = new Map<string, string>();
-    
-    (assignedData || []).forEach((cs: ContactStatus) => {
+    (assignedData || []).forEach((cs) => {
       assignedIds.add(cs.status_id);
-      statusMap.set(cs.status_id, cs.id);
     });
     
     setAssignedStatusIds(assignedIds);
-    setContactStatusMap(statusMap);
     setIsLoading(false);
   };
 
@@ -95,44 +90,37 @@ export function ManageStatusDialog({
     const isAssigned = assignedStatusIds.has(statusId);
     
     if (isAssigned) {
-      // Remove status
-      const contactStatusId = contactStatusMap.get(statusId);
-      if (contactStatusId) {
-        const { error } = await supabase
-          .from('contact_statuses')
-          .delete()
-          .eq('id', contactStatusId);
+      // Remove status from ALL linked contacts
+      const { error } = await supabase
+        .from('contact_statuses')
+        .delete()
+        .eq('status_id', statusId)
+        .in('contact_id', linkedContactIds);
 
-        if (error) {
-          toast({
-            title: 'Error',
-            description: 'Failed to remove status',
-            variant: 'destructive',
-          });
-        } else {
-          const newAssigned = new Set(assignedStatusIds);
-          newAssigned.delete(statusId);
-          setAssignedStatusIds(newAssigned);
-          
-          const newMap = new Map(contactStatusMap);
-          newMap.delete(statusId);
-          setContactStatusMap(newMap);
-          
-          onStatusesChanged?.();
-        }
+      if (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to remove status',
+          variant: 'destructive',
+        });
+      } else {
+        const newAssigned = new Set(assignedStatusIds);
+        newAssigned.delete(statusId);
+        setAssignedStatusIds(newAssigned);
+        onStatusesChanged?.();
       }
     } else {
-      // Add status
-      const { data, error } = await supabase
+      // Add status to ALL linked contacts
+      const inserts = linkedContactIds.map(contactId => ({
+        tenant_id: currentTenant.id,
+        contact_id: contactId,
+        status_id: statusId,
+        created_by: user.id,
+      }));
+
+      const { error } = await supabase
         .from('contact_statuses')
-        .insert({
-          tenant_id: currentTenant.id,
-          contact_id: contact.id,
-          status_id: statusId,
-          created_by: user.id,
-        })
-        .select('id')
-        .single();
+        .upsert(inserts, { onConflict: 'contact_id,status_id' });
 
       if (error) {
         toast({
@@ -140,15 +128,10 @@ export function ManageStatusDialog({
           description: 'Failed to add status',
           variant: 'destructive',
         });
-      } else if (data) {
+      } else {
         const newAssigned = new Set(assignedStatusIds);
         newAssigned.add(statusId);
         setAssignedStatusIds(newAssigned);
-        
-        const newMap = new Map(contactStatusMap);
-        newMap.set(statusId, data.id);
-        setContactStatusMap(newMap);
-        
         onStatusesChanged?.();
       }
     }
@@ -167,9 +150,16 @@ export function ManageStatusDialog({
         </DialogHeader>
 
         <div className="py-4">
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground mb-2">
             Select statuses to assign to <strong>{contact.name || 'this contact'}</strong>
           </p>
+          
+          {isLinked && (
+            <div className="flex items-center gap-2 mb-4 p-2 rounded-md bg-muted/50 text-xs text-muted-foreground">
+              <Link2 className="h-3 w-3" />
+              <span>This contact is linked with {linkedContactIds.length - 1} other(s). Statuses will apply to all.</span>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -201,9 +191,14 @@ export function ManageStatusDialog({
                         : cn(colorClasses.border, 'hover:border-primary/50')
                     )}
                   >
-                    <Badge className={cn(colorClasses.bg, colorClasses.text, 'border', colorClasses.border)}>
+                    <span className={cn(
+                      'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border',
+                      colorClasses.bg,
+                      colorClasses.text,
+                      colorClasses.border
+                    )}>
                       {status.name}
-                    </Badge>
+                    </span>
                     {isAssigned ? (
                       <div className="flex items-center gap-1 text-primary">
                         <Check className="h-4 w-4" />
