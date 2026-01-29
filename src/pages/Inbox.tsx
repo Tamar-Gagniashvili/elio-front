@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Conversation, Message, Contact, ConversationStatus } from '@/lib/types';
+import { Conversation, Message, Contact, ConversationStatus, ChannelType } from '@/lib/types';
+import { useUnifiedContacts, GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { ConversationList } from '@/components/inbox/ConversationList';
+import { UnifiedConversationList } from '@/components/inbox/UnifiedConversationList';
 import { ChatView, ContactDetails } from '@/components/inbox/ChatView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ type FilterStatus = 'all' | 'open' | 'assigned' | 'resolved';
 export default function Inbox() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<GroupedConversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [linkedContacts, setLinkedContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +26,26 @@ export default function Inbox() {
   
   const { currentTenant, user } = useAuth();
   const { toast } = useToast();
+
+  // Use unified contacts hook
+  const { groupedConversations, refreshLinks } = useUnifiedContacts({
+    conversations,
+    tenantId: currentTenant?.id,
+  });
+
+  // Filter grouped conversations
+  const filteredGroups = groupedConversations.filter((group) => {
+    if (!searchQuery) return true;
+    const displayName = group.displayName.toLowerCase();
+    const hasMatchingContact = group.contacts.some(c => 
+      c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    const hasMatchingPreview = group.conversations.some(c =>
+      c.last_message_preview?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return displayName.includes(searchQuery.toLowerCase()) || hasMatchingContact || hasMatchingPreview;
+  });
 
   // Fetch conversations
   useEffect(() => {
@@ -185,6 +207,32 @@ export default function Inbox() {
     };
   }, [selectedConversation?.id, fetchLinkedContacts]);
 
+  const handleSelectGroup = (group: GroupedConversation) => {
+    setSelectedGroup(group);
+    // Select the most recent conversation from the group
+    const latestConv = group.conversations.reduce((latest, conv) => {
+      if (!latest) return conv;
+      if (!conv.last_message_at) return latest;
+      if (!latest.last_message_at) return conv;
+      return new Date(conv.last_message_at) > new Date(latest.last_message_at) ? conv : latest;
+    }, undefined as Conversation | undefined);
+    
+    if (latestConv) {
+      setSelectedConversation(latestConv);
+    }
+  };
+
+  const handleSelectChannel = (group: GroupedConversation, channelType: ChannelType) => {
+    setSelectedGroup(group);
+    // Find the conversation for this channel
+    const channelConv = group.conversations.find(
+      c => c.contact?.channel_type === channelType
+    );
+    if (channelConv) {
+      setSelectedConversation(channelConv);
+    }
+  };
+
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation || !user) return;
 
@@ -262,13 +310,10 @@ export default function Inbox() {
     }
   };
 
-  const filteredConversations = conversations.filter((conv) => {
-    if (!searchQuery) return true;
-    const contactName = conv.contact?.name?.toLowerCase() || '';
-    const preview = conv.last_message_preview?.toLowerCase() || '';
-    const query = searchQuery.toLowerCase();
-    return contactName.includes(query) || preview.includes(query);
-  });
+  const handleLinksChanged = () => {
+    fetchLinkedContacts();
+    refreshLinks();
+  };
 
   return (
     <AppLayout>
@@ -296,10 +341,12 @@ export default function Inbox() {
           </div>
 
           <div className="flex-1 overflow-y-auto scrollbar-thin">
-            <ConversationList
-              conversations={filteredConversations}
-              selectedId={selectedConversation?.id}
-              onSelect={setSelectedConversation}
+            <UnifiedConversationList
+              groupedConversations={filteredGroups}
+              selectedGroupId={selectedGroup?.id}
+              selectedConversationId={selectedConversation?.id}
+              onSelectGroup={handleSelectGroup}
+              onSelectChannel={handleSelectChannel}
             />
           </div>
         </div>
@@ -315,13 +362,17 @@ export default function Inbox() {
                   onSendMessage={handleSendMessage}
                   onStatusChange={handleStatusChange}
                   linkedContacts={linkedContacts}
-                  onLinksChanged={fetchLinkedContacts}
+                  onLinksChanged={handleLinksChanged}
+                  selectedGroup={selectedGroup}
+                  onSelectConversation={setSelectedConversation}
                 />
               </div>
               <div className="w-72 hidden lg:block">
                 <ContactDetails 
-                  conversation={selectedConversation} 
+                  conversation={selectedConversation}
                   linkedContacts={linkedContacts}
+                  selectedGroup={selectedGroup}
+                  onSelectConversation={setSelectedConversation}
                 />
               </div>
             </>

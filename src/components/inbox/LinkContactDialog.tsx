@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Contact, ContactLink } from '@/lib/types';
+import { Contact } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Search, Plus, X, Link2, Loader2 } from 'lucide-react';
+import { Search, Plus, X, Link2, Loader2, Pencil, Check } from 'lucide-react';
 
 interface LinkContactDialogProps {
   open: boolean;
@@ -34,6 +34,8 @@ export function LinkContactDialog({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentLinkGroupId, setCurrentLinkGroupId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
   
   const { currentTenant, user } = useAuth();
   const { toast } = useToast();
@@ -48,12 +50,22 @@ export function LinkContactDialog({
       // First, check if this contact has a link group
       const { data: linkData } = await supabase
         .from('contact_links')
-        .select('link_group_id')
+        .select(`
+          link_group_id,
+          contact_link_groups:link_group_id (
+            id,
+            display_name
+          )
+        `)
         .eq('contact_id', contact.id)
         .single();
 
       const linkGroupId = linkData?.link_group_id || null;
       setCurrentLinkGroupId(linkGroupId);
+      
+      // Set display name from group or default to contact name
+      const group = linkData?.contact_link_groups as unknown as { id: string; display_name?: string } | null;
+      setDisplayName(group?.display_name || contact.name || 'Unknown Contact');
 
       // Fetch all linked contacts in the same group
       if (linkGroupId) {
@@ -114,6 +126,33 @@ export function LinkContactDialog({
     return name.includes(query) || email.includes(query) || phone.includes(query);
   });
 
+  const handleUpdateDisplayName = async () => {
+    if (!currentLinkGroupId || !displayName.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('contact_link_groups')
+        .update({ display_name: displayName.trim() })
+        .eq('id', currentLinkGroupId);
+
+      if (error) throw error;
+
+      setIsEditingName(false);
+      toast({
+        title: 'Name updated',
+        description: 'The contact group name has been updated.',
+      });
+      onLinksChanged();
+    } catch (error) {
+      console.error('Error updating display name:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update name. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleLinkContact = async (targetContact: Contact) => {
     if (!user || !currentTenant) return;
 
@@ -129,7 +168,21 @@ export function LinkContactDialog({
 
       if (!currentLinkGroupId && !targetLink?.link_group_id) {
         // Neither has a group, create a new one
-        newGroupId = crypto.randomUUID();
+        const groupName = displayName || contact.name || 'Linked Contact';
+        
+        // Create the link group first
+        const { data: newGroup, error: groupError } = await supabase
+          .from('contact_link_groups')
+          .insert({
+            tenant_id: currentTenant.id,
+            display_name: groupName,
+            created_by: user.id,
+          })
+          .select('id')
+          .single();
+
+        if (groupError) throw groupError;
+        newGroupId = newGroup.id;
         
         // Insert both contacts into the new group
         const { error } = await supabase.from('contact_links').insert([
@@ -170,6 +223,17 @@ export function LinkContactDialog({
 
         if (error) throw error;
         newGroupId = targetLink.link_group_id;
+        
+        // Fetch display name from target's group
+        const { data: groupData } = await supabase
+          .from('contact_link_groups')
+          .select('display_name')
+          .eq('id', targetLink.link_group_id)
+          .single();
+        
+        if (groupData?.display_name) {
+          setDisplayName(groupData.display_name);
+        }
       } else if (currentLinkGroupId && targetLink?.link_group_id && currentLinkGroupId !== targetLink.link_group_id) {
         // Both have different groups, merge them into current group
         const { error } = await supabase
@@ -178,6 +242,13 @@ export function LinkContactDialog({
           .eq('link_group_id', targetLink.link_group_id);
 
         if (error) throw error;
+        
+        // Delete the old group
+        await supabase
+          .from('contact_link_groups')
+          .delete()
+          .eq('id', targetLink.link_group_id);
+          
         newGroupId = currentLinkGroupId;
       }
 
@@ -220,12 +291,19 @@ export function LinkContactDialog({
         .eq('link_group_id', currentLinkGroupId);
 
       if (remainingLinks && remainingLinks.length <= 1) {
-        // Only current contact left, remove their link too
+        // Only current contact left, remove their link and the group
         await supabase
           .from('contact_links')
           .delete()
           .eq('link_group_id', currentLinkGroupId);
+          
+        await supabase
+          .from('contact_link_groups')
+          .delete()
+          .eq('id', currentLinkGroupId);
+          
         setCurrentLinkGroupId(null);
+        setDisplayName(contact.name || 'Unknown Contact');
       }
 
       setLinkedContacts(prev => prev.filter(c => c.id !== targetContact.id));
@@ -261,31 +339,92 @@ export function LinkContactDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col gap-4">
+          {/* Display Name Editor */}
+          {(linkedContacts.length > 0 || currentLinkGroupId) && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground">Contact Name</h4>
+              <div className="flex items-center gap-2">
+                {isEditingName ? (
+                  <>
+                    <Input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Enter display name..."
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleUpdateDisplayName}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setIsEditingName(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 font-medium">{displayName}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setIsEditingName(true)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Currently linked contacts */}
           {linkedContacts.length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">Currently Linked</h4>
+              <h4 className="text-sm font-medium text-muted-foreground">Linked Channels</h4>
               <div className="space-y-2 max-h-32 overflow-y-auto">
+                {/* Show current contact first */}
+                <div className="flex items-center justify-between p-2 rounded-md bg-primary/10 border border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <ChannelBadge
+                      channelType={contact.channel_type}
+                      size="md"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">
+                        {contact.name || 'Unknown'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">Current</span>
+                    </div>
+                  </div>
+                </div>
+                
                 {linkedContacts.map((linkedContact) => (
                   <div
                     key={linkedContact.id}
                     className="flex items-center justify-between p-2 rounded-md bg-muted/50"
                   >
                     <div className="flex items-center gap-2">
-                      <Avatar
-                        src={linkedContact.avatar_url}
-                        name={linkedContact.name}
-                        size="sm"
+                      <ChannelBadge
+                        channelType={linkedContact.channel_type}
+                        size="md"
                       />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">
                           {linkedContact.name || 'Unknown'}
                         </span>
-                        <ChannelBadge
-                          channelType={linkedContact.channel_type}
-                          showLabel
-                          size="sm"
-                        />
+                        <span className="text-xs text-muted-foreground">
+                          {linkedContact.email || linkedContact.phone || ''}
+                        </span>
                       </div>
                     </div>
                     <Button
@@ -333,26 +472,17 @@ export function LinkContactDialog({
                   className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <Avatar
-                      src={availableContact.avatar_url}
-                      name={availableContact.name}
-                      size="sm"
+                    <ChannelBadge
+                      channelType={availableContact.channel_type}
+                      size="md"
                     />
                     <div className="flex flex-col">
                       <span className="text-sm font-medium">
                         {availableContact.name || 'Unknown'}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <ChannelBadge
-                          channelType={availableContact.channel_type}
-                          size="sm"
-                        />
-                        {availableContact.email && (
-                          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                            {availableContact.email}
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                        {availableContact.email || availableContact.phone || ''}
+                      </span>
                     </div>
                   </div>
                   <Button

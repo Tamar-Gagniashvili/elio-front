@@ -87,6 +87,38 @@ export type Database = {
           },
         ]
       }
+      contact_link_groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_link_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_links: {
         Row: {
           contact_id: string
@@ -118,6 +150,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: true
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_links_link_group_id_fkey"
+            columns: ["link_group_id"]
+            isOneToOne: false
+            referencedRelation: "contact_link_groups"
             referencedColumns: ["id"]
           },
           {

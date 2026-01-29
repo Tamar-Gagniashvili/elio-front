@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Conversation, Message, Contact } from '@/lib/types';
+import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar } from '@/components/Avatar';
@@ -26,14 +27,29 @@ interface ChatViewProps {
   onStatusChange: (status: 'open' | 'assigned' | 'resolved' | 'archived') => void;
   linkedContacts?: Contact[];
   onLinksChanged?: () => void;
+  selectedGroup?: GroupedConversation | null;
+  onSelectConversation?: (conversation: Conversation) => void;
 }
 
-export function ChatView({ conversation, messages, onSendMessage, onStatusChange, linkedContacts = [], onLinksChanged }: ChatViewProps) {
+export function ChatView({ 
+  conversation, 
+  messages, 
+  onSendMessage, 
+  onStatusChange, 
+  linkedContacts = [], 
+  onLinksChanged,
+  selectedGroup,
+  onSelectConversation,
+}: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, profile } = useAuth();
+
+  // Get channel types from the group
+  const channelTypes = selectedGroup?.contacts.map(c => c.channel_type) || 
+    (conversation.contact ? [conversation.contact.channel_type] : []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -222,12 +238,22 @@ export function ChatView({ conversation, messages, onSendMessage, onStatusChange
 
 export function ContactDetails({ 
   conversation, 
-  linkedContacts = [] 
+  linkedContacts = [],
+  selectedGroup,
+  onSelectConversation,
 }: { 
   conversation: Conversation;
   linkedContacts?: Contact[];
+  selectedGroup?: GroupedConversation | null;
+  onSelectConversation?: (conversation: Conversation) => void;
 }) {
   const contact = conversation.contact;
+  
+  // Get display name from group or contact
+  const displayName = selectedGroup?.displayName || contact?.name || 'Unknown Contact';
+  
+  // Get all channels from the group
+  const channels = selectedGroup?.contacts || (contact ? [contact] : []);
 
   return (
     <div className="h-full bg-card border-l flex flex-col overflow-y-auto">
@@ -240,13 +266,42 @@ export function ContactDetails({
       <div className="p-4 flex flex-col items-center">
         <Avatar
           src={contact?.avatar_url}
-          name={contact?.name}
+          name={displayName}
           size="xl"
         />
         <h3 className="font-semibold text-lg mt-3">
-          {contact?.name || 'Unknown Contact'}
+          {displayName}
         </h3>
-        {contact && (
+        
+        {/* Channel icons for unified contacts */}
+        {selectedGroup && selectedGroup.isUnified ? (
+          <div className="flex items-center gap-2 mt-2">
+            {channels.map((channelContact) => {
+              const isActive = channelContact.id === contact?.id;
+              const channelConv = selectedGroup.conversations.find(
+                c => c.contact?.id === channelContact.id
+              );
+              
+              return (
+                <button
+                  key={channelContact.id}
+                  onClick={() => channelConv && onSelectConversation?.(channelConv)}
+                  className={cn(
+                    'p-1 rounded-full transition-all',
+                    isActive 
+                      ? 'ring-2 ring-primary ring-offset-2' 
+                      : 'hover:ring-2 hover:ring-muted-foreground/50'
+                  )}
+                >
+                  <ChannelBadge 
+                    channelType={channelContact.channel_type} 
+                    size="md"
+                  />
+                </button>
+              );
+            })}
+          </div>
+        ) : contact && (
           <ChannelBadge 
             channelType={contact.channel_type} 
             showLabel 
@@ -278,8 +333,59 @@ export function ContactDetails({
         </div>
       </div>
 
-      {/* Linked Contacts Section */}
-      {linkedContacts.length > 0 && (
+      {/* All Channels Section for unified contacts */}
+      {selectedGroup && selectedGroup.isUnified && channels.length > 1 && (
+        <div className="mt-6 px-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Link2 className="h-4 w-4 text-muted-foreground" />
+            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+              All Channels
+            </h4>
+          </div>
+          <div className="space-y-2">
+            {channels.map((channelContact) => {
+              const isActive = channelContact.id === contact?.id;
+              const channelConv = selectedGroup.conversations.find(
+                c => c.contact?.id === channelContact.id
+              );
+              
+              return (
+                <button
+                  key={channelContact.id}
+                  onClick={() => channelConv && onSelectConversation?.(channelConv)}
+                  className={cn(
+                    'w-full flex items-center gap-2 p-2 rounded-md transition-colors text-left',
+                    isActive 
+                      ? 'bg-primary/10 border border-primary/20' 
+                      : 'bg-muted/50 hover:bg-muted'
+                  )}
+                >
+                  <ChannelBadge
+                    channelType={channelContact.channel_type}
+                    size="md"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {channelContact.name || 'Unknown'}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {channelContact.email || channelContact.phone || ''}
+                    </p>
+                  </div>
+                  {isActive && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Active
+                    </Badge>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Linked Contacts Section (fallback for non-unified) */}
+      {!selectedGroup?.isUnified && linkedContacts.length > 0 && (
         <div className="mt-6 px-4">
           <div className="flex items-center gap-2 mb-3">
             <Link2 className="h-4 w-4 text-muted-foreground" />
