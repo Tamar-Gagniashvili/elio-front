@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation, Message, Contact, ConversationStatus, ChannelType } from '@/lib/types';
@@ -26,6 +27,7 @@ export default function Inbox() {
   
   const { currentTenant, user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Use unified contacts hook
   const { groupedConversations, refreshLinks } = useUnifiedContacts({
@@ -99,6 +101,26 @@ export default function Inbox() {
       supabase.removeChannel(channel);
     };
   }, [currentTenant, filterStatus]);
+
+  // Handle conversation query parameter from reminder notifications
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation');
+    if (conversationId && conversations.length > 0) {
+      const targetConv = conversations.find(c => c.id === conversationId);
+      if (targetConv) {
+        setSelectedConversation(targetConv);
+        // Find and set the group
+        const targetGroup = groupedConversations.find(g => 
+          g.conversations.some(c => c.id === conversationId)
+        );
+        if (targetGroup) {
+          setSelectedGroup(targetGroup);
+        }
+        // Clear the query param
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, conversations, groupedConversations, setSearchParams]);
 
   // Fetch linked contacts for the selected conversation's contact
   const fetchLinkedContacts = useCallback(async () => {
