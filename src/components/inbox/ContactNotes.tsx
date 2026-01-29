@@ -223,7 +223,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
         )}
       </div>
 
-      {(isAdding || editingNote) && (
+      {isAdding && (
         <div className="mb-4 space-y-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-2 border-dashed border-yellow-300 dark:border-yellow-700">
           <Textarea
             value={newNote}
@@ -322,26 +322,22 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
               variant="ghost"
               size="sm"
               onClick={() => {
-                if (editingNote) {
-                  cancelEdit();
-                } else {
-                  setIsAdding(false);
-                  setNewNote('');
-                  setReminderOption('none');
-                  setCustomDate(undefined);
-                  setCustomTime('12:00');
-                  setSelectedColor('yellow');
-                }
+                setIsAdding(false);
+                setNewNote('');
+                setReminderOption('none');
+                setCustomDate(undefined);
+                setCustomTime('12:00');
+                setSelectedColor('yellow');
               }}
             >
               Cancel
             </Button>
             <Button
               size="sm"
-              onClick={editingNote ? handleUpdateNote : handleAddNote}
+              onClick={handleAddNote}
               disabled={!newNote.trim() || isSaving}
             >
-              {editingNote ? 'Update' : 'Pin it!'}
+              Pin it!
             </Button>
           </div>
         </div>
@@ -355,72 +351,186 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
         ) : (
           notes.map((note) => {
             const colorClasses = getColorClasses(note.color || 'yellow');
+            const isEditing = editingNote?.id === note.id;
             
             return (
               <div
                 key={note.id}
                 className={cn(
-                  'relative p-4 rounded-lg border-2 shadow-md transform transition-all hover:-rotate-1 hover:scale-[1.02]',
-                  colorClasses.bg,
-                  colorClasses.border,
+                  'relative p-4 rounded-lg border-2 shadow-md transition-all',
+                  !isEditing && 'transform hover:-rotate-1 hover:scale-[1.02]',
+                  isEditing ? getColorClasses(selectedColor).bg : colorClasses.bg,
+                  isEditing ? getColorClasses(selectedColor).border : colorClasses.border,
                   colorClasses.shadow,
                   'dark:bg-opacity-30'
                 )}
                 style={{
-                  transform: `rotate(${Math.random() * 2 - 1}deg)`,
+                  transform: isEditing ? 'none' : `rotate(${Math.random() * 2 - 1}deg)`,
                 }}
               >
                 {/* Pin */}
                 <div className={cn(
                   'absolute -top-2 left-1/2 -translate-x-1/2',
-                  colorClasses.pin
+                  isEditing ? getColorClasses(selectedColor).pin : colorClasses.pin
                 )}>
                   <Pin className="h-5 w-5 fill-current drop-shadow-sm" style={{ transform: 'rotate(45deg)' }} />
                 </div>
 
-                {/* Action buttons */}
-                <div className="absolute top-1 right-1 flex gap-1 opacity-0 hover:opacity-100 transition-opacity group-hover:opacity-100">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleEditNote(note)}
-                  >
-                    <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleDeleteNote(note.id)}
-                  >
-                    <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                  </Button>
-                </div>
+                {isEditing ? (
+                  /* Inline editing mode */
+                  <div className="space-y-3 pt-2">
+                    <Textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="Write your note..."
+                      className="min-h-[80px] resize-none bg-transparent border-none focus-visible:ring-0 text-sm"
+                      autoFocus
+                    />
+                    
+                    {/* Color picker */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Color:</span>
+                      <div className="flex gap-1">
+                        {NOTE_COLORS.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => setSelectedColor(color.value)}
+                            className={cn(
+                              'w-5 h-5 rounded-full border-2 transition-transform hover:scale-110',
+                              color.bg,
+                              color.border,
+                              selectedColor === color.value && 'ring-2 ring-offset-1 ring-foreground scale-110'
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
 
-                {/* Content */}
-                <p className="text-sm whitespace-pre-wrap pt-2 text-foreground/90 font-handwriting">
-                  {note.content}
-                </p>
+                    {/* Reminder select */}
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-3 w-3 text-muted-foreground" />
+                      <Select value={reminderOption} onValueChange={setReminderOption}>
+                        <SelectTrigger className="flex-1 h-7 text-xs bg-background/50">
+                          <SelectValue placeholder="Set reminder" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {REMINDER_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-current/10">
-                  <span className="text-[10px] text-foreground/60">
-                    {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
-                  </span>
-                  {note.reminder_at && (
-                    <span className={cn(
-                      'flex items-center gap-1 text-[10px]',
-                      !note.reminder_shown ? 'text-orange-600 font-medium' : 'text-foreground/60'
-                    )}>
-                      <Clock className="h-3 w-3" />
-                      {note.reminder_shown 
-                        ? 'Reminded' 
-                        : formatDistanceToNow(new Date(note.reminder_at), { addSuffix: true })
-                      }
-                    </span>
-                  )}
-                </div>
+                    {/* Custom date/time picker */}
+                    {reminderOption === 'custom' && (
+                      <div className="flex flex-col gap-2 p-2 rounded-md bg-background/50 border border-border">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "justify-start text-left font-normal h-7 text-xs",
+                                !customDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-3 w-3" />
+                              {customDate ? format(customDate, "PPP") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={customDate}
+                              onSelect={setCustomDate}
+                              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <Input
+                            type="time"
+                            value={customTime}
+                            onChange={(e) => setCustomTime(e.target.value)}
+                            className="flex-1 h-7 text-xs bg-background"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2 justify-end pt-2 border-t border-current/10">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={cancelEdit}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={handleUpdateNote}
+                        disabled={!newNote.trim() || isSaving}
+                      >
+                        Update
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Display mode */
+                  <>
+                    {/* Action buttons */}
+                    <div className="absolute top-1 right-1 flex gap-1 opacity-0 hover:opacity-100 transition-opacity group-hover:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleEditNote(note)}
+                      >
+                        <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleDeleteNote(note.id)}
+                      >
+                        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                      </Button>
+                    </div>
+
+                    {/* Content */}
+                    <p className="text-sm whitespace-pre-wrap pt-2 text-foreground/90 font-handwriting">
+                      {note.content}
+                    </p>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-current/10">
+                      <span className="text-[10px] text-foreground/60">
+                        {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                      </span>
+                      {note.reminder_at && (
+                        <span className={cn(
+                          'flex items-center gap-1 text-[10px]',
+                          !note.reminder_shown ? 'text-orange-600 font-medium' : 'text-foreground/60'
+                        )}>
+                          <Clock className="h-3 w-3" />
+                          {note.reminder_shown 
+                            ? 'Reminded' 
+                            : formatDistanceToNow(new Date(note.reminder_at), { addSuffix: true })
+                          }
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             );
           })
