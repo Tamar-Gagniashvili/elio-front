@@ -7,6 +7,7 @@ import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Search, Users, Link2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -30,7 +31,6 @@ export default function Contacts() {
     if (!currentTenant) return;
 
     const fetchData = async () => {
-      // Fetch contacts
       const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
         .select('*')
@@ -43,7 +43,6 @@ export default function Contacts() {
         setContacts(contactsData as Contact[]);
       }
 
-      // Fetch contact links
       const { data: links } = await supabase
         .from('contact_links')
         .select(`
@@ -75,7 +74,6 @@ export default function Contacts() {
     fetchData();
   }, [currentTenant]);
 
-  // Group contacts by link groups
   const groupedContacts = useMemo(() => {
     const groups = new Map<string, GroupedContact>();
     const standalone: GroupedContact[] = [];
@@ -88,7 +86,6 @@ export default function Contacts() {
         
         if (existing) {
           existing.contacts.push(contact);
-          // Update last activity to most recent
           if (new Date(contact.updated_at) > new Date(existing.lastActivity)) {
             existing.lastActivity = contact.updated_at;
           }
@@ -112,7 +109,6 @@ export default function Contacts() {
       }
     }
 
-    // Combine and sort by last activity
     const allGroups = [...groups.values(), ...standalone];
     allGroups.sort((a, b) => {
       return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
@@ -121,15 +117,12 @@ export default function Contacts() {
     return allGroups;
   }, [contacts, linkGroups]);
 
-  // Filter grouped contacts
   const filteredGroups = groupedContacts.filter((group) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     
-    // Check display name
     if (group.displayName.toLowerCase().includes(query)) return true;
     
-    // Check all contacts in the group
     return group.contacts.some((contact) => {
       const name = contact.name?.toLowerCase() || '';
       const email = contact.email?.toLowerCase() || '';
@@ -138,14 +131,12 @@ export default function Contacts() {
     });
   });
 
-  // Get unique channel types from a group
   const getChannelTypes = (group: GroupedContact): ChannelType[] => {
     const types = new Set<ChannelType>();
     group.contacts.forEach(c => types.add(c.channel_type));
     return Array.from(types);
   };
 
-  // Get combined contact info (email, phone) from all contacts
   const getCombinedInfo = (group: GroupedContact) => {
     const emails = new Set<string>();
     const phones = new Set<string>();
@@ -160,6 +151,28 @@ export default function Contacts() {
       phones: Array.from(phones),
     };
   };
+
+  const renderContactRow = (contact: Contact) => (
+    <div key={contact.id} className="flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-lg">
+      <Avatar
+        src={contact.avatar_url}
+        name={contact.name}
+        size="md"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium truncate">{contact.name || 'Unknown'}</span>
+          <ChannelBadge channelType={contact.channel_type} size="sm" />
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {contact.email || contact.phone || contact.external_id || 'No contact info'}
+        </div>
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {formatDistanceToNow(new Date(contact.created_at), { addSuffix: true })}
+      </div>
+    </div>
+  );
 
   return (
     <AppLayout>
@@ -204,35 +217,85 @@ export default function Contacts() {
               const info = getCombinedInfo(group);
               const primaryContact = group.contacts[0];
 
+              if (group.isLinked) {
+                return (
+                  <Accordion key={group.id} type="single" collapsible>
+                    <AccordionItem value={group.id} className="border rounded-lg bg-card">
+                      <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 rounded-lg [&[data-state=open]]:rounded-b-none">
+                        <div className="flex items-center gap-4 flex-1 text-left">
+                          <div className="relative flex-shrink-0">
+                            <Avatar
+                              src={primaryContact.avatar_url}
+                              name={group.displayName}
+                              size="lg"
+                            />
+                            <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                              <Link2 className="h-3 w-3 text-primary-foreground" />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold truncate">
+                                {group.displayName}
+                              </h3>
+                              <span className="text-xs text-muted-foreground">
+                                ({group.contacts.length} linked)
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-1 mb-2">
+                              {channelTypes.map((channelType) => (
+                                <ChannelBadge 
+                                  key={channelType} 
+                                  channelType={channelType} 
+                                  size="sm" 
+                                />
+                              ))}
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                              {info.emails.slice(0, 2).map((email) => (
+                                <span key={email}>{email}</span>
+                              ))}
+                              {info.emails.length > 2 && (
+                                <span>+{info.emails.length - 2} more</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-sm text-muted-foreground mr-2">
+                            {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="space-y-2 pt-2 border-t">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium py-2">
+                            Linked Contacts
+                          </p>
+                          {group.contacts.map(renderContactRow)}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                );
+              }
+
               return (
-                <Card key={group.id} className="hover:bg-muted/50 transition-colors cursor-pointer">
+                <Card key={group.id} className="hover:bg-muted/50 transition-colors">
                   <CardContent className="py-4">
                     <div className="flex items-center gap-4">
-                      <div className="relative flex-shrink-0">
-                        <Avatar
-                          src={primaryContact.avatar_url}
-                          name={group.displayName}
-                          size="lg"
-                        />
-                        {group.isLinked && (
-                          <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                            <Link2 className="h-3 w-3 text-primary-foreground" />
-                          </div>
-                        )}
-                      </div>
+                      <Avatar
+                        src={primaryContact.avatar_url}
+                        name={group.displayName}
+                        size="lg"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold truncate">
                             {group.displayName}
                           </h3>
-                          {group.isLinked && (
-                            <span className="text-xs text-muted-foreground">
-                              ({group.contacts.length} linked)
-                            </span>
-                          )}
                         </div>
                         
-                        {/* Channel badges */}
                         <div className="flex items-center gap-1 mb-2">
                           {channelTypes.map((channelType) => (
                             <ChannelBadge 
@@ -244,13 +307,10 @@ export default function Contacts() {
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                          {info.emails.slice(0, 2).map((email) => (
+                          {info.emails.map((email) => (
                             <span key={email}>{email}</span>
                           ))}
-                          {info.emails.length > 2 && (
-                            <span>+{info.emails.length - 2} more</span>
-                          )}
-                          {info.phones.slice(0, 2).map((phone) => (
+                          {info.phones.map((phone) => (
                             <span key={phone}>{phone}</span>
                           ))}
                         </div>
