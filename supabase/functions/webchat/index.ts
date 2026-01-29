@@ -140,15 +140,55 @@ Deno.serve(async (req) => {
       // Start new conversation
       const uniqueVisitorId = visitor_id || crypto.randomUUID()
 
-      // Find or create contact
-      let { data: contact } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .eq('external_id', uniqueVisitorId)
-        .eq('channel_type', 'web_chat')
-        .single()
+      // First, check if a contact with this email already exists (email-based deduplication)
+      let contact = null
+      
+      if (email) {
+        const { data: existingByEmail } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('email', email)
+          .eq('channel_type', 'web_chat')
+          .single()
+        
+        if (existingByEmail) {
+          contact = existingByEmail
+          console.log('Found existing contact by email:', email)
+          
+          // Update name if provided and different
+          if (name && name !== contact.name) {
+            await supabase
+              .from('contacts')
+              .update({ name })
+              .eq('id', contact.id)
+            contact.name = name
+          }
+          
+          // Update external_id to the new visitor_id for session continuity
+          if (uniqueVisitorId !== contact.external_id) {
+            await supabase
+              .from('contacts')
+              .update({ external_id: uniqueVisitorId })
+              .eq('id', contact.id)
+          }
+        }
+      }
 
+      // If not found by email, try by visitor_id
+      if (!contact) {
+        const { data: existingByVisitor } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('external_id', uniqueVisitorId)
+          .eq('channel_type', 'web_chat')
+          .single()
+        
+        contact = existingByVisitor
+      }
+
+      // Create new contact if none found
       if (!contact) {
         const { data: newContact, error: contactError } = await supabase
           .from('contacts')
@@ -165,15 +205,19 @@ Deno.serve(async (req) => {
 
         if (contactError) throw contactError
         contact = newContact
+        console.log('Created new contact:', contact.id)
       } else if (name || email) {
-        // Update contact info if provided
-        await supabase
-          .from('contacts')
-          .update({ 
-            name: name || contact.name,
-            email: email || contact.email 
-          })
-          .eq('id', contact.id)
+        // Update contact info if provided and not already set
+        const updates: Record<string, string> = {}
+        if (name && name !== contact.name) updates.name = name
+        if (email && !contact.email) updates.email = email
+        
+        if (Object.keys(updates).length > 0) {
+          await supabase
+            .from('contacts')
+            .update(updates)
+            .eq('id', contact.id)
+        }
       }
 
       // Find channel
