@@ -34,6 +34,38 @@ const NOTE_COLORS: Record<string, { bg: string; border: string; text: string }> 
   orange: { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-900' },
 };
 
+// Play a notification chime sound
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Create a pleasant two-tone chime
+    const playTone = (frequency: number, startTime: number, duration: number) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+    
+    const now = audioContext.currentTime;
+    playTone(880, now, 0.15);        // A5
+    playTone(1108.73, now + 0.15, 0.2); // C#6
+  } catch (error) {
+    console.log('Could not play notification sound:', error);
+  }
+};
+
 export function useReminderNotifications() {
   const { currentTenant, user } = useAuth();
   const { toast } = useToast();
@@ -85,6 +117,11 @@ export function useReminderNotifications() {
 
       const contactMap = new Map(contacts?.map(c => [c.id, c]) || []);
       const conversationMap = new Map(conversations?.map(c => [c.contact_id, c]) || []);
+
+      // Play notification sound once for all due reminders
+      if (dueNotes.length > 0) {
+        playNotificationSound();
+      }
 
       // Show toast for each due reminder
       for (const note of dueNotes as ContactNote[]) {
