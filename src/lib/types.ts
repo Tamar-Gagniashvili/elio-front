@@ -124,6 +124,25 @@ export interface UnifiedContact {
   lastMessageAt?: string;
 }
 
+export interface LeadStatus {
+  id: string;
+  tenant_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+  created_by?: string;
+}
+
+export interface ContactStatus {
+  id: string;
+  tenant_id: string;
+  contact_id: string;
+  status_id: string;
+  created_at: string;
+  created_by?: string;
+  status?: LeadStatus;
+}
+
 export interface ContactNote {
   id: string;
   tenant_id: string;

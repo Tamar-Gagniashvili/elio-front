@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Plug,
   StickyNote,
+  Tag,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -26,6 +27,7 @@ const navItems = [
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/notes', label: 'Notes', icon: StickyNote },
+  { href: '/statuses', label: 'Statuses', icon: Tag },
   { href: '/channels', label: 'Channels', icon: Plug },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
