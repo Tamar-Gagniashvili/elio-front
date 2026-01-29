@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StickyNote, Bell, Trash2, Plus, Clock, Pin, Pencil, CalendarIcon, User, Coffee } from 'lucide-react';
+import { StickyNote, Bell, Trash2, Plus, Clock, Pin, Pencil, CalendarIcon, User, Coffee, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow, addMinutes, format, set } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Contact } from '@/lib/types';
@@ -69,8 +70,10 @@ const getColorClasses = (color: string) => {
 
 export default function Notes() {
   const { user, currentTenant } = useAuth();
+  const navigate = useNavigate();
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [conversations, setConversations] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingNote, setEditingNote] = useState<ContactNote | null>(null);
@@ -87,6 +90,7 @@ export default function Notes() {
     if (currentTenant && user) {
       fetchNotes();
       fetchContacts();
+      fetchConversations();
     }
   }, [currentTenant, user]);
 
@@ -124,6 +128,35 @@ export default function Notes() {
       console.error('Error fetching contacts:', error);
     } else {
       setContacts(data as Contact[]);
+    }
+  };
+
+  const fetchConversations = async () => {
+    if (!currentTenant) return;
+    
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id, contact_id')
+      .eq('tenant_id', currentTenant.id);
+
+    if (error) {
+      console.error('Error fetching conversations:', error);
+    } else {
+      // Map contact_id -> conversation_id for quick lookup
+      const convMap: Record<string, string> = {};
+      data?.forEach(conv => {
+        if (conv.contact_id) {
+          convMap[conv.contact_id] = conv.id;
+        }
+      });
+      setConversations(convMap);
+    }
+  };
+
+  const navigateToChat = (contactId: string) => {
+    const conversationId = conversations[contactId];
+    if (conversationId) {
+      navigate(`/inbox?conversation=${conversationId}`);
     }
   };
 
@@ -459,12 +492,15 @@ export default function Notes() {
                       </Button>
                     </div>
 
-                    {/* Contact badge */}
-                    {note.contact && (
-                      <div className="mb-2 flex items-center gap-1 text-xs text-foreground/70">
-                        <User className="h-3 w-3" />
+                    {/* Contact badge - clickable to go to chat */}
+                    {note.contact && note.contact_id && (
+                      <button
+                        onClick={() => navigateToChat(note.contact_id!)}
+                        className="mb-2 flex items-center gap-1 text-xs text-foreground/70 hover:text-foreground hover:underline transition-colors"
+                      >
+                        <MessageSquare className="h-3 w-3" />
                         <span>{note.contact.name || 'Unknown'}</span>
-                      </div>
+                      </button>
                     )}
                     
                     {!note.contact_id && (
