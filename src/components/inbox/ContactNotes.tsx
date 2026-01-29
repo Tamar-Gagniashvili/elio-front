@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { 
   Select,
   SelectContent,
@@ -10,8 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { StickyNote, Bell, Trash2, Plus, Clock, Pin, Pencil } from 'lucide-react';
-import { formatDistanceToNow, addMinutes } from 'date-fns';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { StickyNote, Bell, Trash2, Plus, Clock, Pin, Pencil, CalendarIcon } from 'lucide-react';
+import { formatDistanceToNow, addMinutes, format, set } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface ContactNote {
@@ -38,6 +45,7 @@ const REMINDER_OPTIONS = [
   { value: '30', label: 'In 30 minutes' },
   { value: '60', label: 'In 1 hour' },
   { value: '1440', label: 'In 1 day' },
+  { value: 'custom', label: 'Custom time...' },
 ];
 
 const NOTE_COLORS = [
@@ -60,6 +68,8 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
   const [newNote, setNewNote] = useState('');
   const [selectedColor, setSelectedColor] = useState('yellow');
   const [reminderOption, setReminderOption] = useState('none');
+  const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
+  const [customTime, setCustomTime] = useState('12:00');
   const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
 
@@ -88,7 +98,10 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
     setIsSaving(true);
     
     let reminderAt: string | null = null;
-    if (reminderOption !== 'none') {
+    if (reminderOption === 'custom' && customDate) {
+      const [hours, minutes] = customTime.split(':').map(Number);
+      reminderAt = set(customDate, { hours, minutes, seconds: 0 }).toISOString();
+    } else if (reminderOption !== 'none' && reminderOption !== 'custom') {
       const minutes = parseInt(reminderOption, 10);
       reminderAt = addMinutes(new Date(), minutes).toISOString();
     }
@@ -109,6 +122,8 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
     } else {
       setNewNote('');
       setReminderOption('none');
+      setCustomDate(undefined);
+      setCustomTime('12:00');
       setSelectedColor('yellow');
       setIsAdding(false);
       fetchNotes();
@@ -135,6 +150,8 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
     setNewNote(note.content);
     setSelectedColor(note.color || 'yellow');
     setReminderOption('none');
+    setCustomDate(undefined);
+    setCustomTime('12:00');
     setIsAdding(false);
   };
 
@@ -144,7 +161,10 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
     setIsSaving(true);
     
     let reminderAt: string | null = editingNote.reminder_at || null;
-    if (reminderOption !== 'none') {
+    if (reminderOption === 'custom' && customDate) {
+      const [hours, minutes] = customTime.split(':').map(Number);
+      reminderAt = set(customDate, { hours, minutes, seconds: 0 }).toISOString();
+    } else if (reminderOption !== 'none' && reminderOption !== 'custom') {
       const minutes = parseInt(reminderOption, 10);
       reminderAt = addMinutes(new Date(), minutes).toISOString();
     }
@@ -163,6 +183,8 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
     } else {
       setNewNote('');
       setReminderOption('none');
+      setCustomDate(undefined);
+      setCustomTime('12:00');
       setSelectedColor('yellow');
       setEditingNote(null);
       fetchNotes();
@@ -175,6 +197,8 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
     setEditingNote(null);
     setNewNote('');
     setReminderOption('none');
+    setCustomDate(undefined);
+    setCustomTime('12:00');
     setSelectedColor('yellow');
   };
 
@@ -230,7 +254,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4 text-muted-foreground" />
             <Select value={reminderOption} onValueChange={setReminderOption}>
-              <SelectTrigger className="flex-1 h-8 bg-white/50 dark:bg-black/20">
+              <SelectTrigger className="flex-1 h-8 bg-background/50">
                 <SelectValue placeholder="Set reminder" />
               </SelectTrigger>
               <SelectContent>
@@ -243,6 +267,56 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
             </Select>
           </div>
 
+          {/* Custom date/time picker */}
+          {reminderOption === 'custom' && (
+            <div className="flex flex-col gap-2 p-3 rounded-md bg-background/50 border border-border">
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal h-8",
+                        !customDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customDate ? format(customDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customDate}
+                      onSelect={setCustomDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="time"
+                  value={customTime}
+                  onChange={(e) => setCustomTime(e.target.value)}
+                  className="flex-1 h-8 bg-background"
+                />
+              </div>
+              {customDate && (
+                <p className="text-xs text-muted-foreground">
+                  Reminder: {format(set(customDate, { 
+                    hours: parseInt(customTime.split(':')[0]), 
+                    minutes: parseInt(customTime.split(':')[1]) 
+                  }), "PPP 'at' p")}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-2 justify-end">
             <Button
               variant="ghost"
@@ -254,6 +328,8 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                   setIsAdding(false);
                   setNewNote('');
                   setReminderOption('none');
+                  setCustomDate(undefined);
+                  setCustomTime('12:00');
                   setSelectedColor('yellow');
                 }
               }}
