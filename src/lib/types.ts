@@ -96,6 +96,14 @@ export interface UserRole {
   role: AppRole;
 }
 
+export interface ContactLinkGroup {
+  id: string;
+  tenant_id: string;
+  display_name?: string;
+  created_at: string;
+  created_by?: string;
+}
+
 export interface ContactLink {
   id: string;
   tenant_id: string;
@@ -104,6 +112,16 @@ export interface ContactLink {
   created_at: string;
   created_by?: string;
   contact?: Contact;
+}
+
+// Unified view of linked contacts with their conversations
+export interface UnifiedContact {
+  groupId: string;
+  displayName: string;
+  contacts: Contact[];
+  conversations: Conversation[];
+  totalUnreadCount: number;
+  lastMessageAt?: string;
 }
 
 export const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: string; color: string }> = {
