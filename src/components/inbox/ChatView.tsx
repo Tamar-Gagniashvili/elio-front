@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone, Link2 } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2, Tag } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LinkContactDialog } from './LinkContactDialog';
+import { ManageStatusDialog } from './ManageStatusDialog';
 import { ContactNotes } from './ContactNotes';
+import { ContactStatusesDisplay } from './ContactStatusesDisplay';
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -45,6 +47,7 @@ export function ChatView({
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, profile } = useAuth();
 
@@ -129,6 +132,10 @@ export function ChatView({
                   <Link2 className="h-4 w-4 mr-2" />
                   Link Contact
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsStatusDialogOpen(true)}>
+                  <Tag className="h-4 w-4 mr-2" />
+                  Manage Status
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
             )}
@@ -147,12 +154,19 @@ export function ChatView({
 
       {/* Link Contact Dialog */}
       {conversation.contact && (
-        <LinkContactDialog
-          open={isLinkDialogOpen}
-          onOpenChange={setIsLinkDialogOpen}
-          contact={conversation.contact}
-          onLinksChanged={onLinksChanged || (() => {})}
-        />
+        <>
+          <LinkContactDialog
+            open={isLinkDialogOpen}
+            onOpenChange={setIsLinkDialogOpen}
+            contact={conversation.contact}
+            onLinksChanged={onLinksChanged || (() => {})}
+          />
+          <ManageStatusDialog
+            open={isStatusDialogOpen}
+            onOpenChange={setIsStatusDialogOpen}
+            contact={conversation.contact}
+          />
+        </>
       )}
 
       {/* Messages */}
@@ -335,6 +349,11 @@ export function ContactDetails({
           </span>
         </div>
       </div>
+
+      {/* Lead Statuses Section */}
+      {contact && tenantId && (
+        <ContactStatusesDisplay contactId={contact.id} tenantId={tenantId} />
+      )}
 
       {/* All Channels Section for unified contacts */}
       {selectedGroup && selectedGroup.isUnified && channels.length > 1 && (
