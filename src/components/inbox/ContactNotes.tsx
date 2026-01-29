@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { StickyNote, Bell, Trash2, Plus, Clock, Pin } from 'lucide-react';
+import { StickyNote, Bell, Trash2, Plus, Clock, Pin, Pencil } from 'lucide-react';
 import { formatDistanceToNow, addMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -56,6 +56,7 @@ const getColorClasses = (color: string) => {
 export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingNote, setEditingNote] = useState<ContactNote | null>(null);
   const [newNote, setNewNote] = useState('');
   const [selectedColor, setSelectedColor] = useState('yellow');
   const [reminderOption, setReminderOption] = useState('none');
@@ -129,6 +130,54 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
     }
   };
 
+  const handleEditNote = (note: ContactNote) => {
+    setEditingNote(note);
+    setNewNote(note.content);
+    setSelectedColor(note.color || 'yellow');
+    setReminderOption('none');
+    setIsAdding(false);
+  };
+
+  const handleUpdateNote = async () => {
+    if (!newNote.trim() || !editingNote) return;
+
+    setIsSaving(true);
+    
+    let reminderAt: string | null = editingNote.reminder_at || null;
+    if (reminderOption !== 'none') {
+      const minutes = parseInt(reminderOption, 10);
+      reminderAt = addMinutes(new Date(), minutes).toISOString();
+    }
+
+    const { error } = await supabase
+      .from('contact_notes')
+      .update({
+        content: newNote.trim(),
+        color: selectedColor,
+        reminder_at: reminderAt,
+      })
+      .eq('id', editingNote.id);
+
+    if (error) {
+      console.error('Error updating note:', error);
+    } else {
+      setNewNote('');
+      setReminderOption('none');
+      setSelectedColor('yellow');
+      setEditingNote(null);
+      fetchNotes();
+    }
+    
+    setIsSaving(false);
+  };
+
+  const cancelEdit = () => {
+    setEditingNote(null);
+    setNewNote('');
+    setReminderOption('none');
+    setSelectedColor('yellow');
+  };
+
   return (
     <div className="mt-6 px-4 pb-4">
       <div className="flex items-center justify-between mb-3">
@@ -138,7 +187,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
             Notes
           </h4>
         </div>
-        {!isAdding && (
+        {!isAdding && !editingNote && (
           <Button
             variant="ghost"
             size="sm"
@@ -150,7 +199,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
         )}
       </div>
 
-      {isAdding && (
+      {(isAdding || editingNote) && (
         <div className="mb-4 space-y-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-2 border-dashed border-yellow-300 dark:border-yellow-700">
           <Textarea
             value={newNote}
@@ -199,20 +248,24 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
               variant="ghost"
               size="sm"
               onClick={() => {
-                setIsAdding(false);
-                setNewNote('');
-                setReminderOption('none');
-                setSelectedColor('yellow');
+                if (editingNote) {
+                  cancelEdit();
+                } else {
+                  setIsAdding(false);
+                  setNewNote('');
+                  setReminderOption('none');
+                  setSelectedColor('yellow');
+                }
               }}
             >
               Cancel
             </Button>
             <Button
               size="sm"
-              onClick={handleAddNote}
+              onClick={editingNote ? handleUpdateNote : handleAddNote}
               disabled={!newNote.trim() || isSaving}
             >
-              Pin it!
+              {editingNote ? 'Update' : 'Pin it!'}
             </Button>
           </div>
         </div>
@@ -249,15 +302,25 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                   <Pin className="h-5 w-5 fill-current drop-shadow-sm" style={{ transform: 'rotate(45deg)' }} />
                 </div>
 
-                {/* Delete button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 opacity-0 hover:opacity-100 transition-opacity group-hover:opacity-100"
-                  onClick={() => handleDeleteNote(note.id)}
-                >
-                  <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                </Button>
+                {/* Action buttons */}
+                <div className="absolute top-1 right-1 flex gap-1 opacity-0 hover:opacity-100 transition-opacity group-hover:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleEditNote(note)}
+                  >
+                    <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleDeleteNote(note.id)}
+                  >
+                    <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                </div>
 
                 {/* Content */}
                 <p className="text-sm whitespace-pre-wrap pt-2 text-foreground/90 font-handwriting">
