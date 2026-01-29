@@ -229,14 +229,18 @@ Deno.serve(async (req) => {
         .eq('is_active', true)
         .single()
 
-      // Check for existing conversation
-      let { data: conversation } = await supabase
+      // Check for existing open/assigned conversation (get the most recent one)
+      const { data: existingConversations } = await supabase
         .from('conversations')
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('contact_id', contact.id)
         .in('status', ['open', 'assigned'])
-        .single()
+        .order('last_message_at', { ascending: false, nullsFirst: false })
+        .limit(1)
+      
+      let conversation = existingConversations?.[0] || null
+      console.log('Existing conversation:', conversation?.id || 'none')
 
       if (!conversation) {
         const assignedTo = await getNextSalesRep(supabase, tenantId)
