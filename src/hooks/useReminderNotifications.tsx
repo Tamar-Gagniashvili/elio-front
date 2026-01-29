@@ -2,13 +2,15 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Pin, MessageSquare } from 'lucide-react';
 
 interface ContactNote {
   id: string;
   contact_id: string;
   tenant_id: string;
   content: string;
+  color: string | null;
   reminder_at: string;
   reminder_shown: boolean;
 }
@@ -17,6 +19,20 @@ interface Contact {
   id: string;
   name: string | null;
 }
+
+interface Conversation {
+  id: string;
+  contact_id: string;
+}
+
+const NOTE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  yellow: { bg: 'bg-amber-100', border: 'border-amber-300', text: 'text-amber-900' },
+  pink: { bg: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-900' },
+  blue: { bg: 'bg-sky-100', border: 'border-sky-300', text: 'text-sky-900' },
+  green: { bg: 'bg-emerald-100', border: 'border-emerald-300', text: 'text-emerald-900' },
+  purple: { bg: 'bg-violet-100', border: 'border-violet-300', text: 'text-violet-900' },
+  orange: { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-900' },
+};
 
 export function useReminderNotifications() {
   const { currentTenant, user } = useAuth();
@@ -38,6 +54,7 @@ export function useReminderNotifications() {
           contact_id,
           tenant_id,
           content,
+          color,
           reminder_at,
           reminder_shown
         `)
@@ -60,12 +77,22 @@ export function useReminderNotifications() {
         .select('id, name')
         .in('id', contactIds);
 
+      // Get conversation IDs for each contact
+      const { data: conversations } = await supabase
+        .from('conversations')
+        .select('id, contact_id')
+        .in('contact_id', contactIds);
+
       const contactMap = new Map(contacts?.map(c => [c.id, c]) || []);
+      const conversationMap = new Map(conversations?.map(c => [c.contact_id, c]) || []);
 
       // Show toast for each due reminder
       for (const note of dueNotes as ContactNote[]) {
         const contact = contactMap.get(note.contact_id) as Contact | undefined;
+        const conversation = conversationMap.get(note.contact_id) as Conversation | undefined;
         const contactName = contact?.name || 'Unknown Contact';
+        const noteColor = note.color || 'yellow';
+        const colors = NOTE_COLORS[noteColor] || NOTE_COLORS.yellow;
         
         // Mark as shown first to prevent duplicates
         await supabase
@@ -73,24 +100,33 @@ export function useReminderNotifications() {
           .update({ reminder_shown: true })
           .eq('id', note.id);
 
-        // Show toast notification
+        // Show sticky note styled toast notification
         toast({
-          title: `Reminder: ${contactName}`,
-          description: note.content.length > 100 
-            ? note.content.substring(0, 100) + '...' 
-            : note.content,
-          duration: 10000, // 10 seconds
-          action: (
-            <button
-              onClick={() => {
-                // Navigate to inbox - the contact will need to be selected manually
-                // Could be improved with query params in future
-                navigate('/inbox');
-              }}
-              className="shrink-0 rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              View Contact
-            </button>
+          duration: 15000,
+          className: `${colors.bg} ${colors.border} border-2 shadow-lg`,
+          description: (
+            <div className="relative pt-2">
+              <Pin className={`absolute -top-1 right-2 h-4 w-4 ${colors.text} rotate-45`} />
+              <div className={`font-medium mb-1 ${colors.text}`}>
+                📌 Reminder: {contactName}
+              </div>
+              <p className={`text-sm ${colors.text} opacity-90 mb-3`}>
+                {note.content.length > 120 
+                  ? note.content.substring(0, 120) + '...' 
+                  : note.content}
+              </p>
+              {conversation && (
+                <button
+                  onClick={() => {
+                    navigate(`/inbox?conversation=${conversation.id}`);
+                  }}
+                  className={`flex items-center gap-1.5 text-xs font-medium ${colors.text} hover:underline`}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  Open conversation
+                </button>
+              )}
+            </div>
           ),
         });
       }
