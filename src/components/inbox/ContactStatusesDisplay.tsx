@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useLinkedContacts } from '@/hooks/useLinkedContacts';
 import { Badge } from '@/components/ui/badge';
-import { Tag } from 'lucide-react';
+import { Tag, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStatusColorClasses } from '@/pages/Statuses';
 
@@ -17,21 +18,24 @@ interface ContactStatusesDisplayProps {
 }
 
 export function ContactStatusesDisplay({ contactId, tenantId }: ContactStatusesDisplayProps) {
+  const { linkedContactIds, isLinked, isLoading: isLoadingLinks } = useLinkedContacts(contactId, tenantId);
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchContactStatuses();
-  }, [contactId, tenantId]);
+    if (!isLoadingLinks && linkedContactIds.length > 0) {
+      fetchContactStatuses();
+    }
+  }, [linkedContactIds, isLoadingLinks]);
 
   const fetchContactStatuses = async () => {
     setIsLoading(true);
     
-    // First get the status IDs assigned to this contact
+    // Get status IDs assigned to ALL linked contacts
     const { data: contactStatusData } = await supabase
       .from('contact_statuses')
       .select('status_id')
-      .eq('contact_id', contactId);
+      .in('contact_id', linkedContactIds);
 
     if (!contactStatusData || contactStatusData.length === 0) {
       setStatuses([]);
@@ -39,19 +43,20 @@ export function ContactStatusesDisplay({ contactId, tenantId }: ContactStatusesD
       return;
     }
 
-    const statusIds = contactStatusData.map(cs => cs.status_id);
+    // Get unique status IDs
+    const uniqueStatusIds = [...new Set(contactStatusData.map(cs => cs.status_id))];
 
-    // Then fetch the status details
+    // Fetch the status details
     const { data: statusData } = await supabase
       .from('lead_statuses')
       .select('id, name, color')
-      .in('id', statusIds);
+      .in('id', uniqueStatusIds);
 
     setStatuses(statusData || []);
     setIsLoading(false);
   };
 
-  if (isLoading || statuses.length === 0) {
+  if (isLoading || isLoadingLinks || statuses.length === 0) {
     return null;
   }
 
@@ -62,6 +67,11 @@ export function ContactStatusesDisplay({ contactId, tenantId }: ContactStatusesD
         <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
           Lead Status
         </h4>
+        {isLinked && (
+          <span title="Shared across linked contacts">
+            <Link2 className="h-3 w-3 text-muted-foreground" />
+          </span>
+        )}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {statuses.map((status) => {

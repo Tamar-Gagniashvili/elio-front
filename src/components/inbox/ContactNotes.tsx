@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useLinkedContacts } from '@/hooks/useLinkedContacts';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { StickyNote, Bell, Trash2, Plus, Clock, Pin, Pencil, CalendarIcon } from 'lucide-react';
+import { StickyNote, Bell, Trash2, Plus, Clock, Pin, Pencil, CalendarIcon, Link2 } from 'lucide-react';
 import { formatDistanceToNow, addMinutes, format, set } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -62,6 +63,7 @@ const getColorClasses = (color: string) => {
 };
 
 export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
+  const { linkedContactIds, isLinked, isLoading: isLoadingLinks } = useLinkedContacts(contactId, tenantId);
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingNote, setEditingNote] = useState<ContactNote | null>(null);
@@ -74,14 +76,17 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchNotes();
-  }, [contactId, tenantId]);
+    if (!isLoadingLinks && linkedContactIds.length > 0) {
+      fetchNotes();
+    }
+  }, [linkedContactIds, isLoadingLinks, tenantId]);
 
   const fetchNotes = async () => {
+    // Fetch notes for ALL linked contacts
     const { data, error } = await supabase
       .from('contact_notes')
       .select('*')
-      .eq('contact_id', contactId)
+      .in('contact_id', linkedContactIds)
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false });
 
@@ -210,6 +215,11 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
           <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
             Notes
           </h4>
+          {isLinked && (
+            <span title="Shared across linked contacts">
+              <Link2 className="h-3 w-3 text-muted-foreground" />
+            </span>
+          )}
         </div>
         {!isAdding && !editingNote && (
           <Button
