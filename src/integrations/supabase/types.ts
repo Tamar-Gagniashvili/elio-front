@@ -168,6 +168,57 @@ export type Database = {
           },
         ]
       }
+      contact_notes: {
+        Row: {
+          contact_id: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          reminder_at: string | null
+          reminder_shown: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          reminder_at?: string | null
+          reminder_shown?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          reminder_at?: string | null
+          reminder_shown?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           avatar_url: string | null

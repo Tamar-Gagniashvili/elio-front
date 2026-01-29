@@ -373,6 +373,7 @@ export default function Inbox() {
                   linkedContacts={linkedContacts}
                   selectedGroup={selectedGroup}
                   onSelectConversation={setSelectedConversation}
+                  tenantId={currentTenant?.id}
                 />
               </div>
             </>
