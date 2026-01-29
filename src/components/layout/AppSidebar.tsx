@@ -11,6 +11,7 @@ import {
   LogOut,
   ChevronDown,
   Plug,
+  StickyNote,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -24,6 +25,7 @@ import {
 const navItems = [
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/contacts', label: 'Contacts', icon: Users },
+  { href: '/notes', label: 'Notes', icon: StickyNote },
   { href: '/channels', label: 'Channels', icon: Plug },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
