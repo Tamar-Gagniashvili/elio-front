@@ -124,6 +124,18 @@ export interface UnifiedContact {
   lastMessageAt?: string;
 }
 
+export interface ContactNote {
+  id: string;
+  tenant_id: string;
+  contact_id: string;
+  created_by: string;
+  content: string;
+  reminder_at?: string;
+  reminder_shown: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: string; color: string }> = {
   web_chat: { label: 'Web Chat', icon: 'MessageCircle', color: 'channel-web' },
   telegram: { label: 'Telegram', icon: 'Send', color: 'channel-telegram' },

@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LinkContactDialog } from './LinkContactDialog';
+import { ContactNotes } from './ContactNotes';
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -241,11 +242,13 @@ export function ContactDetails({
   linkedContacts = [],
   selectedGroup,
   onSelectConversation,
+  tenantId,
 }: { 
   conversation: Conversation;
   linkedContacts?: Contact[];
   selectedGroup?: GroupedConversation | null;
   onSelectConversation?: (conversation: Conversation) => void;
+  tenantId?: string;
 }) {
   const contact = conversation.contact;
   
@@ -417,6 +420,11 @@ export function ContactDetails({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Contact Notes Section */}
+      {contact && tenantId && (
+        <ContactNotes contactId={contact.id} tenantId={tenantId} />
       )}
     </div>
   );
