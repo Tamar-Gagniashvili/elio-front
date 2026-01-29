@@ -8,8 +8,18 @@ import { ChannelBadge } from '@/components/ChannelBadge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Search, Users, Link2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Search, Users, Link2, Tag, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { getStatusColorClasses } from '@/pages/Statuses';
+
+interface LeadStatus {
+  id: string;
+  name: string;
+  color: string;
+}
 
 interface GroupedContact {
   id: string;
@@ -17,12 +27,16 @@ interface GroupedContact {
   displayName: string;
   contacts: Contact[];
   lastActivity: string;
+  statuses: LeadStatus[];
 }
 
 export default function Contacts() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [linkGroups, setLinkGroups] = useState<Map<string, { groupId: string; displayName?: string }>>(new Map());
+  const [contactStatuses, setContactStatuses] = useState<Map<string, LeadStatus[]>>(new Map());
+  const [availableStatuses, setAvailableStatuses] = useState<LeadStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const { currentTenant } = useAuth();
@@ -31,6 +45,7 @@ export default function Contacts() {
     if (!currentTenant) return;
 
     const fetchData = async () => {
+      // Fetch contacts
       const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
         .select('*')
@@ -43,6 +58,7 @@ export default function Contacts() {
         setContacts(contactsData as Contact[]);
       }
 
+      // Fetch link groups
       const { data: links } = await supabase
         .from('contact_links')
         .select(`
@@ -68,6 +84,43 @@ export default function Contacts() {
       }
       
       setLinkGroups(groupMap);
+
+      // Fetch available statuses
+      const { data: statusesData } = await supabase
+        .from('lead_statuses')
+        .select('id, name, color')
+        .eq('tenant_id', currentTenant.id)
+        .order('created_at');
+
+      setAvailableStatuses(statusesData || []);
+
+      // Fetch contact statuses
+      const { data: contactStatusData } = await supabase
+        .from('contact_statuses')
+        .select(`
+          contact_id,
+          lead_statuses:status_id (
+            id,
+            name,
+            color
+          )
+        `)
+        .eq('tenant_id', currentTenant.id);
+
+      const statusMap = new Map<string, LeadStatus[]>();
+      
+      if (contactStatusData) {
+        for (const cs of contactStatusData) {
+          const status = cs.lead_statuses as unknown as LeadStatus | null;
+          if (status) {
+            const existing = statusMap.get(cs.contact_id) || [];
+            existing.push(status);
+            statusMap.set(cs.contact_id, existing);
+          }
+        }
+      }
+      
+      setContactStatuses(statusMap);
       setIsLoading(false);
     };
 
@@ -80,12 +133,19 @@ export default function Contacts() {
 
     for (const contact of contacts) {
       const linkInfo = linkGroups.get(contact.id);
+      const statuses = contactStatuses.get(contact.id) || [];
 
       if (linkInfo) {
         const existing = groups.get(linkInfo.groupId);
         
         if (existing) {
           existing.contacts.push(contact);
+          // Merge statuses from all linked contacts
+          statuses.forEach(s => {
+            if (!existing.statuses.some(es => es.id === s.id)) {
+              existing.statuses.push(s);
+            }
+          });
           if (new Date(contact.updated_at) > new Date(existing.lastActivity)) {
             existing.lastActivity = contact.updated_at;
           }
@@ -96,6 +156,7 @@ export default function Contacts() {
             displayName: linkInfo.displayName || contact.name || 'Unknown',
             contacts: [contact],
             lastActivity: contact.updated_at,
+            statuses: [...statuses],
           });
         }
       } else {
@@ -105,6 +166,7 @@ export default function Contacts() {
           displayName: contact.name || 'Unknown',
           contacts: [contact],
           lastActivity: contact.updated_at,
+          statuses,
         });
       }
     }
@@ -115,13 +177,23 @@ export default function Contacts() {
     });
 
     return allGroups;
-  }, [contacts, linkGroups]);
+  }, [contacts, linkGroups, contactStatuses]);
 
   const filteredGroups = groupedContacts.filter((group) => {
+    // Filter by status first
+    if (selectedStatusFilter) {
+      const hasStatus = group.statuses.some(s => s.id === selectedStatusFilter);
+      if (!hasStatus) return false;
+    }
+    
+    // Then filter by search query
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     
     if (group.displayName.toLowerCase().includes(query)) return true;
+    
+    // Search in status names too
+    if (group.statuses.some(s => s.name.toLowerCase().includes(query))) return true;
     
     return group.contacts.some((contact) => {
       const name = contact.name?.toLowerCase() || '';
@@ -152,27 +224,58 @@ export default function Contacts() {
     };
   };
 
-  const renderContactRow = (contact: Contact) => (
-    <div key={contact.id} className="flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-lg">
-      <Avatar
-        src={contact.avatar_url}
-        name={contact.name}
-        size="md"
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium truncate">{contact.name || 'Unknown'}</span>
-          <ChannelBadge channelType={contact.channel_type} size="sm" />
+  const renderStatusBadges = (statuses: LeadStatus[]) => {
+    if (statuses.length === 0) return null;
+    
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {statuses.map((status) => {
+          const colorClasses = getStatusColorClasses(status.color);
+          return (
+            <Badge
+              key={status.id}
+              className={cn(
+                colorClasses.bg,
+                colorClasses.text,
+                'border',
+                colorClasses.border,
+                'text-[10px] py-0 px-1.5'
+              )}
+            >
+              {status.name}
+            </Badge>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderContactRow = (contact: Contact) => {
+    const statuses = contactStatuses.get(contact.id) || [];
+    
+    return (
+      <div key={contact.id} className="flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-lg">
+        <Avatar
+          src={contact.avatar_url}
+          name={contact.name}
+          size="md"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium truncate">{contact.name || 'Unknown'}</span>
+            <ChannelBadge channelType={contact.channel_type} size="sm" />
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {contact.email || contact.phone || contact.external_id || 'No contact info'}
+          </div>
+          {renderStatusBadges(statuses)}
         </div>
-        <div className="text-sm text-muted-foreground">
-          {contact.email || contact.phone || contact.external_id || 'No contact info'}
+        <div className="text-xs text-muted-foreground">
+          {formatDistanceToNow(new Date(contact.created_at), { addSuffix: true })}
         </div>
       </div>
-      <div className="text-xs text-muted-foreground">
-        {formatDistanceToNow(new Date(contact.created_at), { addSuffix: true })}
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <AppLayout>
@@ -186,16 +289,55 @@ export default function Contacts() {
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-3">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search contacts..."
+              placeholder="Search contacts or statuses..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
             />
           </div>
+          
+          {/* Status Filter */}
+          {availableStatuses.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Filter by status:</span>
+              {availableStatuses.map((status) => {
+                const colorClasses = getStatusColorClasses(status.color);
+                const isSelected = selectedStatusFilter === status.id;
+                
+                return (
+                  <button
+                    key={status.id}
+                    onClick={() => setSelectedStatusFilter(isSelected ? null : status.id)}
+                    className={cn(
+                      'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all border',
+                      colorClasses.bg,
+                      colorClasses.text,
+                      colorClasses.border,
+                      isSelected && 'ring-2 ring-primary ring-offset-1'
+                    )}
+                  >
+                    {status.name}
+                    {isSelected && <X className="h-3 w-3" />}
+                  </button>
+                );
+              })}
+              {selectedStatusFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedStatusFilter(null)}
+                  className="text-xs h-6"
+                >
+                  Clear filter
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {groupedContacts.length === 0 ? (
@@ -261,6 +403,7 @@ export default function Contacts() {
                                 <span>+{info.emails.length - 2} more</span>
                               )}
                             </div>
+                            {renderStatusBadges(group.statuses)}
                           </div>
                           <div className="text-sm text-muted-foreground mr-2">
                             {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
@@ -314,6 +457,7 @@ export default function Contacts() {
                             <span key={phone}>{phone}</span>
                           ))}
                         </div>
+                        {renderStatusBadges(group.statuses)}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
