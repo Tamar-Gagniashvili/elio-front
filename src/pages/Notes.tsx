@@ -308,9 +308,16 @@ export default function Notes() {
           </Tabs>
 
           {/* Add/Edit Note Form */}
-          {(isAdding || editingNote) && (
-            <div className="mb-6 p-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-2 border-dashed border-yellow-300 dark:border-yellow-700">
-              <h3 className="font-semibold mb-4">{editingNote ? 'Edit Note' : 'New Note'}</h3>
+          {(isAdding || editingNote) && (() => {
+            const formColorClasses = getColorClasses(selectedColor);
+            return (
+              <div className={cn(
+                "mb-6 p-6 rounded-lg border-2 border-dashed transition-colors",
+                formColorClasses.bg,
+                formColorClasses.border,
+                "dark:bg-opacity-30"
+              )}>
+                <h3 className="font-semibold mb-4">{editingNote ? 'Edit Note' : 'New Note'}</h3>
               
               <Textarea
                 value={newNote}
@@ -426,7 +433,8 @@ export default function Notes() {
                 </Button>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Notes Grid */}
           {isLoading ? (
