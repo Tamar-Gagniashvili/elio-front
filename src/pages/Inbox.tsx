@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Conversation, Message, Contact, Channel, ConversationStatus } from '@/lib/types';
+import { Conversation, Message, Contact, ConversationStatus } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ConversationList } from '@/components/inbox/ConversationList';
 import { ChatView, ContactDetails } from '@/components/inbox/ChatView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Filter, MessageSquare } from 'lucide-react';
+import { Search, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type FilterStatus = 'all' | 'open' | 'assigned' | 'resolved';
@@ -17,6 +17,7 @@ export default function Inbox() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [linkedContacts, setLinkedContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [isLoading, setIsLoading] = useState(true);
@@ -77,10 +78,52 @@ export default function Inbox() {
     };
   }, [currentTenant, filterStatus]);
 
+  // Fetch linked contacts for the selected conversation's contact
+  const fetchLinkedContacts = useCallback(async () => {
+    if (!selectedConversation?.contact) {
+      setLinkedContacts([]);
+      return;
+    }
+
+    const contactId = selectedConversation.contact.id;
+
+    // First, check if this contact has a link group
+    const { data: linkData } = await supabase
+      .from('contact_links')
+      .select('link_group_id')
+      .eq('contact_id', contactId)
+      .single();
+
+    if (!linkData?.link_group_id) {
+      setLinkedContacts([]);
+      return;
+    }
+
+    // Fetch all linked contacts in the same group (excluding current)
+    const { data: linkedData } = await supabase
+      .from('contact_links')
+      .select('contact_id')
+      .eq('link_group_id', linkData.link_group_id)
+      .neq('contact_id', contactId);
+
+    if (linkedData && linkedData.length > 0) {
+      const contactIds = linkedData.map(l => l.contact_id);
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('*')
+        .in('id', contactIds);
+      
+      setLinkedContacts((contacts || []) as Contact[]);
+    } else {
+      setLinkedContacts([]);
+    }
+  }, [selectedConversation?.contact?.id]);
+
   // Fetch messages for selected conversation and mark as read
   useEffect(() => {
     if (!selectedConversation) {
       setMessages([]);
+      setLinkedContacts([]);
       return;
     }
 
@@ -113,6 +156,7 @@ export default function Inbox() {
     };
 
     fetchMessages();
+    fetchLinkedContacts();
     
     // Mark as read when opening conversation
     if (selectedConversation.unread_count > 0) {
@@ -139,7 +183,7 @@ export default function Inbox() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversation?.id]);
+  }, [selectedConversation?.id, fetchLinkedContacts]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation || !user) return;
@@ -270,10 +314,15 @@ export default function Inbox() {
                   messages={messages}
                   onSendMessage={handleSendMessage}
                   onStatusChange={handleStatusChange}
+                  linkedContacts={linkedContacts}
+                  onLinksChanged={fetchLinkedContacts}
                 />
               </div>
               <div className="w-72 hidden lg:block">
-                <ContactDetails conversation={selectedConversation} />
+                <ContactDetails 
+                  conversation={selectedConversation} 
+                  linkedContacts={linkedContacts}
+                />
               </div>
             </>
           ) : (
