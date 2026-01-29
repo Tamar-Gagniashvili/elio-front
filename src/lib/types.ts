@@ -130,6 +130,7 @@ export interface ContactNote {
   contact_id: string;
   created_by: string;
   content: string;
+  color: string;
   reminder_at?: string;
   reminder_shown: boolean;
   created_at: string;
