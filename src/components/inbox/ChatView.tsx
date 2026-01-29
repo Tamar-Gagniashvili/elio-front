@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Conversation, Message } from '@/lib/types';
+import { Conversation, Message, Contact } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar } from '@/components/Avatar';
@@ -9,24 +9,29 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { LinkContactDialog } from './LinkContactDialog';
 
 interface ChatViewProps {
   conversation: Conversation;
   messages: Message[];
   onSendMessage: (content: string) => Promise<void>;
   onStatusChange: (status: 'open' | 'assigned' | 'resolved' | 'archived') => void;
+  linkedContacts?: Contact[];
+  onLinksChanged?: () => void;
 }
 
-export function ChatView({ conversation, messages, onSendMessage, onStatusChange }: ChatViewProps) {
+export function ChatView({ conversation, messages, onSendMessage, onStatusChange, linkedContacts = [], onLinksChanged }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, profile } = useAuth();
 
@@ -101,6 +106,15 @@ export function ChatView({ conversation, messages, onSendMessage, onStatusChange
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {conversation.contact && (
+              <>
+                <DropdownMenuItem onClick={() => setIsLinkDialogOpen(true)}>
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Link Contact
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={() => onStatusChange('resolved')}>
               Mark as Resolved
             </DropdownMenuItem>
@@ -113,6 +127,16 @@ export function ChatView({ conversation, messages, onSendMessage, onStatusChange
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Link Contact Dialog */}
+      {conversation.contact && (
+        <LinkContactDialog
+          open={isLinkDialogOpen}
+          onOpenChange={setIsLinkDialogOpen}
+          contact={conversation.contact}
+          onLinksChanged={onLinksChanged || (() => {})}
+        />
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
@@ -196,11 +220,17 @@ export function ChatView({ conversation, messages, onSendMessage, onStatusChange
   );
 }
 
-export function ContactDetails({ conversation }: { conversation: Conversation }) {
+export function ContactDetails({ 
+  conversation, 
+  linkedContacts = [] 
+}: { 
+  conversation: Conversation;
+  linkedContacts?: Contact[];
+}) {
   const contact = conversation.contact;
 
   return (
-    <div className="h-full bg-card border-l flex flex-col">
+    <div className="h-full bg-card border-l flex flex-col overflow-y-auto">
       <div className="p-4 border-b">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
           Contact Details
@@ -247,6 +277,41 @@ export function ContactDetails({ conversation }: { conversation: Conversation })
           </span>
         </div>
       </div>
+
+      {/* Linked Contacts Section */}
+      {linkedContacts.length > 0 && (
+        <div className="mt-6 px-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Link2 className="h-4 w-4 text-muted-foreground" />
+            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+              Linked Contacts
+            </h4>
+          </div>
+          <div className="space-y-2">
+            {linkedContacts.map((linkedContact) => (
+              <div
+                key={linkedContact.id}
+                className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
+              >
+                <Avatar
+                  src={linkedContact.avatar_url}
+                  name={linkedContact.name}
+                  size="sm"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {linkedContact.name || 'Unknown'}
+                  </p>
+                  <ChannelBadge
+                    channelType={linkedContact.channel_type}
+                    size="sm"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

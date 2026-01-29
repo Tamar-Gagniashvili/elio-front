@@ -96,6 +96,16 @@ export interface UserRole {
   role: AppRole;
 }
 
+export interface ContactLink {
+  id: string;
+  tenant_id: string;
+  contact_id: string;
+  link_group_id: string;
+  created_at: string;
+  created_by?: string;
+  contact?: Contact;
+}
+
 export const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: string; color: string }> = {
   web_chat: { label: 'Web Chat', icon: 'MessageCircle', color: 'channel-web' },
   telegram: { label: 'Telegram', icon: 'Send', color: 'channel-telegram' },
