@@ -134,22 +134,41 @@ export function ImportLeadsDialog({
   const fetchTeamMembers = async () => {
     if (!currentTenant) return;
     
-    const { data: memberships } = await supabase
+    // First get memberships with sales role
+    const { data: memberships, error: membershipError } = await supabase
       .from('tenant_memberships')
-      .select(`
-        user_id,
-        role,
-        profiles:user_id (
-          full_name,
-          email
-        )
-      `)
+      .select('user_id, role')
       .eq('tenant_id', currentTenant.id)
       .eq('is_active', true)
       .eq('role', 'sales');
 
-    const members: TeamMember[] = (memberships || []).map((m) => {
-      const profile = m.profiles as unknown as { full_name?: string; email: string } | null;
+    if (membershipError) {
+      console.error('Error fetching memberships:', membershipError);
+      return;
+    }
+
+    if (!memberships || memberships.length === 0) {
+      console.log('No sales team members found');
+      setTeamMembers([]);
+      return;
+    }
+
+    // Get user IDs
+    const userIds = memberships.map(m => m.user_id);
+    
+    // Fetch profiles for these users
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, email')
+      .in('user_id', userIds);
+
+    if (profileError) {
+      console.error('Error fetching profiles:', profileError);
+    }
+
+    // Combine data
+    const members: TeamMember[] = memberships.map((m) => {
+      const profile = profiles?.find(p => p.user_id === m.user_id);
       return {
         id: m.user_id,
         name: profile?.full_name || profile?.email || 'Unknown',
@@ -157,6 +176,7 @@ export function ImportLeadsDialog({
       };
     });
     
+    console.log('Team members loaded:', members);
     setTeamMembers(members);
   };
 
