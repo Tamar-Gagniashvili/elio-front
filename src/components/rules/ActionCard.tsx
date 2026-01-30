@@ -44,16 +44,27 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
 
   const fetchUsers = async () => {
     if (!currentTenant) return;
-    const { data } = await supabase
+    
+    // First get memberships
+    const { data: memberships } = await supabase
       .from('tenant_memberships')
-      .select('user_id, profiles!inner(full_name, email)')
+      .select('user_id')
       .eq('tenant_id', currentTenant.id)
       .eq('is_active', true);
 
-    if (data) {
-      setUsers(data.map((m: any) => ({
-        id: m.user_id,
-        name: m.profiles.full_name || m.profiles.email,
+    if (!memberships || memberships.length === 0) return;
+
+    // Then fetch profiles for those user_ids
+    const userIds = memberships.map(m => m.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, email')
+      .in('user_id', userIds);
+
+    if (profiles) {
+      setUsers(profiles.map((p) => ({
+        id: p.user_id,
+        name: p.full_name || p.email,
       })));
     }
   };
