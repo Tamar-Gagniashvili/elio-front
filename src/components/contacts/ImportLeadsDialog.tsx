@@ -281,7 +281,7 @@ export function ImportLeadsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
@@ -317,7 +317,7 @@ export function ImportLeadsDialog({
           ))}
         </div>
 
-        <ScrollArea className="flex-1 px-1">
+        <ScrollArea className="flex-1 min-h-0 px-1">
           {/* Step 1: Upload File */}
           {step === 1 && (
             <div className="space-y-6">
@@ -546,14 +546,22 @@ export function ImportLeadsDialog({
                       : 'Select team member'}
                   </Label>
                   {teamMembers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No sales team members found. Add team members first.
-                    </p>
+                    <div className="text-sm text-muted-foreground space-y-2">
+                      <p>No sales team members found.</p>
+                      <p className="text-xs">Add team members with the "sales" role in Settings to enable assignment.</p>
+                    </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
                       {teamMembers.map((member) => (
-                        <label
+                        <div
                           key={member.id}
+                          onClick={() => {
+                            if (assignmentStrategy === 'single_user') {
+                              setSelectedUserIds([member.id]);
+                            } else {
+                              toggleUserSelection(member.id);
+                            }
+                          }}
                           className={cn(
                             'flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
                             selectedUserIds.includes(member.id)
@@ -571,13 +579,18 @@ export function ImportLeadsDialog({
                               }
                             }}
                           />
-                          <span>{member.name}</span>
-                          <Badge variant="secondary" className="ml-auto">
+                          <span className="flex-1">{member.name}</span>
+                          <Badge variant="secondary">
                             {member.role}
                           </Badge>
-                        </label>
+                        </div>
                       ))}
                     </div>
+                  )}
+                  {selectedUserIds.length > 0 && assignmentStrategy === 'round_robin' && (
+                    <p className="text-xs text-muted-foreground">
+                      {selectedUserIds.length} member{selectedUserIds.length > 1 ? 's' : ''} selected
+                    </p>
                   )}
                 </div>
               )}
