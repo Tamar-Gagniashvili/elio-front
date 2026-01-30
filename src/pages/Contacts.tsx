@@ -41,7 +41,9 @@ export default function Contacts() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const { currentTenant } = useAuth();
+  const { currentTenant, currentMembership, user } = useAuth();
+  
+  const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
 
   // Read status filter from URL on mount
   useEffect(() => {
@@ -52,15 +54,43 @@ export default function Contacts() {
   }, []);
 
   useEffect(() => {
-    if (!currentTenant) return;
+    if (!currentTenant || !user) return;
 
     const fetchData = async () => {
-      // Fetch contacts
-      const { data: contactsData, error: contactsError } = await supabase
+      // For sales users, first get their assigned contact IDs
+      let allowedContactIds: string[] | null = null;
+      
+      if (!isAdmin) {
+        const { data: assignedConversations } = await supabase
+          .from('conversations')
+          .select('contact_id')
+          .eq('tenant_id', currentTenant.id)
+          .eq('assigned_to', user.id);
+        
+        allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
+        
+        // If sales user has no assigned contacts, set empty and return early
+        if (allowedContactIds.length === 0) {
+          setContacts([]);
+          setLinkGroups(new Map());
+          setContactStatuses(new Map());
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fetch contacts (filtered for sales users)
+      let contactsQuery = supabase
         .from('contacts')
         .select('*')
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false });
+      
+      if (allowedContactIds !== null) {
+        contactsQuery = contactsQuery.in('id', allowedContactIds);
+      }
+
+      const { data: contactsData, error: contactsError } = await contactsQuery;
 
       if (contactsError) {
         console.error('Error fetching contacts:', contactsError);
@@ -135,7 +165,7 @@ export default function Contacts() {
     };
 
     fetchData();
-  }, [currentTenant]);
+  }, [currentTenant, user, isAdmin]);
 
   const groupedContacts = useMemo(() => {
     const groups = new Map<string, GroupedContact>();
@@ -294,7 +324,7 @@ export default function Contacts() {
           <div>
             <h1 className="text-2xl font-bold">Contacts</h1>
             <p className="text-muted-foreground">
-              All customers who have messaged your business
+              {isAdmin ? 'All customers who have messaged your business' : 'Your assigned contacts'}
             </p>
           </div>
         </div>

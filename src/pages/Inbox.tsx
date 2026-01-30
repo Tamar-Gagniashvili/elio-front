@@ -16,16 +16,19 @@ import { useToast } from '@/hooks/use-toast';
 type FilterStatus = 'all' | 'open' | 'assigned' | 'resolved';
 
 export default function Inbox() {
+  const { currentTenant, user, currentMembership } = useAuth();
+  const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
+  
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<GroupedConversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [linkedContacts, setLinkedContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  // Sales users default to "Mine" filter
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>(() => isAdmin ? 'all' : 'assigned');
   const [isLoading, setIsLoading] = useState(true);
   
-  const { currentTenant, user } = useAuth();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
