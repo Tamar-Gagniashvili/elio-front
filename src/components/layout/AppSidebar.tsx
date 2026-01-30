@@ -29,14 +29,16 @@ const navItems = [
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/notes', label: 'Notes', icon: StickyNote },
   { href: '/statuses', label: 'Statuses', icon: Tag },
-  { href: '/rules', label: 'Rules', icon: Zap },
+  { href: '/rules', label: 'Rules', icon: Zap, adminOnly: true },
   { href: '/channels', label: 'Channels', icon: Plug },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
-  const { profile, currentTenant, memberships, signOut, setCurrentTenant } = useAuth();
+  const { profile, currentTenant, currentMembership, memberships, signOut, setCurrentTenant } = useAuth();
+
+  const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
 
   return (
     <aside className="w-64 h-screen flex flex-col gradient-sidebar">
@@ -83,26 +85,28 @@ export function AppSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.href;
-          const Icon = item.icon;
+        {navItems
+          .filter((item) => !item.adminOnly || isAdmin)
+          .map((item) => {
+            const isActive = location.pathname === item.href;
+            const Icon = item.icon;
 
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            );
+          })}
       </nav>
 
       {/* User Profile */}
