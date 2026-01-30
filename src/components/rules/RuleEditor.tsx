@@ -14,10 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ConditionBuilder } from './ConditionBuilder';
-import { ActionBuilder } from './ActionBuilder';
-import type { RoutingRule, ConditionGroup, ActionsGroup, DEFAULT_CONDITION_GROUP, DEFAULT_ACTIONS_GROUP } from '@/lib/ruleTypes';
+import { FlowBoard } from './FlowBoard';
+import type { RoutingRule, ConditionGroup, ActionsGroup } from '@/lib/ruleTypes';
 
 interface RuleEditorProps {
   open: boolean;
@@ -112,59 +110,43 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{rule ? 'Edit Rule' : 'Create New Rule'}</DialogTitle>
           <DialogDescription>
-            Define conditions to match incoming leads and actions to execute
+            Build your routing flow by adding condition and action cards
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="grid gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Rule Name</Label>
               <Input
                 id="name"
-                placeholder="e.g., VIP WhatsApp Leads"
+                placeholder="e.g., Georgian Speakers"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Description (optional)</Label>
-              <Textarea
+              <Input
                 id="description"
-                placeholder="Describe what this rule does..."
+                placeholder="Route Georgian speakers to..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={2}
               />
             </div>
           </div>
 
-          <Tabs defaultValue="conditions" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="conditions">
-                IF (Conditions)
-              </TabsTrigger>
-              <TabsTrigger value="actions">
-                THEN (Actions)
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="conditions" className="mt-4">
-              <ConditionBuilder
-                conditions={conditions}
-                onChange={setConditions}
-              />
-            </TabsContent>
-            <TabsContent value="actions" className="mt-4">
-              <ActionBuilder
-                actions={actions}
-                onChange={setActions}
-              />
-            </TabsContent>
-          </Tabs>
+          {/* Flow Board */}
+          <FlowBoard
+            conditions={conditions}
+            actions={actions}
+            onConditionsChange={setConditions}
+            onActionsChange={setActions}
+          />
         </div>
 
         <DialogFooter>
