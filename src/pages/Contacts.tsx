@@ -11,10 +11,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Users, Link2, Tag, X } from 'lucide-react';
+import { Search, Users, Link2, Tag, X, Upload } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStatusColorClasses } from '@/pages/Statuses';
+import { ImportLeadsDialog } from '@/components/contacts/ImportLeadsDialog';
 
 interface LeadStatus {
   id: string;
@@ -39,6 +40,7 @@ export default function Contacts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   
   const { currentTenant, currentMembership, user } = useAuth();
@@ -53,117 +55,118 @@ export default function Contacts() {
     }
   }, []);
 
+  const fetchData = async () => {
+    if (!currentTenant || !user) return;
+    
+    // For sales users, first get their assigned contact IDs
+    let allowedContactIds: string[] | null = null;
+    
+    if (!isAdmin) {
+      const { data: assignedConversations } = await supabase
+        .from('conversations')
+        .select('contact_id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('assigned_to', user.id);
+      
+      allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
+      
+      // If sales user has no assigned contacts, set empty and return early
+      if (allowedContactIds.length === 0) {
+        setContacts([]);
+        setLinkGroups(new Map());
+        setContactStatuses(new Map());
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // Fetch contacts (filtered for sales users)
+    let contactsQuery = supabase
+      .from('contacts')
+      .select('*')
+      .eq('tenant_id', currentTenant.id)
+      .order('created_at', { ascending: false });
+    
+    if (allowedContactIds !== null) {
+      contactsQuery = contactsQuery.in('id', allowedContactIds);
+    }
+
+    const { data: contactsData, error: contactsError } = await contactsQuery;
+
+    if (contactsError) {
+      console.error('Error fetching contacts:', contactsError);
+    } else {
+      setContacts(contactsData as Contact[]);
+    }
+
+    // Fetch link groups
+    const { data: links } = await supabase
+      .from('contact_links')
+      .select(`
+        contact_id,
+        link_group_id,
+        contact_link_groups:link_group_id (
+          id,
+          display_name
+        )
+      `)
+      .eq('tenant_id', currentTenant.id);
+
+    const groupMap = new Map<string, { groupId: string; displayName?: string }>();
+    
+    if (links) {
+      for (const link of links) {
+        const group = link.contact_link_groups as unknown as { id: string; display_name?: string } | null;
+        groupMap.set(link.contact_id, {
+          groupId: link.link_group_id,
+          displayName: group?.display_name || undefined,
+        });
+      }
+    }
+    
+    setLinkGroups(groupMap);
+
+    // Fetch available statuses
+    const { data: statusesData } = await supabase
+      .from('lead_statuses')
+      .select('id, name, color')
+      .eq('tenant_id', currentTenant.id)
+      .order('created_at');
+
+    setAvailableStatuses(statusesData || []);
+
+    // Fetch contact statuses
+    const { data: contactStatusData } = await supabase
+      .from('contact_statuses')
+      .select(`
+        contact_id,
+        lead_statuses:status_id (
+          id,
+          name,
+          color
+        )
+      `)
+      .eq('tenant_id', currentTenant.id);
+
+    const statusMap = new Map<string, LeadStatus[]>();
+    
+    if (contactStatusData) {
+      for (const cs of contactStatusData) {
+        const status = cs.lead_statuses as unknown as LeadStatus | null;
+        if (status) {
+          const existing = statusMap.get(cs.contact_id) || [];
+          existing.push(status);
+          statusMap.set(cs.contact_id, existing);
+        }
+      }
+    }
+    
+    setContactStatuses(statusMap);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     if (!currentTenant || !user) return;
-
-    const fetchData = async () => {
-      // For sales users, first get their assigned contact IDs
-      let allowedContactIds: string[] | null = null;
-      
-      if (!isAdmin) {
-        const { data: assignedConversations } = await supabase
-          .from('conversations')
-          .select('contact_id')
-          .eq('tenant_id', currentTenant.id)
-          .eq('assigned_to', user.id);
-        
-        allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
-        
-        // If sales user has no assigned contacts, set empty and return early
-        if (allowedContactIds.length === 0) {
-          setContacts([]);
-          setLinkGroups(new Map());
-          setContactStatuses(new Map());
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Fetch contacts (filtered for sales users)
-      let contactsQuery = supabase
-        .from('contacts')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .order('created_at', { ascending: false });
-      
-      if (allowedContactIds !== null) {
-        contactsQuery = contactsQuery.in('id', allowedContactIds);
-      }
-
-      const { data: contactsData, error: contactsError } = await contactsQuery;
-
-      if (contactsError) {
-        console.error('Error fetching contacts:', contactsError);
-      } else {
-        setContacts(contactsData as Contact[]);
-      }
-
-      // Fetch link groups
-      const { data: links } = await supabase
-        .from('contact_links')
-        .select(`
-          contact_id,
-          link_group_id,
-          contact_link_groups:link_group_id (
-            id,
-            display_name
-          )
-        `)
-        .eq('tenant_id', currentTenant.id);
-
-      const groupMap = new Map<string, { groupId: string; displayName?: string }>();
-      
-      if (links) {
-        for (const link of links) {
-          const group = link.contact_link_groups as unknown as { id: string; display_name?: string } | null;
-          groupMap.set(link.contact_id, {
-            groupId: link.link_group_id,
-            displayName: group?.display_name || undefined,
-          });
-        }
-      }
-      
-      setLinkGroups(groupMap);
-
-      // Fetch available statuses
-      const { data: statusesData } = await supabase
-        .from('lead_statuses')
-        .select('id, name, color')
-        .eq('tenant_id', currentTenant.id)
-        .order('created_at');
-
-      setAvailableStatuses(statusesData || []);
-
-      // Fetch contact statuses
-      const { data: contactStatusData } = await supabase
-        .from('contact_statuses')
-        .select(`
-          contact_id,
-          lead_statuses:status_id (
-            id,
-            name,
-            color
-          )
-        `)
-        .eq('tenant_id', currentTenant.id);
-
-      const statusMap = new Map<string, LeadStatus[]>();
-      
-      if (contactStatusData) {
-        for (const cs of contactStatusData) {
-          const status = cs.lead_statuses as unknown as LeadStatus | null;
-          if (status) {
-            const existing = statusMap.get(cs.contact_id) || [];
-            existing.push(status);
-            statusMap.set(cs.contact_id, existing);
-          }
-        }
-      }
-      
-      setContactStatuses(statusMap);
-      setIsLoading(false);
-    };
-
     fetchData();
   }, [currentTenant, user, isAdmin]);
 
@@ -327,6 +330,12 @@ export default function Contacts() {
               {isAdmin ? 'All customers who have messaged your business' : 'Your assigned contacts'}
             </p>
           </div>
+          {isAdmin && (
+            <Button onClick={() => setImportDialogOpen(true)} variant="outline" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Import Leads
+            </Button>
+          )}
         </div>
 
         <div className="mb-6 space-y-3">
@@ -521,6 +530,12 @@ export default function Contacts() {
           </div>
         )}
       </div>
+      
+      <ImportLeadsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportComplete={fetchData}
+      />
     </AppLayout>
   );
 }

@@ -52,6 +52,7 @@
     --channel-messenger: 221 90% 55%;
     --channel-instagram: 330 80% 55%;
     --channel-sms: 260 60% 55%;
+    --channel-offline: 35 90% 50%;
 
     /* Borders and inputs */
     --border: 220 13% 91%;
