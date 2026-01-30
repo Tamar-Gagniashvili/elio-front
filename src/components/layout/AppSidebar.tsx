@@ -13,6 +13,7 @@ import {
   Plug,
   StickyNote,
   Tag,
+  Zap,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,6 +29,7 @@ const navItems = [
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/notes', label: 'Notes', icon: StickyNote },
   { href: '/statuses', label: 'Statuses', icon: Tag },
+  { href: '/rules', label: 'Rules', icon: Zap },
   { href: '/channels', label: 'Channels', icon: Plug },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
