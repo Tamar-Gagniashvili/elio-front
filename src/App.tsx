@@ -12,6 +12,7 @@ import Inbox from "./pages/Inbox";
 import Contacts from "./pages/Contacts";
 import Notes from "./pages/Notes";
 import Statuses from "./pages/Statuses";
+import Rules from "./pages/Rules";
 import Channels from "./pages/Channels";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/statuses" element={<Statuses />} />
+              <Route path="/rules" element={<Rules />} />
               <Route path="/channels" element={<Channels />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/admin" element={<Admin />} />
