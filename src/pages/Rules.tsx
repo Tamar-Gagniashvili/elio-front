@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,8 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function Rules() {
-  const { currentTenant, currentMembership } = useAuth();
+  const navigate = useNavigate();
+  const { currentTenant, currentMembership, dataLoaded } = useAuth();
   const [rules, setRules] = useState<RoutingRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -31,6 +33,13 @@ export default function Rules() {
   const [ruleToDelete, setRuleToDelete] = useState<RoutingRule | null>(null);
 
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
+
+  // Redirect non-admins to inbox
+  useEffect(() => {
+    if (dataLoaded && !isAdmin) {
+      navigate('/inbox');
+    }
+  }, [dataLoaded, isAdmin, navigate]);
 
   useEffect(() => {
     if (currentTenant) {
