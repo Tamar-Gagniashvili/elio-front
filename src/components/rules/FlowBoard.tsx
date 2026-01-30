@@ -114,21 +114,19 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
       <div className="flex items-start justify-center gap-6">
         {/* CONDITIONS ZONE */}
         <div className="flex flex-col items-center gap-2 min-w-[160px]">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            IF
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">IF</span>
+            {conditions.conditions.length > 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleOperator}
+                className="text-[10px] h-5 px-1.5"
+              >
+                {conditions.operator === 'AND' ? 'ALL' : 'ANY'}
+              </Button>
+            )}
           </div>
-          
-          {/* Operator toggle */}
-          {conditions.conditions.length > 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleOperator}
-              className="text-xs h-6 px-2"
-            >
-              Match {conditions.operator === 'AND' ? 'ALL' : 'ANY'}
-            </Button>
-          )}
 
           {/* Condition cards */}
           <div className="flex flex-col gap-2">
