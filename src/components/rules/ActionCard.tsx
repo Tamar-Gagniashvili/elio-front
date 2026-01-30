@@ -45,12 +45,13 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
   const fetchUsers = async () => {
     if (!currentTenant) return;
     
-    // First get memberships
+    // Get only sales role memberships
     const { data: memberships } = await supabase
       .from('tenant_memberships')
       .select('user_id')
       .eq('tenant_id', currentTenant.id)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .eq('role', 'sales');
 
     if (!memberships || memberships.length === 0) return;
 
