@@ -66,22 +66,16 @@ export default function Statuses() {
   }, [user, authLoading, currentTenant, navigate]);
 
   const fetchStatuses = async () => {
-    if (!currentTenant) return;
+    if (!currentTenant || !user) return;
     
     setIsLoading(true);
     
-    // Fetch statuses and counts in parallel
-    const [statusesResult, countsResult] = await Promise.all([
-      supabase
-        .from('lead_statuses')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('contact_statuses')
-        .select('status_id')
-        .eq('tenant_id', currentTenant.id)
-    ]);
+    // Fetch statuses
+    const statusesResult = await supabase
+      .from('lead_statuses')
+      .select('*')
+      .eq('tenant_id', currentTenant.id)
+      .order('created_at', { ascending: true });
 
     if (statusesResult.error) {
       console.error('Error fetching statuses:', statusesResult.error);
@@ -90,9 +84,43 @@ export default function Statuses() {
         description: 'Failed to fetch statuses',
         variant: 'destructive',
       });
-    } else {
-      setStatuses(statusesResult.data || []);
+      setIsLoading(false);
+      return;
     }
+    
+    setStatuses(statusesResult.data || []);
+
+    // For sales users, only count leads from contacts they have assigned conversations with
+    let contactIdsToCount: string[] | null = null;
+    
+    if (!isAdmin) {
+      // Get contact IDs from conversations assigned to this sales user
+      const { data: assignedConversations } = await supabase
+        .from('conversations')
+        .select('contact_id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('assigned_to', user.id);
+      
+      contactIdsToCount = assignedConversations?.map(c => c.contact_id) || [];
+    }
+
+    // Fetch contact statuses (filtered for sales users)
+    let countsQuery = supabase
+      .from('contact_statuses')
+      .select('status_id, contact_id')
+      .eq('tenant_id', currentTenant.id);
+    
+    if (contactIdsToCount !== null) {
+      if (contactIdsToCount.length === 0) {
+        // Sales user has no assigned contacts, show zero counts
+        setStatusCounts({});
+        setIsLoading(false);
+        return;
+      }
+      countsQuery = countsQuery.in('contact_id', contactIdsToCount);
+    }
+
+    const countsResult = await countsQuery;
 
     // Calculate counts per status
     if (countsResult.data) {
