@@ -53,9 +53,10 @@ export interface RuleAction {
   content?: string;
 }
 
-// Actions container
+// Actions container with IF/ELSE support
 export interface ActionsGroup {
   actions: RuleAction[];
+  elseActions?: RuleAction[];
 }
 
 // Full routing rule
