@@ -76,7 +76,11 @@ export default function Inbox() {
       if (error) {
         console.error('Error fetching conversations:', error);
       } else {
-        setConversations((data || []) as unknown as Conversation[]);
+        // Filter out offline contacts - they belong in the Contacts workspace
+        const onlineConversations = (data || []).filter(
+          (conv: any) => conv.contact?.channel_type !== 'offline'
+        );
+        setConversations(onlineConversations as unknown as Conversation[]);
       }
       setIsLoading(false);
     };
