@@ -110,11 +110,11 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
   };
 
   return (
-    <div className="w-full min-h-[400px] bg-muted/30 rounded-xl border-2 border-dashed border-muted-foreground/20 p-6 overflow-x-auto">
-      <div className="flex items-start gap-6 min-w-max">
+    <div className="w-full min-h-[350px] bg-muted/20 rounded-xl border-2 border-dashed border-muted-foreground/20 p-6 relative">
+      <div className="flex items-start justify-center gap-8">
         {/* CONDITIONS ZONE */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+        <div className="flex flex-col items-center gap-3 min-w-[180px]">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
             IF
           </div>
           
@@ -124,18 +124,18 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
               variant="outline"
               size="sm"
               onClick={toggleOperator}
-              className="mb-2 text-xs"
+              className="mb-2 text-xs h-7"
             >
               Match {conditions.operator === 'AND' ? 'ALL' : 'ANY'}
             </Button>
           )}
 
           {/* Condition cards */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {conditions.conditions.map((condition, index) => (
               <div key={index} className="relative">
                 {index > 0 && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground bg-background px-2 rounded">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
                     {conditions.operator}
                   </div>
                 )}
@@ -157,8 +157,8 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
           <button
             onClick={addCondition}
             className={cn(
-              'w-40 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2',
-              'text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors',
+              'w-44 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1.5',
+              'text-muted-foreground hover:text-foreground hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 transition-all',
               'bg-background/50'
             )}
           >
@@ -168,18 +168,18 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
         </div>
 
         {/* ARROW */}
-        <div className="flex flex-col items-center justify-center pt-16">
-          <ArrowRight className="h-8 w-8 text-muted-foreground" />
+        <div className="flex items-center justify-center self-center mt-8">
+          <ArrowRight className="h-6 w-6 text-muted-foreground/50" />
         </div>
 
         {/* THEN ACTIONS ZONE */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2">
+        <div className="flex flex-col items-center gap-3 min-w-[180px]">
+          <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
             THEN
           </div>
 
           {/* Action cards */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {actions.actions.map((action, index) => (
               <ActionCard
                 key={index}
@@ -199,41 +199,29 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
           <button
             onClick={() => addAction(false)}
             className={cn(
-              'w-40 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2',
-              'text-muted-foreground hover:text-foreground hover:border-emerald-500/50 transition-colors',
+              'w-44 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1.5',
+              'text-muted-foreground hover:text-foreground hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all',
               'bg-background/50'
             )}
           >
             <Plus className="h-5 w-5" />
             <span className="text-xs font-medium">Add Action</span>
           </button>
-
-          {/* Enable ELSE branch button */}
-          {!hasElseBranch && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={enableElseBranch}
-              className="mt-4 text-xs text-muted-foreground"
-            >
-              <GitBranch className="h-4 w-4 mr-1" />
-              Add ELSE branch
-            </Button>
-          )}
         </div>
 
         {/* ELSE ACTIONS ZONE */}
         {hasElseBranch && (
           <>
-            <div className="flex flex-col items-center justify-center pt-16">
-              <div className="flex flex-col items-center gap-1">
-                <GitBranch className="h-6 w-6 text-rose-500 rotate-180" />
-                <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex items-center justify-center self-center mt-8">
+              <div className="flex items-center gap-2">
+                <div className="h-px w-4 bg-muted-foreground/30" />
+                <span className="text-[10px] text-muted-foreground uppercase">or</span>
+                <div className="h-px w-4 bg-muted-foreground/30" />
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-col items-center gap-3 min-w-[180px]">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
                   ELSE
                 </span>
@@ -248,7 +236,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
               </div>
 
               {/* Else action cards */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
                 {(actions.elseActions || []).map((action, index) => (
                   <ActionCard
                     key={index}
@@ -268,8 +256,8 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
               <button
                 onClick={() => addAction(true)}
                 className={cn(
-                  'w-40 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2',
-                  'text-muted-foreground hover:text-foreground hover:border-rose-500/50 transition-colors',
+                  'w-44 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1.5',
+                  'text-muted-foreground hover:text-foreground hover:border-rose-400 hover:bg-rose-50/50 dark:hover:bg-rose-900/20 transition-all',
                   'bg-background/50'
                 )}
               >
@@ -281,12 +269,18 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
         )}
       </div>
 
-      {/* Empty state */}
-      {conditions.conditions.length === 0 && actions.actions.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-muted-foreground text-sm">
-            Click "Add Condition" to start building your flow
-          </p>
+      {/* Add ELSE branch button - centered at bottom */}
+      {!hasElseBranch && (
+        <div className="flex justify-center mt-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={enableElseBranch}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            <GitBranch className="h-4 w-4 mr-1.5" />
+            Add ELSE branch
+          </Button>
         </div>
       )}
     </div>
