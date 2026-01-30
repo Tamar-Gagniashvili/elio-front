@@ -560,11 +560,30 @@ export function ImportLeadsDialog({
               {/* Team Member Selection */}
               {(assignmentStrategy === 'round_robin' || assignmentStrategy === 'single_user') && (
                 <div className="border rounded-lg p-4 space-y-3">
-                  <Label>
-                    {assignmentStrategy === 'round_robin' 
-                      ? 'Select team members for round-robin' 
-                      : 'Select team member'}
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      {assignmentStrategy === 'round_robin' 
+                        ? 'Select team members for round-robin' 
+                        : 'Select team member'}
+                    </Label>
+                    {assignmentStrategy === 'round_robin' && teamMembers.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedUserIds.length === teamMembers.length) {
+                            setSelectedUserIds([]);
+                          } else {
+                            setSelectedUserIds(teamMembers.map(m => m.id));
+                          }
+                        }}
+                        className="text-xs h-7"
+                      >
+                        {selectedUserIds.length === teamMembers.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                    )}
+                  </div>
                   {teamMembers.length === 0 ? (
                     <div className="text-sm text-muted-foreground space-y-2">
                       <p>No sales team members found.</p>
