@@ -160,29 +160,31 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-3 py-2">
           {/* Rule templates for new rules */}
           {isNewRule && isEmpty && (
             <RuleTemplates onApply={handleApplyTemplate} />
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Rule Name</Label>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label htmlFor="name" className="text-xs">Name</Label>
               <Input
                 id="name"
                 placeholder="e.g., Georgian Speakers"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                className="h-8 text-sm"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description (optional)</Label>
+            <div className="flex-[2]">
+              <Label htmlFor="description" className="text-xs">Description (optional)</Label>
               <Input
                 id="description"
                 placeholder="Route Georgian speakers to..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                className="h-8 text-sm"
               />
             </div>
           </div>
