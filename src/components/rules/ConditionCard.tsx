@@ -33,14 +33,14 @@ const FIELD_OPTIONS: { value: ConditionField; label: string }[] = [
 ];
 
 const OPERATOR_OPTIONS: { value: ConditionOperator; label: string }[] = [
-  { value: 'equals', label: '=' },
-  { value: 'not_equals', label: '≠' },
-  { value: 'contains', label: '∋' },
-  { value: 'not_contains', label: '∌' },
-  { value: 'starts_with', label: 'starts' },
-  { value: 'ends_with', label: 'ends' },
-  { value: 'greater_than', label: '>' },
-  { value: 'less_than', label: '<' },
+  { value: 'equals', label: 'is' },
+  { value: 'not_equals', label: 'is not' },
+  { value: 'contains', label: 'contains' },
+  { value: 'not_contains', label: 'doesn\'t contain' },
+  { value: 'starts_with', label: 'starts with' },
+  { value: 'ends_with', label: 'ends with' },
+  { value: 'greater_than', label: 'is after' },
+  { value: 'less_than', label: 'is before' },
 ];
 
 const DAY_OPTIONS = [
