@@ -41,6 +41,7 @@ export default function Statuses() {
   const { toast } = useToast();
 
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [newStatusName, setNewStatusName] = useState('');
@@ -68,22 +69,40 @@ export default function Statuses() {
     if (!currentTenant) return;
     
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('lead_statuses')
-      .select('*')
-      .eq('tenant_id', currentTenant.id)
-      .order('created_at', { ascending: true });
+    
+    // Fetch statuses and counts in parallel
+    const [statusesResult, countsResult] = await Promise.all([
+      supabase
+        .from('lead_statuses')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('contact_statuses')
+        .select('status_id')
+        .eq('tenant_id', currentTenant.id)
+    ]);
 
-    if (error) {
-      console.error('Error fetching statuses:', error);
+    if (statusesResult.error) {
+      console.error('Error fetching statuses:', statusesResult.error);
       toast({
         title: 'Error',
         description: 'Failed to fetch statuses',
         variant: 'destructive',
       });
     } else {
-      setStatuses(data || []);
+      setStatuses(statusesResult.data || []);
     }
+
+    // Calculate counts per status
+    if (countsResult.data) {
+      const counts: Record<string, number> = {};
+      countsResult.data.forEach((item) => {
+        counts[item.status_id] = (counts[item.status_id] || 0) + 1;
+      });
+      setStatusCounts(counts);
+    }
+
     setIsLoading(false);
   };
 
@@ -400,9 +419,12 @@ export default function Statuses() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <GripVertical className="h-4 w-4 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <span className={cn('w-3 h-3 rounded-full', colorClasses.dot)} />
                             <span className="font-medium">{status.name}</span>
+                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                              {statusCounts[status.id] || 0} {(statusCounts[status.id] || 0) === 1 ? 'lead' : 'leads'}
+                            </span>
                           </div>
                         </div>
                         {isAdmin && (
