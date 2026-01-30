@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import {
   Upload,
   FileSpreadsheet,
@@ -281,7 +281,7 @@ export function ImportLeadsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-2xl max-h-[85vh] !grid-rows-[auto_1fr_auto] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
@@ -317,7 +317,7 @@ export function ImportLeadsDialog({
           ))}
         </div>
 
-        <ScrollArea className="flex-1 min-h-0 px-1">
+        <div className="overflow-y-auto max-h-[calc(85vh-220px)] min-h-0 px-1 pb-2">
           {/* Step 1: Upload File */}
           {step === 1 && (
             <div className="space-y-6">
@@ -682,10 +682,10 @@ export function ImportLeadsDialog({
               )}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         {/* Footer with Navigation */}
-        <div className="flex items-center justify-between pt-4 border-t mt-4">
+        <div className="flex items-center justify-between pt-4 border-t">
           <Button
             variant="ghost"
             onClick={() => step > 1 && setStep(step - 1)}
