@@ -11,11 +11,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Users, Link2, Tag, X, Upload } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Users, Link2, Tag, X, Upload, Globe, FileSpreadsheet } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStatusColorClasses } from '@/pages/Statuses';
 import { ImportLeadsDialog } from '@/components/contacts/ImportLeadsDialog';
+import { OfflineLeadsWorkspace } from '@/components/contacts/OfflineLeadsWorkspace';
 
 interface LeadStatus {
   id: string;
@@ -41,6 +43,8 @@ export default function Contacts() {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'online' | 'imported'>('online');
+  const [offlineCount, setOfflineCount] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
   
   const { currentTenant, currentMembership, user } = useAuth();
@@ -80,7 +84,7 @@ export default function Contacts() {
       }
     }
 
-    // Fetch contacts (filtered for sales users)
+    // Fetch ALL contacts first to count offline ones
     let contactsQuery = supabase
       .from('contacts')
       .select('*')
@@ -96,7 +100,13 @@ export default function Contacts() {
     if (contactsError) {
       console.error('Error fetching contacts:', contactsError);
     } else {
-      setContacts(contactsData as Contact[]);
+      const allContacts = contactsData as Contact[];
+      // Count offline contacts
+      const offlineContacts = allContacts.filter(c => c.channel_type === 'offline');
+      setOfflineCount(offlineContacts.length);
+      // Only show online contacts in this tab
+      const onlineContacts = allContacts.filter(c => c.channel_type !== 'offline');
+      setContacts(onlineContacts);
     }
 
     // Fetch link groups
@@ -322,8 +332,8 @@ export default function Contacts() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
           <div>
             <h1 className="text-2xl font-bold">Contacts</h1>
             <p className="text-muted-foreground">
@@ -338,111 +348,186 @@ export default function Contacts() {
           )}
         </div>
 
-        <div className="mb-6 space-y-3">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contacts or statuses..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          
-          {/* Status Filter */}
-          {availableStatuses.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Tag className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Filter by status:</span>
-              {availableStatuses.map((status) => {
-                const colorClasses = getStatusColorClasses(status.color);
-                const isSelected = selectedStatusFilter === status.id;
-                
-                return (
-                  <button
-                    key={status.id}
-                    onClick={() => {
-                      const newValue = isSelected ? null : status.id;
-                      setSelectedStatusFilter(newValue);
-                      if (newValue) {
-                        setSearchParams({ status: newValue });
-                      } else {
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'online' | 'imported')} className="w-full">
+          <TabsList className="mb-6 max-w-4xl mx-auto">
+            <TabsTrigger value="online" className="gap-2">
+              <Globe className="h-4 w-4" />
+              Online Contacts
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {contacts.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="imported" className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Imported Leads
+              {offlineCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                  {offlineCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="online" className="max-w-4xl mx-auto">
+            <div className="mb-6 space-y-3">
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search contacts or statuses..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              
+              {/* Status Filter */}
+              {availableStatuses.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Filter by status:</span>
+                  {availableStatuses.map((status) => {
+                    const colorClasses = getStatusColorClasses(status.color);
+                    const isSelected = selectedStatusFilter === status.id;
+                    
+                    return (
+                      <button
+                        key={status.id}
+                        onClick={() => {
+                          const newValue = isSelected ? null : status.id;
+                          setSelectedStatusFilter(newValue);
+                          if (newValue) {
+                            setSearchParams({ status: newValue });
+                          } else {
+                            setSearchParams({});
+                          }
+                        }}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all border',
+                          colorClasses.bg,
+                          colorClasses.text,
+                          colorClasses.border,
+                          isSelected && 'ring-2 ring-primary ring-offset-1'
+                        )}
+                      >
+                        {status.name}
+                        {isSelected && <X className="h-3 w-3" />}
+                      </button>
+                    );
+                  })}
+                  {selectedStatusFilter && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedStatusFilter(null);
                         setSearchParams({});
-                      }
-                    }}
-                    className={cn(
-                      'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all border',
-                      colorClasses.bg,
-                      colorClasses.text,
-                      colorClasses.border,
-                      isSelected && 'ring-2 ring-primary ring-offset-1'
-                    )}
-                  >
-                    {status.name}
-                    {isSelected && <X className="h-3 w-3" />}
-                  </button>
-                );
-              })}
-              {selectedStatusFilter && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedStatusFilter(null);
-                    setSearchParams({});
-                  }}
-                  className="text-xs h-6"
-                >
-                  Clear filter
-                </Button>
+                      }}
+                      className="text-xs h-6"
+                    >
+                      Clear filter
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
 
-        {groupedContacts.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-semibold mb-1">No contacts yet</h3>
-              <p className="text-sm text-muted-foreground">
-                When customers message you, they'll appear here
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {filteredGroups.map((group) => {
-              const channelTypes = getChannelTypes(group);
-              const info = getCombinedInfo(group);
-              const primaryContact = group.contacts[0];
+            {groupedContacts.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-semibold mb-1">No online contacts yet</h3>
+                  <p className="text-sm text-muted-foreground">
+                    When customers message you through channels, they'll appear here
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {filteredGroups.map((group) => {
+                  const channelTypes = getChannelTypes(group);
+                  const info = getCombinedInfo(group);
+                  const primaryContact = group.contacts[0];
 
-              if (group.isLinked) {
-                return (
-                  <Accordion key={group.id} type="single" collapsible>
-                    <AccordionItem value={group.id} className="border rounded-lg bg-card">
-                      <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 rounded-lg [&[data-state=open]]:rounded-b-none">
-                        <div className="flex items-center gap-4 flex-1 text-left">
-                          <div className="relative flex-shrink-0">
-                            <Avatar
-                              src={primaryContact.avatar_url}
-                              name={group.displayName}
-                              size="lg"
-                            />
-                            <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                              <Link2 className="h-3 w-3 text-primary-foreground" />
+                  if (group.isLinked) {
+                    return (
+                      <Accordion key={group.id} type="single" collapsible>
+                        <AccordionItem value={group.id} className="border rounded-lg bg-card">
+                          <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 rounded-lg [&[data-state=open]]:rounded-b-none">
+                            <div className="flex items-center gap-4 flex-1 text-left">
+                              <div className="relative flex-shrink-0">
+                                <Avatar
+                                  src={primaryContact.avatar_url}
+                                  name={group.displayName}
+                                  size="lg"
+                                />
+                                <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                  <Link2 className="h-3 w-3 text-primary-foreground" />
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-semibold truncate">
+                                    {group.displayName}
+                                  </h3>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({group.contacts.length} linked)
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-1 mb-2">
+                                  {channelTypes.map((channelType) => (
+                                    <ChannelBadge 
+                                      key={channelType} 
+                                      channelType={channelType} 
+                                      size="sm" 
+                                    />
+                                  ))}
+                                </div>
+                                
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                                  {info.emails.slice(0, 2).map((email) => (
+                                    <span key={email}>{email}</span>
+                                  ))}
+                                  {info.emails.length > 2 && (
+                                    <span>+{info.emails.length - 2} more</span>
+                                  )}
+                                </div>
+                                {renderStatusBadges(group.statuses)}
+                              </div>
+                              <div className="text-sm text-muted-foreground mr-2">
+                                {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
+                              </div>
                             </div>
-                          </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4">
+                            <div className="space-y-2 pt-2 border-t">
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium py-2">
+                                Linked Contacts
+                              </p>
+                              {group.contacts.map(renderContactRow)}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    );
+                  }
+
+                  return (
+                    <Card key={group.id} className="hover:bg-muted/50 transition-colors">
+                      <CardContent className="py-4">
+                        <div className="flex items-center gap-4">
+                          <Avatar
+                            src={primaryContact.avatar_url}
+                            name={group.displayName}
+                            size="lg"
+                          />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-semibold truncate">
                                 {group.displayName}
                               </h3>
-                              <span className="text-xs text-muted-foreground">
-                                ({group.contacts.length} linked)
-                              </span>
                             </div>
                             
                             <div className="flex items-center gap-1 mb-2">
@@ -456,85 +541,40 @@ export default function Contacts() {
                             </div>
                             
                             <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                              {info.emails.slice(0, 2).map((email) => (
+                              {info.emails.map((email) => (
                                 <span key={email}>{email}</span>
                               ))}
-                              {info.emails.length > 2 && (
-                                <span>+{info.emails.length - 2} more</span>
-                              )}
+                              {info.phones.map((phone) => (
+                                <span key={phone}>{phone}</span>
+                              ))}
                             </div>
                             {renderStatusBadges(group.statuses)}
                           </div>
-                          <div className="text-sm text-muted-foreground mr-2">
+                          <div className="text-sm text-muted-foreground">
                             {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
                           </div>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4">
-                        <div className="space-y-2 pt-2 border-t">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium py-2">
-                            Linked Contacts
-                          </p>
-                          {group.contacts.map(renderContactRow)}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                );
-              }
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
 
-              return (
-                <Card key={group.id} className="hover:bg-muted/50 transition-colors">
-                  <CardContent className="py-4">
-                    <div className="flex items-center gap-4">
-                      <Avatar
-                        src={primaryContact.avatar_url}
-                        name={group.displayName}
-                        size="lg"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold truncate">
-                            {group.displayName}
-                          </h3>
-                        </div>
-                        
-                        <div className="flex items-center gap-1 mb-2">
-                          {channelTypes.map((channelType) => (
-                            <ChannelBadge 
-                              key={channelType} 
-                              channelType={channelType} 
-                              size="sm" 
-                            />
-                          ))}
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                          {info.emails.map((email) => (
-                            <span key={email}>{email}</span>
-                          ))}
-                          {info.phones.map((phone) => (
-                            <span key={phone}>{phone}</span>
-                          ))}
-                        </div>
-                        {renderStatusBadges(group.statuses)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+          <TabsContent value="imported" className="max-w-6xl mx-auto">
+            <OfflineLeadsWorkspace onRefresh={fetchData} />
+          </TabsContent>
+        </Tabs>
       </div>
       
       <ImportLeadsDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        onImportComplete={fetchData}
+        onImportComplete={() => {
+          fetchData();
+          setActiveTab('imported');
+        }}
       />
     </AppLayout>
   );
