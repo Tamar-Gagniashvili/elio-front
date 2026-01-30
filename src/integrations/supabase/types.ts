@@ -726,6 +726,7 @@ export type Database = {
         | "messenger"
         | "instagram"
         | "sms"
+        | "offline"
       conversation_status: "open" | "assigned" | "resolved" | "archived"
       message_sender_type: "contact" | "agent" | "system"
     }
@@ -863,6 +864,7 @@ export const Constants = {
         "messenger",
         "instagram",
         "sms",
+        "offline",
       ],
       conversation_status: ["open", "assigned", "resolved", "archived"],
       message_sender_type: ["contact", "agent", "system"],

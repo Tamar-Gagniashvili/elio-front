@@ -129,6 +129,7 @@ const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
       type: 'text',
     },
   ],
+  offline: [], // No credentials needed for imported leads
 };
 
 const getWebhookUrl = (channelType: ChannelType, tenantId: string): string | null => {

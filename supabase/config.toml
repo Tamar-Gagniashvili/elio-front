@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.webchat]
 verify_jwt = false
+
+[functions.import-leads]
+verify_jwt = false
