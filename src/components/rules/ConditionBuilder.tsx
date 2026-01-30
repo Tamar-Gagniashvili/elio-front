@@ -16,9 +16,8 @@ import type {
   RuleCondition,
   ConditionField,
   ConditionOperator,
-  CONDITION_FIELDS,
-  CONDITION_OPERATORS,
 } from '@/lib/ruleTypes';
+import { SUPPORTED_LANGUAGES } from '@/lib/ruleTypes';
 
 interface ConditionBuilderProps {
   conditions: ConditionGroup;
@@ -28,6 +27,7 @@ interface ConditionBuilderProps {
 const FIELD_OPTIONS: { value: ConditionField; label: string }[] = [
   { value: 'channel_type', label: 'Channel' },
   { value: 'message_content', label: 'Message Content' },
+  { value: 'message_language', label: 'Message Language' },
   { value: 'contact.name', label: 'Contact Name' },
   { value: 'contact.email', label: 'Contact Email' },
   { value: 'contact.phone', label: 'Contact Phone' },
@@ -101,6 +101,26 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
             {ALL_CHANNELS.map((channel) => (
               <SelectItem key={channel} value={channel}>
                 {CHANNEL_CONFIG[channel].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    if (condition.field === 'message_language') {
+      return (
+        <Select
+          value={String(condition.value)}
+          onValueChange={(value) => updateCondition(index, { value })}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <SelectItem key={lang.code} value={lang.code}>
+                {lang.label}
               </SelectItem>
             ))}
           </SelectContent>

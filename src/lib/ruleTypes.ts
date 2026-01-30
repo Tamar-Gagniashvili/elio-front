@@ -4,6 +4,7 @@ import type { ChannelType } from './types';
 export type ConditionField = 
   | 'channel_type'
   | 'message_content'
+  | 'message_language'
   | 'contact.name'
   | 'contact.email'
   | 'contact.phone'
@@ -88,12 +89,32 @@ export interface RuleActionLog {
 export const CONDITION_FIELDS: Record<ConditionField, { label: string; type: 'text' | 'select' | 'number' }> = {
   'channel_type': { label: 'Channel', type: 'select' },
   'message_content': { label: 'Message Content', type: 'text' },
+  'message_language': { label: 'Message Language', type: 'select' },
   'contact.name': { label: 'Contact Name', type: 'text' },
   'contact.email': { label: 'Contact Email', type: 'text' },
   'contact.phone': { label: 'Contact Phone', type: 'text' },
   'time.hour': { label: 'Hour of Day', type: 'number' },
   'time.day_of_week': { label: 'Day of Week', type: 'select' },
 };
+
+export const SUPPORTED_LANGUAGES = [
+  { code: 'ka', label: 'Georgian' },
+  { code: 'ru', label: 'Russian' },
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'de', label: 'German' },
+  { code: 'fr', label: 'French' },
+  { code: 'it', label: 'Italian' },
+  { code: 'pt', label: 'Portuguese' },
+  { code: 'zh', label: 'Chinese' },
+  { code: 'ja', label: 'Japanese' },
+  { code: 'ko', label: 'Korean' },
+  { code: 'ar', label: 'Arabic' },
+  { code: 'tr', label: 'Turkish' },
+  { code: 'uk', label: 'Ukrainian' },
+  { code: 'az', label: 'Azerbaijani' },
+  { code: 'hy', label: 'Armenian' },
+];
 
 export const CONDITION_OPERATORS: Record<ConditionOperator, string> = {
   'equals': 'equals',
