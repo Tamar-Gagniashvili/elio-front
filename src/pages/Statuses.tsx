@@ -417,9 +417,12 @@ export default function Statuses() {
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div 
+                          className="flex items-center gap-3 flex-1 cursor-pointer"
+                          onClick={() => navigate(`/contacts?status=${status.id}`)}
+                        >
                           <GripVertical className="h-4 w-4 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <span className={cn('w-3 h-3 rounded-full', colorClasses.dot)} />
                             <span className="font-medium">{status.name}</span>
                             <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
@@ -433,7 +436,7 @@ export default function Statuses() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => startEditing(status)}
+                              onClick={(e) => { e.stopPropagation(); startEditing(status); }}
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
@@ -441,7 +444,7 @@ export default function Statuses() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => handleDeleteStatus(status.id, status.name)}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteStatus(status.id, status.name); }}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>

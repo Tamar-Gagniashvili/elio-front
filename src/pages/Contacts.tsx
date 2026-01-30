@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, ChannelType } from '@/lib/types';
@@ -38,8 +39,17 @@ export default function Contacts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const { currentTenant } = useAuth();
+
+  // Read status filter from URL on mount
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam) {
+      setSelectedStatusFilter(statusParam);
+    }
+  }, []);
 
   useEffect(() => {
     if (!currentTenant) return;
@@ -312,7 +322,15 @@ export default function Contacts() {
                 return (
                   <button
                     key={status.id}
-                    onClick={() => setSelectedStatusFilter(isSelected ? null : status.id)}
+                    onClick={() => {
+                      const newValue = isSelected ? null : status.id;
+                      setSelectedStatusFilter(newValue);
+                      if (newValue) {
+                        setSearchParams({ status: newValue });
+                      } else {
+                        setSearchParams({});
+                      }
+                    }}
                     className={cn(
                       'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all border',
                       colorClasses.bg,
@@ -330,7 +348,10 @@ export default function Contacts() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedStatusFilter(null)}
+                  onClick={() => {
+                    setSelectedStatusFilter(null);
+                    setSearchParams({});
+                  }}
                   className="text-xs h-6"
                 >
                   Clear filter
