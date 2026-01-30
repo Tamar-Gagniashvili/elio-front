@@ -81,12 +81,16 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
             <SelectTrigger className="h-7 text-xs bg-background/80">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
-            <SelectContent>
-              {users.map((user) => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.name}
-                </SelectItem>
-              ))}
+            <SelectContent className="bg-popover border shadow-md z-50">
+              {users.length === 0 ? (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">No users found</div>
+              ) : (
+                users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         );
@@ -107,18 +111,22 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
             <SelectTrigger className="h-7 text-xs bg-background/80">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
-            <SelectContent>
-              {statuses.map((status) => (
-                <SelectItem key={status.id} value={status.id}>
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: status.color }}
-                    />
-                    {status.name}
-                  </span>
-                </SelectItem>
-              ))}
+            <SelectContent className="bg-popover border shadow-md z-50">
+              {statuses.length === 0 ? (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">No statuses found</div>
+              ) : (
+                statuses.map((status) => (
+                  <SelectItem key={status.id} value={status.id}>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: status.color }}
+                      />
+                      {status.name}
+                    </span>
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         );
@@ -173,7 +181,7 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
             <SelectTrigger className="h-7 text-xs font-medium bg-background/80 flex-1">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover border shadow-md z-50">
               {ACTION_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.icon} {opt.label}
