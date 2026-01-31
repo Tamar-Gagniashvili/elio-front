@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TenantMembership, Profile } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface EditMemberDialogProps {
   member: (TenantMembership & { profile: Profile }) | null;
@@ -15,25 +16,25 @@ interface EditMemberDialogProps {
   onUpdate: () => void;
 }
 
-const POSITIONS = [
-  { value: 'trainee', label: 'Trainee' },
-  { value: 'junior', label: 'Junior' },
-  { value: 'mid', label: 'Mid-Level' },
-  { value: 'senior', label: 'Senior' },
-  { value: 'lead', label: 'Lead' },
+const SUGGESTED_POSITIONS = [
+  'Trainee',
+  'Junior',
+  'Mid-Level',
+  'Senior',
+  'Lead',
 ];
 
 export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditMemberDialogProps) {
   const { toast } = useToast();
-  const [position, setPosition] = useState(member?.position || 'none');
+  const [position, setPosition] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Reset position when member changes
-  useState(() => {
-    if (member) {
-      setPosition(member.position || 'none');
+  // Reset position when member changes or dialog opens
+  useEffect(() => {
+    if (member && open) {
+      setPosition(member.position || '');
     }
-  });
+  }, [member, open]);
 
   const handleSave = async () => {
     if (!member) return;
@@ -41,7 +42,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
     setIsSaving(true);
     const { error } = await supabase
       .from('tenant_memberships')
-      .update({ position: position === 'none' ? null : position })
+      .update({ position: position.trim() || null })
       .eq('id', member.id);
 
     if (error) {
@@ -61,6 +62,14 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
     setIsSaving(false);
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setPosition(suggestion);
+  };
+
+  const handleClear = () => {
+    setPosition('');
+  };
+
   if (!member) return null;
 
   return (
@@ -76,19 +85,36 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Position</Label>
-            <Select value={position} onValueChange={setPosition}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select position" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No position</SelectItem>
-                {POSITIONS.map((pos) => (
-                  <SelectItem key={pos.value} value={pos.value}>
-                    {pos.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Input
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="Enter or select a position"
+              />
+              {position && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                  onClick={handleClear}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {SUGGESTED_POSITIONS.map((suggestion) => (
+                <Badge
+                  key={suggestion}
+                  variant={position === suggestion ? 'default' : 'outline'}
+                  className="cursor-pointer hover:bg-accent"
+                  onClick={() => handleSuggestionClick(suggestion)}
+                >
+                  {suggestion}
+                </Badge>
+              ))}
+            </div>
           </div>
         </div>
 
