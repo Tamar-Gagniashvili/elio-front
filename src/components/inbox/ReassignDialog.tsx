@@ -62,13 +62,28 @@ export function ReassignDialog({
     const fetchTeamMembers = async () => {
       setIsLoading(true);
 
-      // Fetch all sales team members
+      // Fetch team members - sales can only assign to other sales, admins can assign to anyone
+      const { data: currentUserMembership } = await supabase
+        .from('tenant_memberships')
+        .select('role')
+        .eq('tenant_id', currentTenant.id)
+        .eq('user_id', user?.id || '')
+        .single();
+      
+      const isSalesRole = currentUserMembership?.role === 'sales';
+      
+      // Sales users can only assign to other sales members
+      // Admins/Owners can assign to anyone (sales, admin, owner)
+      const rolesToFetch: ('sales' | 'admin' | 'owner')[] = isSalesRole 
+        ? ['sales'] 
+        : ['sales', 'admin', 'owner'];
+      
       const { data: memberships, error: membershipError } = await supabase
         .from('tenant_memberships')
         .select('*')
         .eq('tenant_id', currentTenant.id)
         .eq('is_active', true)
-        .in('role', ['sales', 'admin', 'owner']);
+        .in('role', rolesToFetch);
 
       if (membershipError) {
         console.error('Error fetching memberships:', membershipError);

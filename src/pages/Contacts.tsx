@@ -500,21 +500,19 @@ export default function Contacts() {
                                 {renderStatusBadges(group.statuses)}
                               </div>
                               <div className="flex items-center gap-3 mr-2">
-                                {isAdmin && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedContactForReassign(primaryContact.id);
-                                      setReassignDialogOpen(true);
-                                    }}
-                                    className="gap-1.5"
-                                  >
-                                    <UserPlus className="h-3.5 w-3.5" />
-                                    Reassign
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedContactForReassign(primaryContact.id);
+                                    setReassignDialogOpen(true);
+                                  }}
+                                  className="gap-1.5"
+                                >
+                                  <UserPlus className="h-3.5 w-3.5" />
+                                  Reassign
+                                </Button>
                                 <div className="text-sm text-muted-foreground">
                                   {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
                                 </div>
@@ -571,21 +569,19 @@ export default function Contacts() {
                             {renderStatusBadges(group.statuses)}
                           </div>
                           <div className="flex items-center gap-3">
-                            {isAdmin && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedContactForReassign(primaryContact.id);
-                                  setReassignDialogOpen(true);
-                                }}
-                                className="gap-1.5"
-                              >
-                                <UserPlus className="h-3.5 w-3.5" />
-                                Reassign
-                              </Button>
-                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedContactForReassign(primaryContact.id);
+                                setReassignDialogOpen(true);
+                              }}
+                              className="gap-1.5"
+                            >
+                              <UserPlus className="h-3.5 w-3.5" />
+                              Reassign
+                            </Button>
                             <div className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
                             </div>
