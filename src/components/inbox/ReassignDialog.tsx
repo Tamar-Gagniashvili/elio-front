@@ -306,9 +306,13 @@ export function ReassignDialog({
     }
   };
 
+  // Count online users excluding the current assignee (who can't be reassigned to themselves)
   const onlineCount = useMemo(() => {
-    return teamMembers.filter((m) => isOnline(m.membership.user_id)).length;
-  }, [teamMembers, isOnline, onlineUsers]);
+    return teamMembers.filter((m) => 
+      isOnline(m.membership.user_id) && 
+      m.membership.user_id !== currentAssignee
+    ).length;
+  }, [teamMembers, isOnline, onlineUsers, currentAssignee]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
