@@ -84,7 +84,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                 <ChevronDown className="h-4 w-4 flex-shrink-0" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
+          <DropdownMenuContent className="w-56">
               <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {memberships.map((membership) => (
@@ -98,10 +98,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                   {membership.tenant?.name}
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/onboarding">+ Create new workspace</Link>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
@@ -131,10 +127,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                       {membership.tenant?.name}
                     </DropdownMenuItem>
                   ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/onboarding">+ Create new workspace</Link>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </TooltipTrigger>
