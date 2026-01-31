@@ -253,6 +253,7 @@ Deno.serve(async (req) => {
             channel_id: channel?.id,
             status: assignedTo ? 'assigned' : 'open',
             assigned_to: assignedTo,
+            assignment_seen_by_assignee: assignedTo ? false : true,
             last_message_at: new Date().toISOString(),
             last_message_preview: message?.substring(0, 100) || 'New conversation'
           })

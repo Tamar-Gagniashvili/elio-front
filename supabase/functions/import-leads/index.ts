@@ -248,6 +248,7 @@ Deno.serve(async (req) => {
               contact_id: newContact.id,
               assigned_to: assignedTo,
               status: 'assigned',
+              assignment_seen_by_assignee: false,
               last_message_preview: 'Imported lead',
               last_message_at: new Date().toISOString(),
             });
