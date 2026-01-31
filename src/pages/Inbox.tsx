@@ -29,6 +29,7 @@ function InboxContent() {
     isAdmin ? { type: 'all' } : { type: 'mine' }
   );
   const [contactsWithStatus, setContactsWithStatus] = useState<Set<string>>(new Set());
+  const [unrepliedConversationIds, setUnrepliedConversationIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   
   const { toast } = useToast();
@@ -62,6 +63,40 @@ function InboxContent() {
     fetchContactsWithStatus();
   }, [currentTenant, currentFilter]);
 
+  // Fetch unreplied conversation IDs (last message from contact)
+  useEffect(() => {
+    if (!currentTenant || conversations.length === 0) {
+      setUnrepliedConversationIds(new Set());
+      return;
+    }
+
+    const fetchUnrepliedConversations = async () => {
+      // Get the last message for each conversation
+      const conversationIds = conversations.map(c => c.id);
+      
+      // Query messages to find conversations where last message is from contact
+      const unrepliedIds = new Set<string>();
+      
+      for (const conv of conversations) {
+        const { data } = await supabase
+          .from('messages')
+          .select('sender_type')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (data?.sender_type === 'contact') {
+          unrepliedIds.add(conv.id);
+        }
+      }
+      
+      setUnrepliedConversationIds(unrepliedIds);
+    };
+
+    fetchUnrepliedConversations();
+  }, [currentTenant, conversations]);
+
   // Filter grouped conversations based on current filter and search
   const filteredGroups = groupedConversations.filter((group) => {
     // Apply filter based on type
@@ -73,6 +108,9 @@ function InboxContent() {
     } else if (currentFilter.type === 'unassigned') {
       // At least one conversation is unassigned
       passesFilter = group.conversations.some(c => !c.assigned_to);
+    } else if (currentFilter.type === 'unreplied') {
+      // At least one conversation is unreplied
+      passesFilter = group.conversations.some(c => unrepliedConversationIds.has(c.id));
     } else if (currentFilter.type === 'status') {
       // At least one contact in the group has the selected status
       passesFilter = group.contacts.some(c => contactsWithStatus.has(c.id));
@@ -392,6 +430,7 @@ function InboxContent() {
           onFilterChange={setCurrentFilter}
           conversations={conversations}
           userId={user?.id}
+          unrepliedConversationIds={unrepliedConversationIds}
         />
       )}
 
