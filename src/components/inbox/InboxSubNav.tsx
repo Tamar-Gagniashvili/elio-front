@@ -4,7 +4,7 @@ import { LeadStatus, Conversation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Inbox, User, UserX, MessageCircle, Archive, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Inbox, User, UserX, MessageCircle, Archive, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { StatusIndicator } from '@/components/StatusIcon';
 import { getColorHex } from '@/pages/Statuses';
@@ -15,6 +15,7 @@ export type InboxFilter =
   | { type: 'unassigned' }
   | { type: 'unreplied' }
   | { type: 'archived' }
+  | { type: 'newly_assigned' }
   | { type: 'status'; statusId: string; statusName: string };
 
 interface InboxSubNavProps {
@@ -106,6 +107,9 @@ export function InboxSubNav({
   const unassignedCount = nonArchivedConversations.filter(c => !c.assigned_to).length;
   const unrepliedCount = nonArchivedConversations.filter(c => unrepliedConversationIds.has(c.id)).length;
   const archivedCount = conversations.filter(c => c.status === 'archived').length;
+  const newlyAssignedCount = nonArchivedConversations.filter(
+    c => c.assigned_to === userId && !c.assignment_seen_by_assignee
+  ).length;
 
   const isActive = (filter: InboxFilter) => {
     if (filter.type !== currentFilter.type) return false;
@@ -216,7 +220,20 @@ export function InboxSubNav({
           <NavButton filter={{ type: 'unreplied' }} icon={MessageCircle} label="Unreplied" count={unrepliedCount} />
           <NavButton filter={{ type: 'archived' }} icon={Archive} label="Archived" count={archivedCount} />
           
-          {/* Divider */}
+          {/* Newly Assigned section */}
+          {newlyAssignedCount > 0 && (
+            <>
+              <div className="h-px bg-border my-2" />
+              <NavButton 
+                filter={{ type: 'newly_assigned' }} 
+                icon={UserPlus} 
+                label="Newly Assigned" 
+                count={newlyAssignedCount} 
+              />
+            </>
+          )}
+          
+          {/* Divider before statuses */}
           {statuses.length > 0 && (
             <div className="h-px bg-border my-2" />
           )}

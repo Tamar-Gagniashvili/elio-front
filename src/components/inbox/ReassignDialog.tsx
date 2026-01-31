@@ -163,18 +163,26 @@ export function ReassignDialog({
 
     try {
       if (conversationId) {
-        // Reassign single conversation
+        // Reassign single conversation - mark as not seen by new assignee
         const { error } = await supabase
           .from('conversations')
-          .update({ assigned_to: userId, status: 'assigned' })
+          .update({ 
+            assigned_to: userId, 
+            status: 'assigned',
+            assignment_seen_by_assignee: false 
+          })
           .eq('id', conversationId);
 
         if (error) throw error;
       } else if (contactId) {
-        // Reassign all conversations for this contact
+        // Reassign all conversations for this contact - mark as not seen by new assignee
         const { error } = await supabase
           .from('conversations')
-          .update({ assigned_to: userId, status: 'assigned' })
+          .update({ 
+            assigned_to: userId, 
+            status: 'assigned',
+            assignment_seen_by_assignee: false 
+          })
           .eq('contact_id', contactId);
 
         if (error) throw error;

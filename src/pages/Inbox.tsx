@@ -154,6 +154,10 @@ function InboxContent() {
         passesFilter = nonArchivedConversations.some(c => !c.assigned_to);
       } else if (currentFilter.type === 'unreplied') {
         passesFilter = nonArchivedConversations.some(c => unrepliedConversationIds.has(c.id));
+      } else if (currentFilter.type === 'newly_assigned') {
+        passesFilter = nonArchivedConversations.some(
+          c => c.assigned_to === user?.id && !c.assignment_seen_by_assignee
+        );
       } else if (currentFilter.type === 'status') {
         passesFilter = group.contacts.some(c => contactsWithStatus.has(c.id)) && 
                        nonArchivedConversations.length > 0;
@@ -326,6 +330,22 @@ function InboxContent() {
       );
     };
 
+    const markAssignmentAsSeen = async () => {
+      // Mark assignment as seen when the assignee opens the conversation
+      if (selectedConversation.assigned_to === user?.id && !selectedConversation.assignment_seen_by_assignee) {
+        await supabase
+          .from('conversations')
+          .update({ assignment_seen_by_assignee: true })
+          .eq('id', selectedConversation.id);
+
+        // Update local state
+        setSelectedConversation((prev) => prev ? { ...prev, assignment_seen_by_assignee: true } : null);
+        setConversations((prev) => 
+          prev.map((c) => c.id === selectedConversation.id ? { ...c, assignment_seen_by_assignee: true } : c)
+        );
+      }
+    };
+
     fetchMessages();
     fetchLinkedContacts();
     
@@ -333,6 +353,9 @@ function InboxContent() {
     if (selectedConversation.unread_count > 0) {
       markAsRead();
     }
+
+    // Mark assignment as seen
+    markAssignmentAsSeen();
 
     // Subscribe to new messages
     const channel = supabase

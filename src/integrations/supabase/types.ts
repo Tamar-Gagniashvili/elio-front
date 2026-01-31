@@ -324,6 +324,7 @@ export type Database = {
       conversations: {
         Row: {
           assigned_to: string | null
+          assignment_seen_by_assignee: boolean
           channel_id: string | null
           contact_id: string
           created_at: string
@@ -337,6 +338,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          assignment_seen_by_assignee?: boolean
           channel_id?: string | null
           contact_id: string
           created_at?: string
@@ -350,6 +352,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          assignment_seen_by_assignee?: boolean
           channel_id?: string | null
           contact_id?: string
           created_at?: string

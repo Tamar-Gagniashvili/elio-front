@@ -73,6 +73,7 @@ export interface Conversation {
   last_message_at?: string;
   last_message_preview?: string;
   unread_count: number;
+  assignment_seen_by_assignee: boolean;
   created_at: string;
   updated_at: string;
   contact?: Contact;
