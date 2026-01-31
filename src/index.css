@@ -53,6 +53,8 @@
     --channel-instagram: 330 80% 55%;
     --channel-sms: 260 60% 55%;
     --channel-offline: 35 90% 50%;
+    --channel-tiktok: 349 100% 50%;
+    --channel-email: 210 80% 50%;
 
     /* Borders and inputs */
     --border: 220 13% 91%;
@@ -224,3 +226,6 @@
 .channel-messenger { background-color: hsl(var(--channel-messenger)); }
 .channel-instagram { background-color: hsl(var(--channel-instagram)); }
 .channel-sms { background-color: hsl(var(--channel-sms)); }
+.channel-offline { background-color: hsl(var(--channel-offline)); }
+.channel-tiktok { background-color: hsl(var(--channel-tiktok)); }
+.channel-email { background-color: hsl(var(--channel-email)); }

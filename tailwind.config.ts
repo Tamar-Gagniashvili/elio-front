@@ -73,6 +73,9 @@ export default {
           messenger: "hsl(var(--channel-messenger))",
           instagram: "hsl(var(--channel-instagram))",
           sms: "hsl(var(--channel-sms))",
+          offline: "hsl(var(--channel-offline))",
+          tiktok: "hsl(var(--channel-tiktok))",
+          email: "hsl(var(--channel-email))",
         },
         chat: {
           "bubble-agent": "hsl(var(--chat-bubble-agent))",
