@@ -8,6 +8,7 @@ import { AppLayout, useSidebarState } from '@/components/layout/AppLayout';
 import { UnifiedConversationList } from '@/components/inbox/UnifiedConversationList';
 import { ChatView, ContactDetails } from '@/components/inbox/ChatView';
 import { InboxSubNav, InboxFilter } from '@/components/inbox/InboxSubNav';
+import { NotificationBanner } from '@/components/notifications/NotificationBanner';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -539,7 +540,8 @@ function InboxContent() {
 
       {/* Conversation List Panel */}
       <div className="w-80 border-r flex flex-col bg-card">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b space-y-3">
+          <NotificationBanner />
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input

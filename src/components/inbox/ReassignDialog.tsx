@@ -172,7 +172,16 @@ export function ReassignDialog({
         reassigned_by: user?.id || null,
       };
 
+      // Get contact name for notification
+      let contactName = 'Unknown Contact';
       if (conversationId) {
+        const { data: conv } = await supabase
+          .from('conversations')
+          .select('contact:contacts(name)')
+          .eq('id', conversationId)
+          .single();
+        contactName = (conv?.contact as { name?: string })?.name || 'Unknown Contact';
+
         const { error } = await supabase
           .from('conversations')
           .update(updateData)
@@ -180,6 +189,13 @@ export function ReassignDialog({
 
         if (error) throw error;
       } else if (contactId) {
+        const { data: contact } = await supabase
+          .from('contacts')
+          .select('name')
+          .eq('id', contactId)
+          .single();
+        contactName = contact?.name || 'Unknown Contact';
+
         const { error } = await supabase
           .from('conversations')
           .update(updateData)
@@ -189,7 +205,21 @@ export function ReassignDialog({
       }
 
       const assignee = teamMembers.find((m) => m.membership.user_id === userId);
+      const assignerName = user?.user_metadata?.full_name || 'A team member';
       
+      // Send push notification to the assignee (fire and forget)
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          userId,
+          title: `New contact assigned: ${contactName}`,
+          body: reassignReason.trim() 
+            ? `${assignerName}: ${reassignReason.trim()}`
+            : `${assignerName} assigned you a contact`,
+          url: '/inbox?filter=newly_assigned',
+          conversationId,
+        }
+      }).catch(err => console.error('Failed to send push notification:', err));
+
       toast({
         title: 'Contact reassigned',
         description: `Successfully reassigned to ${assignee?.profile.full_name || 'team member'}`,
