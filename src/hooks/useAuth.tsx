@@ -130,8 +130,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Clear local state first to prevent redirect loops
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setMemberships([]);
+    setCurrentTenant(null);
+    setCurrentMembership(null);
+    setDataLoaded(false);
     localStorage.removeItem('currentTenantId');
+    
+    // Then attempt Supabase signout (ignore errors - session may already be invalid)
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.log('Signout error (session may already be invalid):', error);
+    }
+    
+    // Force navigation to auth page
     window.location.href = '/auth';
   };
 
