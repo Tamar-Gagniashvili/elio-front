@@ -23,9 +23,14 @@ export default function Auth() {
   const { toast } = useToast();
 
   // Redirect logged-in users away from auth page
+  // Only redirect if we have a valid session (not just cached state)
   useEffect(() => {
     if (!loading && user && dataLoaded) {
-      navigate('/', { replace: true });
+      // Small delay to ensure session is valid and not stale
+      const timeout = setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 100);
+      return () => clearTimeout(timeout);
     }
   }, [user, loading, dataLoaded, navigate]);
 

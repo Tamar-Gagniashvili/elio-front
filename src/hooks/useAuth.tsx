@@ -138,17 +138,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentTenant(null);
     setCurrentMembership(null);
     setDataLoaded(false);
+    setLoading(false);
     localStorage.removeItem('currentTenantId');
     
-    // Then attempt Supabase signout (ignore errors - session may already be invalid)
+    // Attempt Supabase signout with global scope to clear all sessions
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'global' });
     } catch (error) {
-      console.log('Signout error (session may already be invalid):', error);
+      // Session may already be invalid, that's okay
+      console.log('Signout completed (session may have been invalid)');
     }
     
-    // Force navigation to auth page
-    window.location.href = '/auth';
+    // Force full page reload to auth page to ensure clean state
+    window.location.replace('/auth');
   };
 
   const handleSetCurrentTenant = (tenant: Tenant | null) => {
