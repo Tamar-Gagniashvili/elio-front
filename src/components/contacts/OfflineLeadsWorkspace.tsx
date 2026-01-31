@@ -20,7 +20,9 @@ import {
   Building2,
   Calendar,
   UserPlus,
+  AlertCircle,
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStatusColorClasses } from '@/pages/Statuses';
@@ -49,6 +51,8 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
   const [assignedUsers, setAssignedUsers] = useState<Map<string, { name: string; id: string }>>(new Map());
+  const [assignmentReasons, setAssignmentReasons] = useState<Map<string, { reason: string; reassignedBy: string | null }>>(new Map());
+  const [reassignerProfiles, setReassignerProfiles] = useState<Map<string, string>>(new Map());
   
   const { currentTenant, currentMembership, user } = useAuth();
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
@@ -111,19 +115,29 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
     // Fetch conversations for assignment info
     const { data: conversations } = await supabase
       .from('conversations')
-      .select('contact_id, assigned_to')
+      .select('contact_id, assigned_to, assignment_reason, reassigned_by')
       .eq('tenant_id', currentTenant.id);
 
     if (conversations) {
       const assignedToIds = [...new Set(conversations.map(c => c.assigned_to).filter(Boolean))];
+      const reassignedByIds = [...new Set(conversations.map(c => c.reassigned_by).filter(Boolean))];
+      const allUserIds = [...new Set([...assignedToIds, ...reassignedByIds])];
       
-      if (assignedToIds.length > 0) {
+      if (allUserIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('user_id, full_name, email')
-          .in('user_id', assignedToIds);
+          .in('user_id', allUserIds);
 
         const assignmentMap = new Map<string, { name: string; id: string }>();
+        const reasonsMap = new Map<string, { reason: string; reassignedBy: string | null }>();
+        const reassignerMap = new Map<string, string>();
+        
+        // Build reassigner profiles map
+        profiles?.forEach(p => {
+          reassignerMap.set(p.user_id, p.full_name || p.email || 'Unknown');
+        });
+        
         conversations.forEach(conv => {
           if (conv.assigned_to) {
             const profile = profiles?.find(p => p.user_id === conv.assigned_to);
@@ -132,8 +146,17 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
               name: profile?.full_name || profile?.email || 'Unknown'
             });
           }
+          if (conv.assignment_reason) {
+            reasonsMap.set(conv.contact_id, {
+              reason: conv.assignment_reason,
+              reassignedBy: conv.reassigned_by
+            });
+          }
         });
+        
         setAssignedUsers(assignmentMap);
+        setAssignmentReasons(reasonsMap);
+        setReassignerProfiles(reassignerMap);
       }
     }
 
@@ -416,6 +439,20 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
               </div>
             </div>
           </div>
+
+          {/* Reassignment Reason Banner */}
+          {selectedContact && assignmentReasons.get(selectedContact.id) && (
+            <Alert className="mx-4 mt-4 border-primary/50 bg-primary/10">
+              <AlertCircle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                <span className="font-medium">
+                  {reassignerProfiles.get(assignmentReasons.get(selectedContact.id)?.reassignedBy || '') || 'Someone'}
+                </span>
+                {': '}
+                {assignmentReasons.get(selectedContact.id)?.reason}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Content */}
           <ScrollArea className="flex-1">
