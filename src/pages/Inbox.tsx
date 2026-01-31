@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Conversation, Message, Contact, ConversationStatus, ChannelType } from '@/lib/types';
+import { Conversation, Message, Contact, ConversationStatus, ChannelType, Profile } from '@/lib/types';
 import { useUnifiedContacts, GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { AppLayout, useSidebarState } from '@/components/layout/AppLayout';
 import { UnifiedConversationList } from '@/components/inbox/UnifiedConversationList';
@@ -30,6 +30,7 @@ function InboxContent() {
   );
   const [contactsWithStatus, setContactsWithStatus] = useState<Set<string>>(new Set());
   const [unrepliedConversationIds, setUnrepliedConversationIds] = useState<Set<string>>(new Set());
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [isLoading, setIsLoading] = useState(true);
   
   const { toast } = useToast();
@@ -40,6 +41,43 @@ function InboxContent() {
     conversations,
     tenantId: currentTenant?.id,
   });
+
+  // Fetch team member profiles for admin view
+  useEffect(() => {
+    if (!currentTenant || !isAdmin) {
+      setProfiles({});
+      return;
+    }
+
+    const fetchProfiles = async () => {
+      // Get all assigned user IDs from conversations
+      const assignedUserIds = [...new Set(
+        conversations
+          .map(c => c.assigned_to)
+          .filter((id): id is string => !!id)
+      )];
+
+      if (assignedUserIds.length === 0) {
+        setProfiles({});
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', assignedUserIds);
+
+      if (!error && data) {
+        const profileMap: Record<string, Profile> = {};
+        data.forEach(p => {
+          profileMap[p.user_id] = p as Profile;
+        });
+        setProfiles(profileMap);
+      }
+    };
+
+    fetchProfiles();
+  }, [currentTenant, isAdmin, conversations]);
 
   // Fetch contacts with specific status for status filter
   useEffect(() => {
@@ -461,6 +499,8 @@ function InboxContent() {
             selectedConversationId={selectedConversation?.id}
             onSelectGroup={handleSelectGroup}
             onSelectChannel={handleSelectChannel}
+            isAdmin={isAdmin}
+            profiles={profiles}
           />
         </div>
       </div>
