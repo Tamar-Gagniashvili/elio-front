@@ -7,13 +7,10 @@ import { useUnifiedContacts, GroupedConversation } from '@/hooks/useUnifiedConta
 import { AppLayout } from '@/components/layout/AppLayout';
 import { UnifiedConversationList } from '@/components/inbox/UnifiedConversationList';
 import { ChatView, ContactDetails } from '@/components/inbox/ChatView';
-import { Button } from '@/components/ui/button';
+import { InboxSubNav, InboxFilter } from '@/components/inbox/InboxSubNav';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-type FilterStatus = 'all' | 'open' | 'assigned' | 'resolved';
 
 export default function Inbox() {
   const { currentTenant, user, currentMembership } = useAuth();
@@ -26,7 +23,10 @@ export default function Inbox() {
   const [linkedContacts, setLinkedContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   // Sales users default to "Mine" filter
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>(() => isAdmin ? 'all' : 'assigned');
+  const [currentFilter, setCurrentFilter] = useState<InboxFilter>(() => 
+    isAdmin ? { type: 'all' } : { type: 'mine' }
+  );
+  const [contactsWithStatus, setContactsWithStatus] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   
   const { toast } = useToast();
@@ -38,8 +38,48 @@ export default function Inbox() {
     tenantId: currentTenant?.id,
   });
 
-  // Filter grouped conversations
+  // Fetch contacts with specific status for status filter
+  useEffect(() => {
+    if (!currentTenant || currentFilter.type !== 'status') {
+      setContactsWithStatus(new Set());
+      return;
+    }
+
+    const fetchContactsWithStatus = async () => {
+      const { data, error } = await supabase
+        .from('contact_statuses')
+        .select('contact_id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('status_id', currentFilter.statusId);
+
+      if (!error && data) {
+        setContactsWithStatus(new Set(data.map(cs => cs.contact_id)));
+      }
+    };
+
+    fetchContactsWithStatus();
+  }, [currentTenant, currentFilter]);
+
+  // Filter grouped conversations based on current filter and search
   const filteredGroups = groupedConversations.filter((group) => {
+    // Apply filter based on type
+    let passesFilter = true;
+    
+    if (currentFilter.type === 'mine') {
+      // At least one conversation assigned to current user
+      passesFilter = group.conversations.some(c => c.assigned_to === user?.id);
+    } else if (currentFilter.type === 'unassigned') {
+      // At least one conversation is unassigned
+      passesFilter = group.conversations.some(c => !c.assigned_to);
+    } else if (currentFilter.type === 'status') {
+      // At least one contact in the group has the selected status
+      passesFilter = group.contacts.some(c => contactsWithStatus.has(c.id));
+    }
+    // 'all' passes all
+
+    if (!passesFilter) return false;
+
+    // Apply search filter
     if (!searchQuery) return true;
     const displayName = group.displayName.toLowerCase();
     const hasMatchingContact = group.contacts.some(c => 
@@ -58,7 +98,7 @@ export default function Inbox() {
 
     const fetchConversations = async () => {
       setIsLoading(true);
-      let query = supabase
+      const query = supabase
         .from('conversations')
         .select(`
           *,
@@ -66,10 +106,6 @@ export default function Inbox() {
         `)
         .eq('tenant_id', currentTenant.id)
         .order('last_message_at', { ascending: false, nullsFirst: false });
-
-      if (filterStatus !== 'all') {
-        query = query.eq('status', filterStatus);
-      }
 
       const { data, error } = await query;
 
@@ -107,7 +143,7 @@ export default function Inbox() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentTenant, filterStatus]);
+  }, [currentTenant]);
 
   // Handle conversation query parameter from reminder notifications
   useEffect(() => {
@@ -143,7 +179,7 @@ export default function Inbox() {
       .from('contact_links')
       .select('link_group_id')
       .eq('contact_id', contactId)
-      .single();
+      .maybeSingle();
 
     if (!linkData?.link_group_id) {
       setLinkedContacts([]);
@@ -346,79 +382,80 @@ export default function Inbox() {
 
   return (
     <AppLayout>
-      <div className="flex h-full">
-        {/* Conversation List Panel */}
-        <div className="w-80 border-r flex flex-col bg-card">
-          <div className="p-4 border-b space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+      <div className="flex flex-col h-full">
+        {/* Sub Navigation */}
+        <InboxSubNav
+          tenantId={currentTenant?.id}
+          currentFilter={currentFilter}
+          onFilterChange={setCurrentFilter}
+        />
+
+        <div className="flex flex-1 min-h-0">
+          {/* Conversation List Panel */}
+          <div className="w-80 border-r flex flex-col bg-card">
+            <div className="p-4 border-b">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <UnifiedConversationList
+                groupedConversations={filteredGroups}
+                selectedGroupId={selectedGroup?.id}
+                selectedConversationId={selectedConversation?.id}
+                onSelectGroup={handleSelectGroup}
+                onSelectChannel={handleSelectChannel}
               />
             </div>
-            
-            <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
-              <TabsList className="w-full">
-                <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
-                <TabsTrigger value="open" className="flex-1">Open</TabsTrigger>
-                <TabsTrigger value="assigned" className="flex-1">Mine</TabsTrigger>
-              </TabsList>
-            </Tabs>
           </div>
 
-          <div className="flex-1 overflow-y-auto scrollbar-thin">
-            <UnifiedConversationList
-              groupedConversations={filteredGroups}
-              selectedGroupId={selectedGroup?.id}
-              selectedConversationId={selectedConversation?.id}
-              onSelectGroup={handleSelectGroup}
-              onSelectChannel={handleSelectChannel}
-            />
-          </div>
-        </div>
-
-        {/* Chat Panel */}
-        <div className="flex-1 flex">
-          {selectedConversation ? (
-            <>
-              <div className="flex-1">
-                <ChatView
-                  conversation={selectedConversation}
-                  messages={messages}
-                  onSendMessage={handleSendMessage}
-                  onStatusChange={handleStatusChange}
-                  linkedContacts={linkedContacts}
-                  onLinksChanged={handleLinksChanged}
-                  selectedGroup={selectedGroup}
-                  onSelectConversation={setSelectedConversation}
-                />
-              </div>
-              <div className="w-72 hidden lg:block">
-                <ContactDetails 
-                  conversation={selectedConversation}
-                  linkedContacts={linkedContacts}
-                  selectedGroup={selectedGroup}
-                  onSelectConversation={setSelectedConversation}
-                  tenantId={currentTenant?.id}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center bg-muted/30">
-              <div className="text-center">
-                <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                  <MessageSquare className="h-10 w-10 text-muted-foreground" />
+          {/* Chat Panel */}
+          <div className="flex-1 flex">
+            {selectedConversation ? (
+              <>
+                <div className="flex-1">
+                  <ChatView
+                    conversation={selectedConversation}
+                    messages={messages}
+                    onSendMessage={handleSendMessage}
+                    onStatusChange={handleStatusChange}
+                    linkedContacts={linkedContacts}
+                    onLinksChanged={handleLinksChanged}
+                    selectedGroup={selectedGroup}
+                    onSelectConversation={setSelectedConversation}
+                  />
                 </div>
-                <h3 className="font-semibold text-lg mb-1">Select a conversation</h3>
-                <p className="text-muted-foreground">
-                  Choose a conversation from the list to start chatting
-                </p>
+                <div className="w-72 hidden lg:block">
+                  <ContactDetails 
+                    conversation={selectedConversation}
+                    linkedContacts={linkedContacts}
+                    selectedGroup={selectedGroup}
+                    onSelectConversation={setSelectedConversation}
+                    tenantId={currentTenant?.id}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center bg-muted/30">
+                <div className="text-center">
+                  <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                    <MessageSquare className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-1">Select a conversation</h3>
+                  <p className="text-muted-foreground">
+                    Choose a conversation from the list to start chatting
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </AppLayout>
