@@ -6,54 +6,72 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Avatar } from '@/components/Avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EditMemberDialog } from '@/components/settings/EditMemberDialog';
+import { Pencil } from 'lucide-react';
 
 interface TeamMember extends TenantMembership {
   profile: Profile;
 }
 
+const POSITION_LABELS: Record<string, string> = {
+  trainee: 'Trainee',
+  junior: 'Junior',
+  mid: 'Mid-Level',
+  senior: 'Senior',
+  lead: 'Lead',
+};
+
 export default function Settings() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   
-  const { currentTenant, profile } = useAuth();
+  const { currentTenant, profile, currentMembership } = useAuth();
+  const isAdmin = currentMembership?.role === 'owner' || currentMembership?.role === 'admin';
+
+  const fetchTeamMembers = async () => {
+    if (!currentTenant) return;
+    
+    const { data: memberships, error: membershipsError } = await supabase
+      .from('tenant_memberships')
+      .select('*')
+      .eq('tenant_id', currentTenant.id)
+      .eq('is_active', true);
+
+    if (membershipsError) {
+      console.error('Error fetching team members:', membershipsError);
+      setIsLoading(false);
+      return;
+    }
+
+    // Fetch profiles separately
+    const userIds = (memberships || []).map(m => m.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('user_id', userIds);
+
+    const membersWithProfiles = (memberships || []).map(m => ({
+      ...m,
+      profile: (profiles || []).find(p => p.user_id === m.user_id) as Profile
+    }));
+
+    setTeamMembers(membersWithProfiles as TeamMember[]);
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    if (!currentTenant) return;
-
-    const fetchTeamMembers = async () => {
-      const { data: memberships, error: membershipsError } = await supabase
-        .from('tenant_memberships')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .eq('is_active', true);
-
-      if (membershipsError) {
-        console.error('Error fetching team members:', membershipsError);
-        setIsLoading(false);
-        return;
-      }
-
-      // Fetch profiles separately
-      const userIds = (memberships || []).map(m => m.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', userIds);
-
-      const membersWithProfiles = (memberships || []).map(m => ({
-        ...m,
-        profile: (profiles || []).find(p => p.user_id === m.user_id) as Profile
-      }));
-
-      setTeamMembers(membersWithProfiles as TeamMember[]);
-      setIsLoading(false);
-    };
-
     fetchTeamMembers();
   }, [currentTenant]);
+
+  const canEditMember = (member: TeamMember) => {
+    // Admins can only edit sales members, not other admins or owners
+    return isAdmin && member.role === 'sales';
+  };
 
   return (
     <AppLayout>
@@ -105,9 +123,25 @@ export default function Settings() {
                         </div>
                       </div>
 
-                      <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
-                        {member.role}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {member.position && (
+                          <Badge variant="outline">
+                            {POSITION_LABELS[member.position] || member.position}
+                          </Badge>
+                        )}
+                        <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
+                          {member.role}
+                        </Badge>
+                        {canEditMember(member) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingMember(member)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -137,6 +171,13 @@ export default function Settings() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <EditMemberDialog
+        member={editingMember}
+        open={!!editingMember}
+        onOpenChange={(open) => !open && setEditingMember(null)}
+        onUpdate={fetchTeamMembers}
+      />
     </AppLayout>
   );
 }
