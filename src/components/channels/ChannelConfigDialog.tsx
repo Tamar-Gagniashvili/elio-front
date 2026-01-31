@@ -130,6 +130,72 @@ const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
     },
   ],
   offline: [], // No credentials needed for imported leads
+  tiktok: [
+    {
+      key: 'access_token',
+      label: 'TikTok Access Token',
+      placeholder: 'act.xxxxxxxxxxxx',
+      type: 'password',
+      helpUrl: 'https://developers.tiktok.com/doc/login-kit-web',
+    },
+    {
+      key: 'business_id',
+      label: 'TikTok Business ID',
+      placeholder: '7xxxxxxxxxxxxxxxxxx',
+      type: 'text',
+    },
+    {
+      key: 'app_id',
+      label: 'TikTok App ID',
+      placeholder: '7xxxxxxxxxxxxxxxxxx',
+      type: 'text',
+    },
+    {
+      key: 'app_secret',
+      label: 'TikTok App Secret',
+      placeholder: 'xxxxxxxxxxxxxxxxxxxx',
+      type: 'password',
+    },
+  ],
+  email: [
+    {
+      key: 'imap_host',
+      label: 'IMAP Host',
+      placeholder: 'imap.gmail.com',
+      type: 'text',
+      helpUrl: 'https://support.google.com/mail/answer/7126229',
+    },
+    {
+      key: 'imap_port',
+      label: 'IMAP Port',
+      placeholder: '993',
+      type: 'text',
+    },
+    {
+      key: 'smtp_host',
+      label: 'SMTP Host',
+      placeholder: 'smtp.gmail.com',
+      type: 'text',
+    },
+    {
+      key: 'smtp_port',
+      label: 'SMTP Port',
+      placeholder: '587',
+      type: 'text',
+    },
+    {
+      key: 'email_address',
+      label: 'Email Address',
+      placeholder: 'support@yourcompany.com',
+      type: 'text',
+    },
+    {
+      key: 'email_password',
+      label: 'Email Password / App Password',
+      placeholder: 'xxxx xxxx xxxx xxxx',
+      type: 'password',
+    },
+  ],
 };
 
 const getWebhookUrl = (channelType: ChannelType, tenantId: string): string | null => {
@@ -144,6 +210,10 @@ const getWebhookUrl = (channelType: ChannelType, tenantId: string): string | nul
       return `${baseUrl}/webhook-messenger?tenant_id=${tenantId}`;
     case 'instagram':
       return `${baseUrl}/webhook-instagram?tenant_id=${tenantId}`;
+    case 'tiktok':
+      return `${baseUrl}/webhook-tiktok?tenant_id=${tenantId}`;
+    case 'email':
+      return `${baseUrl}/webhook-email?tenant_id=${tenantId}`;
     default:
       return null;
   }

@@ -1,4 +1,4 @@
-import { MessageCircle, Send, MessageSquare, Facebook, Instagram, Phone, FileSpreadsheet } from 'lucide-react';
+import { MessageCircle, Send, MessageSquare, Facebook, Instagram, Phone, FileSpreadsheet, Music2, Mail } from 'lucide-react';
 import { ChannelType, CHANNEL_CONFIG } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,8 @@ const iconMap = {
   Instagram,
   Phone,
   FileSpreadsheet,
+  Music2,
+  Mail,
 };
 
 export function ChannelBadge({ channelType, showLabel = false, size = 'md', className }: ChannelBadgeProps) {

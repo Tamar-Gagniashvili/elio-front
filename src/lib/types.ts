@@ -1,4 +1,4 @@
-export type ChannelType = 'web_chat' | 'telegram' | 'whatsapp' | 'messenger' | 'instagram' | 'sms' | 'offline';
+export type ChannelType = 'web_chat' | 'telegram' | 'whatsapp' | 'messenger' | 'instagram' | 'sms' | 'offline' | 'tiktok' | 'email';
 export type ConversationStatus = 'open' | 'assigned' | 'resolved' | 'archived';
 export type MessageSenderType = 'contact' | 'agent' | 'system';
 export type AppRole = 'super_admin' | 'owner' | 'admin' | 'sales';
@@ -170,6 +170,8 @@ export const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: string; 
   instagram: { label: 'Instagram', icon: 'Instagram', color: 'channel-instagram' },
   sms: { label: 'SMS', icon: 'Phone', color: 'channel-sms' },
   offline: { label: 'Offline', icon: 'FileSpreadsheet', color: 'channel-offline' },
+  tiktok: { label: 'TikTok', icon: 'Music2', color: 'channel-tiktok' },
+  email: { label: 'Email', icon: 'Mail', color: 'channel-email' },
 };
 
-export const ALL_CHANNELS: ChannelType[] = ['web_chat', 'telegram', 'whatsapp', 'messenger', 'instagram', 'sms', 'offline'];
+export const ALL_CHANNELS: ChannelType[] = ['web_chat', 'telegram', 'whatsapp', 'messenger', 'instagram', 'sms', 'offline', 'tiktok', 'email'];
