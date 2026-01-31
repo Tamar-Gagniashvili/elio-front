@@ -157,9 +157,11 @@ export function ChatView({
             <DropdownMenuItem onClick={() => onStatusChange('archived')}>
               Archive
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onStatusChange('open')}>
-              Reopen
-            </DropdownMenuItem>
+            {conversation.status === 'archived' && (
+              <DropdownMenuItem onClick={() => onStatusChange('open')}>
+                Reopen
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
