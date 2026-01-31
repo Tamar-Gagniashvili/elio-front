@@ -139,7 +139,8 @@ export function ChatView({
           <DropdownMenuContent align="end">
             {conversation.contact && (
               <>
-                {isAdmin && (
+                {/* Sales can reassign their own leads, admins can reassign any */}
+                {(isAdmin || conversation.assigned_to === user?.id) && (
                   <DropdownMenuItem onClick={() => setIsReassignDialogOpen(true)}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Reassign Contact
