@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
-import { Conversation, ChannelType } from '@/lib/types';
+import { Conversation, ChannelType, Profile } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
@@ -13,6 +13,8 @@ interface UnifiedConversationListProps {
   selectedConversationId?: string;
   onSelectGroup: (group: GroupedConversation) => void;
   onSelectChannel?: (group: GroupedConversation, channelType: ChannelType) => void;
+  isAdmin?: boolean;
+  profiles?: Record<string, Profile>;
 }
 
 export function UnifiedConversationList({ 
@@ -21,6 +23,8 @@ export function UnifiedConversationList({
   selectedConversationId,
   onSelectGroup,
   onSelectChannel,
+  isAdmin = false,
+  profiles = {},
 }: UnifiedConversationListProps) {
   if (groupedConversations.length === 0) {
     return (
@@ -61,6 +65,17 @@ export function UnifiedConversationList({
     return latest?.status || 'open';
   };
 
+  // Get assignee name from the latest conversation
+  const getAssigneeName = (group: GroupedConversation): string | null => {
+    const latest = getLatestConversation(group);
+    if (!latest?.assigned_to) return null;
+    const profile = profiles[latest.assigned_to];
+    if (profile) {
+      return profile.full_name || profile.email?.split('@')[0] || null;
+    }
+    return null;
+  };
+
   return (
     <div className="flex flex-col divide-y divide-border">
       {groupedConversations.map((group) => {
@@ -70,6 +85,7 @@ export function UnifiedConversationList({
         const channelTypes = getChannelTypes(group);
         const status = getGroupStatus(group);
         const primaryContact = group.contacts[0];
+        const assigneeName = isAdmin ? getAssigneeName(group) : null;
 
         return (
           <button
@@ -145,6 +161,21 @@ export function UnifiedConversationList({
 
                 <div className="flex-1" />
                 
+                {/* Show assignee name for admins, or status badge */}
+                {isAdmin && assigneeName ? (
+                  <span className="text-[10px] text-muted-foreground truncate max-w-20">
+                    {assigneeName}
+                  </span>
+                ) : isAdmin && !latestConversation?.assigned_to ? (
+                  <Badge 
+                    variant="outline"
+                    className="h-5 text-[10px]"
+                  >
+                    unassigned
+                  </Badge>
+                ) : null}
+
+                {/* Status badge */}
                 <Badge 
                   variant={status === 'open' ? 'default' : 'secondary'}
                   className={cn(
