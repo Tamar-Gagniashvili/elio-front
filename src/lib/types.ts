@@ -130,6 +130,7 @@ export interface LeadStatus {
   tenant_id: string;
   name: string;
   color: string;
+  icon?: string | null;
   created_at: string;
   created_by?: string;
 }

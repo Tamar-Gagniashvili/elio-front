@@ -6,6 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Inbox, User, UserX, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { StatusIndicator } from '@/components/StatusIcon';
+import { getColorHex } from '@/pages/Statuses';
 
 export type InboxFilter = 
   | { type: 'all' }
@@ -111,12 +113,14 @@ export function InboxSubNav({
     icon: Icon, 
     label, 
     color,
+    statusIcon,
     count
   }: { 
     filter: InboxFilter; 
     icon?: React.ComponentType<{ className?: string }>; 
     label: string;
     color?: string;
+    statusIcon?: string | null;
     count?: number;
   }) => {
     const button = (
@@ -131,10 +135,12 @@ export function InboxSubNav({
         )}
       >
         {Icon && <Icon className="h-3.5 w-3.5 flex-shrink-0" />}
-        {color && (
-          <span 
-            className="h-2.5 w-2.5 rounded-full flex-shrink-0" 
-            style={{ backgroundColor: color }}
+        {color && !Icon && (
+          <StatusIndicator 
+            icon={statusIcon} 
+            color={color}
+            colorDotClass="h-2.5 w-2.5"
+            iconClass="h-3.5 w-3.5"
           />
         )}
         {!collapsed && (
@@ -212,7 +218,8 @@ export function InboxSubNav({
               key={status.id}
               filter={{ type: 'status', statusId: status.id, statusName: status.name }}
               label={status.name}
-              color={status.color}
+              color={getColorHex(status.color)}
+              statusIcon={status.icon}
               count={statusCounts[status.id] || 0}
             />
           ))}

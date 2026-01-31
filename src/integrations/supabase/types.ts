@@ -390,6 +390,7 @@ export type Database = {
           color: string
           created_at: string
           created_by: string | null
+          icon: string | null
           id: string
           name: string
           tenant_id: string
@@ -399,6 +400,7 @@ export type Database = {
           color?: string
           created_at?: string
           created_by?: string | null
+          icon?: string | null
           id?: string
           name: string
           tenant_id: string
@@ -408,6 +410,7 @@ export type Database = {
           color?: string
           created_at?: string
           created_by?: string | null
+          icon?: string | null
           id?: string
           name?: string
           tenant_id?: string
