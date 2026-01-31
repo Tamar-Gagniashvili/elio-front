@@ -9,8 +9,9 @@ import { ChannelBadge } from '@/components/ChannelBadge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,8 @@ interface ChatViewProps {
   selectedGroup?: GroupedConversation | null;
   onSelectConversation?: (conversation: Conversation) => void;
   onReassigned?: () => void;
+  reassignerName?: string;
+  onDismissReason?: () => void;
 }
 
 export function ChatView({ 
@@ -46,6 +49,8 @@ export function ChatView({
   selectedGroup,
   onSelectConversation,
   onReassigned,
+  reassignerName,
+  onDismissReason,
 }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -190,6 +195,33 @@ export function ChatView({
             contact={conversation.contact}
           />
         </>
+      )}
+      {/* Reassignment Reason Alert */}
+      {conversation.assignment_reason && (
+        <div className="px-4 pt-4">
+          <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-700 dark:text-amber-400">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="flex items-center justify-between">
+              <span>Reassignment Note</span>
+              {onDismissReason && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 -mr-2"
+                  onClick={onDismissReason}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </AlertTitle>
+            <AlertDescription>
+              {reassignerName && (
+                <span className="font-medium">{reassignerName}: </span>
+              )}
+              {conversation.assignment_reason}
+            </AlertDescription>
+          </Alert>
+        </div>
       )}
 
       {/* Messages */}
