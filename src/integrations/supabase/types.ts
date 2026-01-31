@@ -611,6 +611,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          position: string | null
           role: Database["public"]["Enums"]["app_role"]
           tenant_id: string
           updated_at: string
@@ -620,6 +621,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          position?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           tenant_id: string
           updated_at?: string
@@ -629,6 +631,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          position?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           tenant_id?: string
           updated_at?: string

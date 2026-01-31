@@ -30,6 +30,7 @@ export interface TenantMembership {
   tenant_id: string;
   user_id: string;
   role: AppRole;
+  position?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
