@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone, Link2, Tag } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +22,7 @@ import { LinkContactDialog } from './LinkContactDialog';
 import { ManageStatusDialog } from './ManageStatusDialog';
 import { ContactNotes } from './ContactNotes';
 import { ContactStatusesDisplay } from './ContactStatusesDisplay';
+import { ReassignDialog } from './ReassignDialog';
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -32,6 +33,7 @@ interface ChatViewProps {
   onLinksChanged?: () => void;
   selectedGroup?: GroupedConversation | null;
   onSelectConversation?: (conversation: Conversation) => void;
+  onReassigned?: () => void;
 }
 
 export function ChatView({ 
@@ -43,13 +45,17 @@ export function ChatView({
   onLinksChanged,
   selectedGroup,
   onSelectConversation,
+  onReassigned,
 }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { user, profile } = useAuth();
+  const { user, profile, currentMembership } = useAuth();
+  
+  const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
 
   // Get channel types from the group
   const channelTypes = selectedGroup?.contacts.map(c => c.channel_type) || 
@@ -128,6 +134,12 @@ export function ChatView({
           <DropdownMenuContent align="end">
             {conversation.contact && (
               <>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => setIsReassignDialogOpen(true)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Reassign Contact
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => setIsLinkDialogOpen(true)}>
                   <Link2 className="h-4 w-4 mr-2" />
                   Link Contact
@@ -151,6 +163,15 @@ export function ChatView({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Reassign Dialog */}
+      <ReassignDialog
+        open={isReassignDialogOpen}
+        onOpenChange={setIsReassignDialogOpen}
+        conversationId={conversation.id}
+        currentAssignee={conversation.assigned_to}
+        onReassigned={onReassigned}
+      />
 
       {/* Link Contact Dialog */}
       {conversation.contact && (

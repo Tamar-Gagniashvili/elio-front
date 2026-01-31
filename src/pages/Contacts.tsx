@@ -12,12 +12,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Users, Link2, Tag, X, Upload, Globe, FileSpreadsheet } from 'lucide-react';
+import { Search, Users, Link2, Tag, X, Upload, Globe, FileSpreadsheet, UserPlus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStatusColorClasses } from '@/pages/Statuses';
 import { ImportLeadsDialog } from '@/components/contacts/ImportLeadsDialog';
 import { OfflineLeadsWorkspace } from '@/components/contacts/OfflineLeadsWorkspace';
+import { ReassignDialog } from '@/components/inbox/ReassignDialog';
 
 interface LeadStatus {
   id: string;
@@ -46,6 +47,8 @@ export default function Contacts() {
   const [activeTab, setActiveTab] = useState<'online' | 'imported'>('online');
   const [offlineCount, setOfflineCount] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
+  const [selectedContactForReassign, setSelectedContactForReassign] = useState<string | null>(null);
   
   const { currentTenant, currentMembership, user } = useAuth();
   
@@ -496,8 +499,25 @@ export default function Contacts() {
                                 </div>
                                 {renderStatusBadges(group.statuses)}
                               </div>
-                              <div className="text-sm text-muted-foreground mr-2">
-                                {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
+                              <div className="flex items-center gap-3 mr-2">
+                                {isAdmin && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedContactForReassign(primaryContact.id);
+                                      setReassignDialogOpen(true);
+                                    }}
+                                    className="gap-1.5"
+                                  >
+                                    <UserPlus className="h-3.5 w-3.5" />
+                                    Reassign
+                                  </Button>
+                                )}
+                                <div className="text-sm text-muted-foreground">
+                                  {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
+                                </div>
                               </div>
                             </div>
                           </AccordionTrigger>
@@ -550,8 +570,25 @@ export default function Contacts() {
                             </div>
                             {renderStatusBadges(group.statuses)}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
+                          <div className="flex items-center gap-3">
+                            {isAdmin && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedContactForReassign(primaryContact.id);
+                                  setReassignDialogOpen(true);
+                                }}
+                                className="gap-1.5"
+                              >
+                                <UserPlus className="h-3.5 w-3.5" />
+                                Reassign
+                              </Button>
+                            )}
+                            <div className="text-sm text-muted-foreground">
+                              {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -574,6 +611,16 @@ export default function Contacts() {
         onImportComplete={() => {
           fetchData();
           setActiveTab('imported');
+        }}
+      />
+      
+      <ReassignDialog
+        open={reassignDialogOpen}
+        onOpenChange={setReassignDialogOpen}
+        contactId={selectedContactForReassign || undefined}
+        onReassigned={() => {
+          setSelectedContactForReassign(null);
+          fetchData();
         }}
       />
     </AppLayout>

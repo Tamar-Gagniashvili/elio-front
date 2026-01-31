@@ -519,6 +519,11 @@ function InboxContent() {
                 onLinksChanged={handleLinksChanged}
                 selectedGroup={selectedGroup}
                 onSelectConversation={setSelectedConversation}
+                onReassigned={() => {
+                  // Refresh conversations list after reassignment
+                  setSelectedConversation(null);
+                  setSelectedGroup(null);
+                }}
               />
             </div>
             <div className="w-72 hidden lg:block">
