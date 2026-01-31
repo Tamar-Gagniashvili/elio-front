@@ -99,11 +99,12 @@ export function InboxSubNav({
     fetchStatusCounts();
   }, [tenantId, statuses, conversations]);
 
-  // Calculate counts for core filters
-  const allCount = conversations.length;
-  const mineCount = conversations.filter(c => c.assigned_to === userId).length;
-  const unassignedCount = conversations.filter(c => !c.assigned_to).length;
-  const unrepliedCount = conversations.filter(c => unrepliedConversationIds.has(c.id)).length;
+  // Calculate counts for core filters (exclude archived from non-archived filters)
+  const nonArchivedConversations = conversations.filter(c => c.status !== 'archived');
+  const allCount = nonArchivedConversations.length;
+  const mineCount = nonArchivedConversations.filter(c => c.assigned_to === userId).length;
+  const unassignedCount = nonArchivedConversations.filter(c => !c.assigned_to).length;
+  const unrepliedCount = nonArchivedConversations.filter(c => unrepliedConversationIds.has(c.id)).length;
   const archivedCount = conversations.filter(c => c.status === 'archived').length;
 
   const isActive = (filter: InboxFilter) => {

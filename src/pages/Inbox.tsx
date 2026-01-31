@@ -102,23 +102,26 @@ function InboxContent() {
     // Apply filter based on type
     let passesFilter = true;
     
-    if (currentFilter.type === 'mine') {
-      // At least one conversation assigned to current user
-      passesFilter = group.conversations.some(c => c.assigned_to === user?.id);
-    } else if (currentFilter.type === 'unassigned') {
-      // At least one conversation is unassigned
-      passesFilter = group.conversations.some(c => !c.assigned_to);
-    } else if (currentFilter.type === 'unreplied') {
-      // At least one conversation is unreplied
-      passesFilter = group.conversations.some(c => unrepliedConversationIds.has(c.id));
-    } else if (currentFilter.type === 'archived') {
-      // At least one conversation is archived
+    if (currentFilter.type === 'archived') {
+      // Only show archived conversations
       passesFilter = group.conversations.some(c => c.status === 'archived');
-    } else if (currentFilter.type === 'status') {
-      // At least one contact in the group has the selected status
-      passesFilter = group.contacts.some(c => contactsWithStatus.has(c.id));
+    } else {
+      // For all other filters, exclude archived conversations first
+      const nonArchivedConversations = group.conversations.filter(c => c.status !== 'archived');
+      if (nonArchivedConversations.length === 0) return false;
+      
+      if (currentFilter.type === 'mine') {
+        passesFilter = nonArchivedConversations.some(c => c.assigned_to === user?.id);
+      } else if (currentFilter.type === 'unassigned') {
+        passesFilter = nonArchivedConversations.some(c => !c.assigned_to);
+      } else if (currentFilter.type === 'unreplied') {
+        passesFilter = nonArchivedConversations.some(c => unrepliedConversationIds.has(c.id));
+      } else if (currentFilter.type === 'status') {
+        passesFilter = group.contacts.some(c => contactsWithStatus.has(c.id)) && 
+                       nonArchivedConversations.length > 0;
+      }
+      // 'all' passes all non-archived
     }
-    // 'all' passes all
 
     if (!passesFilter) return false;
 
