@@ -78,7 +78,7 @@ export function InboxSubNav({ tenantId, currentFilter, onFilterChange }: InboxSu
   );
 
   return (
-    <div className="w-36 border-r bg-card/50 flex flex-col">
+    <div className="w-48 border-r bg-card/50 flex flex-col">
       <ScrollArea className="flex-1">
         <div className="flex flex-col gap-1 p-2">
           {/* Core filters */}
