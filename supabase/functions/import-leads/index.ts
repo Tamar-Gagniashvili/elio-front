@@ -21,6 +21,13 @@ interface ImportRequest {
   };
 }
 
+interface SkippedLead {
+  row: number;
+  name: string;
+  reason: 'duplicate_email' | 'duplicate_phone' | 'no_identifying_info';
+  value?: string;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -80,6 +87,26 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Pre-fetch existing emails and phones for faster duplicate checking
+    console.log('Pre-fetching existing contacts for duplicate detection...');
+    
+    const { data: existingContacts } = await supabaseAdmin
+      .from('contacts')
+      .select('email, phone')
+      .eq('tenant_id', tenant_id);
+    
+    const existingEmails = new Set<string>();
+    const existingPhones = new Set<string>();
+    
+    if (existingContacts) {
+      for (const contact of existingContacts) {
+        if (contact.email) existingEmails.add(contact.email.toLowerCase());
+        if (contact.phone) existingPhones.add(contact.phone);
+      }
+    }
+    
+    console.log(`Found ${existingEmails.size} existing emails and ${existingPhones.size} existing phones`);
+
     // Get assignment target users for round-robin
     let assignmentUsers: string[] = [];
     let currentAssignmentIndex = 0;
@@ -106,6 +133,7 @@ Deno.serve(async (req) => {
     const results = {
       imported: 0,
       skipped: 0,
+      skippedLeads: [] as SkippedLead[],
       errors: [] as string[],
     };
 
@@ -140,35 +168,40 @@ Deno.serve(async (req) => {
           contactData.external_id = row[column_mapping.external_id].trim();
         }
 
+        const contactName = (contactData.name as string) || (contactData.email as string) || (contactData.phone as string) || `Row ${i + 1}`;
+
         // Skip if no identifying info
         if (!contactData.name && !contactData.email && !contactData.phone) {
           results.skipped++;
+          results.skippedLeads.push({
+            row: i + 1,
+            name: `Row ${i + 1}`,
+            reason: 'no_identifying_info',
+          });
           continue;
         }
 
-        // Check for duplicate (by email or phone)
-        let existingContact = null;
-        if (contactData.email) {
-          const { data } = await supabaseAdmin
-            .from('contacts')
-            .select('id')
-            .eq('tenant_id', tenant_id)
-            .eq('email', contactData.email)
-            .single();
-          existingContact = data;
-        }
-        if (!existingContact && contactData.phone) {
-          const { data } = await supabaseAdmin
-            .from('contacts')
-            .select('id')
-            .eq('tenant_id', tenant_id)
-            .eq('phone', contactData.phone)
-            .single();
-          existingContact = data;
+        // Check for duplicate by email first
+        if (contactData.email && existingEmails.has(contactData.email as string)) {
+          results.skipped++;
+          results.skippedLeads.push({
+            row: i + 1,
+            name: contactName,
+            reason: 'duplicate_email',
+            value: contactData.email as string,
+          });
+          continue;
         }
 
-        if (existingContact) {
+        // Check for duplicate by phone
+        if (contactData.phone && existingPhones.has(contactData.phone as string)) {
           results.skipped++;
+          results.skippedLeads.push({
+            row: i + 1,
+            name: contactName,
+            reason: 'duplicate_phone',
+            value: contactData.phone as string,
+          });
           continue;
         }
 
@@ -184,6 +217,10 @@ Deno.serve(async (req) => {
           results.errors.push(`Row ${i + 1}: ${insertError.message}`);
           continue;
         }
+
+        // Add to existing sets to prevent duplicates within the same import
+        if (contactData.email) existingEmails.add(contactData.email as string);
+        if (contactData.phone) existingPhones.add(contactData.phone as string);
 
         // Handle assignment based on strategy
         let assignedTo: string | null = null;
@@ -240,7 +277,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('Import complete:', results);
+    console.log('Import complete:', { 
+      imported: results.imported, 
+      skipped: results.skipped, 
+      duplicateEmails: results.skippedLeads.filter(s => s.reason === 'duplicate_email').length,
+      duplicatePhones: results.skippedLeads.filter(s => s.reason === 'duplicate_phone').length,
+      noInfo: results.skippedLeads.filter(s => s.reason === 'no_identifying_info').length,
+      errors: results.errors.length 
+    });
 
     return new Response(
       JSON.stringify({ success: true, results }),

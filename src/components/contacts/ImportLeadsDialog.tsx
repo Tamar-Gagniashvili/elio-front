@@ -91,6 +91,12 @@ export function ImportLeadsDialog({
   const [importResult, setImportResult] = useState<{
     imported: number;
     skipped: number;
+    skippedLeads: Array<{
+      row: number;
+      name: string;
+      reason: 'duplicate_email' | 'duplicate_phone' | 'no_identifying_info';
+      value?: string;
+    }>;
     errors: string[];
   } | null>(null);
 
@@ -705,6 +711,55 @@ export function ImportLeadsDialog({
                   <p className="text-sm text-red-700 dark:text-red-300">Errors</p>
                 </div>
               </div>
+
+              {/* Skipped leads details */}
+              {importResult.skippedLeads && importResult.skippedLeads.length > 0 && (
+                <div className="border rounded-lg p-4 bg-yellow-50 dark:bg-yellow-900/20">
+                  <p className="font-medium text-yellow-700 dark:text-yellow-300 mb-3">
+                    Skipped Leads (already exist):
+                  </p>
+                  
+                  {/* Summary by reason */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {importResult.skippedLeads.filter(s => s.reason === 'duplicate_email').length > 0 && (
+                      <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
+                        {importResult.skippedLeads.filter(s => s.reason === 'duplicate_email').length} duplicate emails
+                      </Badge>
+                    )}
+                    {importResult.skippedLeads.filter(s => s.reason === 'duplicate_phone').length > 0 && (
+                      <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
+                        {importResult.skippedLeads.filter(s => s.reason === 'duplicate_phone').length} duplicate phones
+                      </Badge>
+                    )}
+                    {importResult.skippedLeads.filter(s => s.reason === 'no_identifying_info').length > 0 && (
+                      <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
+                        {importResult.skippedLeads.filter(s => s.reason === 'no_identifying_info').length} missing info
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Detailed list */}
+                  <ul className="text-sm text-yellow-600 dark:text-yellow-400 space-y-1.5 max-h-[150px] overflow-y-auto">
+                    {importResult.skippedLeads.slice(0, 15).map((lead, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <span className="text-yellow-500 dark:text-yellow-500">•</span>
+                        <span className="font-medium">{lead.name}</span>
+                        <span className="text-yellow-500 dark:text-yellow-500">—</span>
+                        <span className="text-xs">
+                          {lead.reason === 'duplicate_email' && `Email "${lead.value}" already exists`}
+                          {lead.reason === 'duplicate_phone' && `Phone "${lead.value}" already exists`}
+                          {lead.reason === 'no_identifying_info' && 'No name, email, or phone'}
+                        </span>
+                      </li>
+                    ))}
+                    {importResult.skippedLeads.length > 15 && (
+                      <li className="text-xs text-yellow-500 dark:text-yellow-500 pl-4">
+                        ...and {importResult.skippedLeads.length - 15} more
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
 
               {importResult.errors.length > 0 && (
                 <div className="border rounded-lg p-4 bg-red-50 dark:bg-red-900/20">
