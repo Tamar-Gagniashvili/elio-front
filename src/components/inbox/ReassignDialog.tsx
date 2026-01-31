@@ -50,10 +50,20 @@ export function ReassignDialog({
   const [positions, setPositions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
-  const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+  const [showOnlineOnly, setShowOnlineOnly] = useState(false); // Default to showing all users
   const [isLoading, setIsLoading] = useState(true);
   const [isAssigning, setIsAssigning] = useState(false);
   const [reassignReason, setReassignReason] = useState('');
+
+  // Reset filters when dialog opens
+  useEffect(() => {
+    if (open) {
+      setSearchQuery('');
+      setSelectedPosition(null);
+      setShowOnlineOnly(false);
+      setReassignReason('');
+    }
+  }, [open]);
 
   // Fetch team members and positions
   useEffect(() => {
