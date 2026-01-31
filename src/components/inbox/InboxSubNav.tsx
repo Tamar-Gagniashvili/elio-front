@@ -4,7 +4,7 @@ import { LeadStatus, Conversation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Inbox, User, UserX, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Inbox, User, UserX, MessageCircle, Archive, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { StatusIndicator } from '@/components/StatusIcon';
 import { getColorHex } from '@/pages/Statuses';
@@ -14,6 +14,7 @@ export type InboxFilter =
   | { type: 'mine' }
   | { type: 'unassigned' }
   | { type: 'unreplied' }
+  | { type: 'archived' }
   | { type: 'status'; statusId: string; statusName: string };
 
 interface InboxSubNavProps {
@@ -103,6 +104,7 @@ export function InboxSubNav({
   const mineCount = conversations.filter(c => c.assigned_to === userId).length;
   const unassignedCount = conversations.filter(c => !c.assigned_to).length;
   const unrepliedCount = conversations.filter(c => unrepliedConversationIds.has(c.id)).length;
+  const archivedCount = conversations.filter(c => c.status === 'archived').length;
 
   const isActive = (filter: InboxFilter) => {
     if (filter.type !== currentFilter.type) return false;
@@ -211,6 +213,7 @@ export function InboxSubNav({
           <NavButton filter={{ type: 'mine' }} icon={User} label="Mine" count={mineCount} />
           <NavButton filter={{ type: 'unassigned' }} icon={UserX} label="Unassigned" count={unassignedCount} />
           <NavButton filter={{ type: 'unreplied' }} icon={MessageCircle} label="Unreplied" count={unrepliedCount} />
+          <NavButton filter={{ type: 'archived' }} icon={Archive} label="Archived" count={archivedCount} />
           
           {/* Divider */}
           {statuses.length > 0 && (

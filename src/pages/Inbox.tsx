@@ -111,6 +111,9 @@ function InboxContent() {
     } else if (currentFilter.type === 'unreplied') {
       // At least one conversation is unreplied
       passesFilter = group.conversations.some(c => unrepliedConversationIds.has(c.id));
+    } else if (currentFilter.type === 'archived') {
+      // At least one conversation is archived
+      passesFilter = group.conversations.some(c => c.status === 'archived');
     } else if (currentFilter.type === 'status') {
       // At least one contact in the group has the selected status
       passesFilter = group.contacts.some(c => contactsWithStatus.has(c.id));
