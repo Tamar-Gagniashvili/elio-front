@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { LeadStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Inbox, User, UserX } from 'lucide-react';
 
 export type InboxFilter = 
@@ -58,36 +57,30 @@ export function InboxSubNav({ tenantId, currentFilter, onFilterChange }: InboxSu
     label: string;
     color?: string;
   }) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          onClick={() => onFilterChange(filter)}
-          className={cn(
-            'flex items-center justify-center w-10 h-10 rounded-lg transition-colors',
-            isActive(filter)
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'
-          )}
-        >
-          {Icon && <Icon className="h-4 w-4" />}
-          {color && (
-            <span 
-              className="h-4 w-4 rounded-full border-2 border-background" 
-              style={{ backgroundColor: color }}
-            />
-          )}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="right">
-        {label}
-      </TooltipContent>
-    </Tooltip>
+    <button
+      onClick={() => onFilterChange(filter)}
+      className={cn(
+        'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left',
+        isActive(filter)
+          ? 'bg-primary text-primary-foreground'
+          : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+      )}
+    >
+      {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
+      {color && (
+        <span 
+          className="h-3 w-3 rounded-full flex-shrink-0" 
+          style={{ backgroundColor: color }}
+        />
+      )}
+      <span className="truncate">{label}</span>
+    </button>
   );
 
   return (
-    <div className="w-14 border-r bg-card/50 flex flex-col">
+    <div className="w-44 border-r bg-card/50 flex flex-col">
       <ScrollArea className="flex-1">
-        <div className="flex flex-col items-center gap-2 py-3 px-2">
+        <div className="flex flex-col gap-1 p-2">
           {/* Core filters */}
           <NavButton filter={{ type: 'all' }} icon={Inbox} label="All" />
           <NavButton filter={{ type: 'mine' }} icon={User} label="Mine" />
@@ -95,7 +88,7 @@ export function InboxSubNav({ tenantId, currentFilter, onFilterChange }: InboxSu
           
           {/* Divider */}
           {statuses.length > 0 && (
-            <div className="w-6 h-px bg-border my-1" />
+            <div className="h-px bg-border my-2" />
           )}
           
           {/* Status filters */}
