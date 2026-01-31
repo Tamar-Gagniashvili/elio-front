@@ -60,16 +60,16 @@ export function InboxSubNav({ tenantId, currentFilter, onFilterChange }: InboxSu
     <button
       onClick={() => onFilterChange(filter)}
       className={cn(
-        'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left',
+        'flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium transition-colors text-left',
         isActive(filter)
           ? 'bg-primary text-primary-foreground'
           : 'hover:bg-muted text-muted-foreground hover:text-foreground'
       )}
     >
-      {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
+      {Icon && <Icon className="h-3.5 w-3.5 flex-shrink-0" />}
       {color && (
         <span 
-          className="h-3 w-3 rounded-full flex-shrink-0" 
+          className="h-2.5 w-2.5 rounded-full flex-shrink-0" 
           style={{ backgroundColor: color }}
         />
       )}
@@ -78,7 +78,7 @@ export function InboxSubNav({ tenantId, currentFilter, onFilterChange }: InboxSu
   );
 
   return (
-    <div className="w-44 border-r bg-card/50 flex flex-col">
+    <div className="w-36 border-r bg-card/50 flex flex-col">
       <ScrollArea className="flex-1">
         <div className="flex flex-col gap-1 p-2">
           {/* Core filters */}
