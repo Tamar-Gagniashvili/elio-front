@@ -11,7 +11,7 @@ import { InboxSubNav, InboxFilter } from '@/components/inbox/InboxSubNav';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+
 
 function InboxContent() {
   const { currentTenant, user, currentMembership } = useAuth();
@@ -407,15 +407,6 @@ function InboxContent() {
           </div>
         </div>
 
-        {/* Filter pills - shown when sidebar is expanded */}
-        {!sidebarCollapsed && (
-          <FilterPills
-            tenantId={currentTenant?.id}
-            currentFilter={currentFilter}
-            onFilterChange={setCurrentFilter}
-          />
-        )}
-
         <div className="flex-1 overflow-y-auto scrollbar-thin">
           <UnifiedConversationList
             groupedConversations={filteredGroups}
@@ -471,78 +462,6 @@ function InboxContent() {
   );
 }
 
-// Horizontal filter pills shown when sidebar is expanded
-function FilterPills({ tenantId, currentFilter, onFilterChange }: {
-  tenantId: string | undefined;
-  currentFilter: InboxFilter;
-  onFilterChange: (filter: InboxFilter) => void;
-}) {
-  const [statuses, setStatuses] = useState<{ id: string; name: string; color: string }[]>([]);
-
-  useEffect(() => {
-    if (!tenantId) return;
-
-    const fetchStatuses = async () => {
-      const { data, error } = await supabase
-        .from('lead_statuses')
-        .select('id, name, color')
-        .eq('tenant_id', tenantId)
-        .order('name');
-
-      if (!error && data) {
-        setStatuses(data);
-      }
-    };
-
-    fetchStatuses();
-  }, [tenantId]);
-
-  const isActive = (filter: InboxFilter) => {
-    if (filter.type !== currentFilter.type) return false;
-    if (filter.type === 'status' && currentFilter.type === 'status') {
-      return filter.statusId === currentFilter.statusId;
-    }
-    return true;
-  };
-
-  const PillButton = ({ filter, label, color }: { filter: InboxFilter; label: string; color?: string }) => (
-    <button
-      onClick={() => onFilterChange(filter)}
-      className={cn(
-        'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-        isActive(filter)
-          ? 'bg-primary text-primary-foreground'
-          : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
-      )}
-    >
-      {color && (
-        <span 
-          className="h-2 w-2 rounded-full flex-shrink-0" 
-          style={{ backgroundColor: color }}
-        />
-      )}
-      {label}
-    </button>
-  );
-
-  return (
-    <div className="px-4 py-2 border-b overflow-x-auto scrollbar-thin">
-      <div className="flex items-center gap-1.5">
-        <PillButton filter={{ type: 'all' }} label="All" />
-        <PillButton filter={{ type: 'mine' }} label="Mine" />
-        <PillButton filter={{ type: 'unassigned' }} label="Unassigned" />
-        {statuses.map((status) => (
-          <PillButton
-            key={status.id}
-            filter={{ type: 'status', statusId: status.id, statusName: status.name }}
-            label={status.name}
-            color={status.color}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function Inbox() {
   return (
