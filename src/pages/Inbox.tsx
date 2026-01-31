@@ -4,16 +4,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation, Message, Contact, ConversationStatus, ChannelType } from '@/lib/types';
 import { useUnifiedContacts, GroupedConversation } from '@/hooks/useUnifiedContacts';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { AppLayout, useSidebarState } from '@/components/layout/AppLayout';
 import { UnifiedConversationList } from '@/components/inbox/UnifiedConversationList';
 import { ChatView, ContactDetails } from '@/components/inbox/ChatView';
 import { InboxSubNav, InboxFilter } from '@/components/inbox/InboxSubNav';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
-export default function Inbox() {
+function InboxContent() {
   const { currentTenant, user, currentMembership } = useAuth();
+  const { collapsed: sidebarCollapsed } = useSidebarState();
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -381,83 +383,171 @@ export default function Inbox() {
   };
 
   return (
-    <AppLayout>
-      <div className="flex flex-col h-full">
-        {/* Sub Navigation */}
+    <div className="flex h-full">
+      {/* Sub Navigation - shown only when sidebar is collapsed */}
+      {sidebarCollapsed && (
         <InboxSubNav
           tenantId={currentTenant?.id}
           currentFilter={currentFilter}
           onFilterChange={setCurrentFilter}
         />
+      )}
 
-        <div className="flex flex-1 min-h-0">
-          {/* Conversation List Panel */}
-          <div className="w-80 border-r flex flex-col bg-card">
-            <div className="p-4 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto scrollbar-thin">
-              <UnifiedConversationList
-                groupedConversations={filteredGroups}
-                selectedGroupId={selectedGroup?.id}
-                selectedConversationId={selectedConversation?.id}
-                onSelectGroup={handleSelectGroup}
-                onSelectChannel={handleSelectChannel}
-              />
-            </div>
-          </div>
-
-          {/* Chat Panel */}
-          <div className="flex-1 flex">
-            {selectedConversation ? (
-              <>
-                <div className="flex-1">
-                  <ChatView
-                    conversation={selectedConversation}
-                    messages={messages}
-                    onSendMessage={handleSendMessage}
-                    onStatusChange={handleStatusChange}
-                    linkedContacts={linkedContacts}
-                    onLinksChanged={handleLinksChanged}
-                    selectedGroup={selectedGroup}
-                    onSelectConversation={setSelectedConversation}
-                  />
-                </div>
-                <div className="w-72 hidden lg:block">
-                  <ContactDetails 
-                    conversation={selectedConversation}
-                    linkedContacts={linkedContacts}
-                    selectedGroup={selectedGroup}
-                    onSelectConversation={setSelectedConversation}
-                    tenantId={currentTenant?.id}
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center bg-muted/30">
-                <div className="text-center">
-                  <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                    <MessageSquare className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-1">Select a conversation</h3>
-                  <p className="text-muted-foreground">
-                    Choose a conversation from the list to start chatting
-                  </p>
-                </div>
-              </div>
-            )}
+      {/* Conversation List Panel */}
+      <div className="w-80 border-r flex flex-col bg-card">
+        <div className="p-4 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
         </div>
+
+        {/* Filter pills - shown when sidebar is expanded */}
+        {!sidebarCollapsed && (
+          <FilterPills
+            tenantId={currentTenant?.id}
+            currentFilter={currentFilter}
+            onFilterChange={setCurrentFilter}
+          />
+        )}
+
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
+          <UnifiedConversationList
+            groupedConversations={filteredGroups}
+            selectedGroupId={selectedGroup?.id}
+            selectedConversationId={selectedConversation?.id}
+            onSelectGroup={handleSelectGroup}
+            onSelectChannel={handleSelectChannel}
+          />
+        </div>
       </div>
+
+      {/* Chat Panel */}
+      <div className="flex-1 flex">
+        {selectedConversation ? (
+          <>
+            <div className="flex-1">
+              <ChatView
+                conversation={selectedConversation}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                onStatusChange={handleStatusChange}
+                linkedContacts={linkedContacts}
+                onLinksChanged={handleLinksChanged}
+                selectedGroup={selectedGroup}
+                onSelectConversation={setSelectedConversation}
+              />
+            </div>
+            <div className="w-72 hidden lg:block">
+              <ContactDetails 
+                conversation={selectedConversation}
+                linkedContacts={linkedContacts}
+                selectedGroup={selectedGroup}
+                onSelectConversation={setSelectedConversation}
+                tenantId={currentTenant?.id}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-muted/30">
+            <div className="text-center">
+              <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-lg mb-1">Select a conversation</h3>
+              <p className="text-muted-foreground">
+                Choose a conversation from the list to start chatting
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Horizontal filter pills shown when sidebar is expanded
+function FilterPills({ tenantId, currentFilter, onFilterChange }: {
+  tenantId: string | undefined;
+  currentFilter: InboxFilter;
+  onFilterChange: (filter: InboxFilter) => void;
+}) {
+  const [statuses, setStatuses] = useState<{ id: string; name: string; color: string }[]>([]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+
+    const fetchStatuses = async () => {
+      const { data, error } = await supabase
+        .from('lead_statuses')
+        .select('id, name, color')
+        .eq('tenant_id', tenantId)
+        .order('name');
+
+      if (!error && data) {
+        setStatuses(data);
+      }
+    };
+
+    fetchStatuses();
+  }, [tenantId]);
+
+  const isActive = (filter: InboxFilter) => {
+    if (filter.type !== currentFilter.type) return false;
+    if (filter.type === 'status' && currentFilter.type === 'status') {
+      return filter.statusId === currentFilter.statusId;
+    }
+    return true;
+  };
+
+  const PillButton = ({ filter, label, color }: { filter: InboxFilter; label: string; color?: string }) => (
+    <button
+      onClick={() => onFilterChange(filter)}
+      className={cn(
+        'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
+        isActive(filter)
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+      )}
+    >
+      {color && (
+        <span 
+          className="h-2 w-2 rounded-full flex-shrink-0" 
+          style={{ backgroundColor: color }}
+        />
+      )}
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="px-4 py-2 border-b overflow-x-auto scrollbar-thin">
+      <div className="flex items-center gap-1.5">
+        <PillButton filter={{ type: 'all' }} label="All" />
+        <PillButton filter={{ type: 'mine' }} label="Mine" />
+        <PillButton filter={{ type: 'unassigned' }} label="Unassigned" />
+        {statuses.map((status) => (
+          <PillButton
+            key={status.id}
+            filter={{ type: 'status', statusId: status.id, statusName: status.name }}
+            label={status.name}
+            color={status.color}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function Inbox() {
+  return (
+    <AppLayout>
+      <InboxContent />
     </AppLayout>
   );
 }

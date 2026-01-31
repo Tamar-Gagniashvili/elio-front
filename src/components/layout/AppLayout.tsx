@@ -1,10 +1,18 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, createContext, useContext } from 'react';
 import { AppSidebar } from './AppSidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface AppLayoutProps {
   children: ReactNode;
 }
+
+interface SidebarContextType {
+  collapsed: boolean;
+}
+
+const SidebarContext = createContext<SidebarContextType>({ collapsed: false });
+
+export const useSidebarState = () => useContext(SidebarContext);
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
@@ -19,13 +27,15 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [collapsed]);
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <div className="flex h-screen overflow-hidden bg-background w-full">
-        <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-    </TooltipProvider>
+    <SidebarContext.Provider value={{ collapsed }}>
+      <TooltipProvider delayDuration={0}>
+        <div className="flex h-screen overflow-hidden bg-background w-full">
+          <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+      </TooltipProvider>
+    </SidebarContext.Provider>
   );
 }
