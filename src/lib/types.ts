@@ -74,11 +74,14 @@ export interface Conversation {
   last_message_preview?: string;
   unread_count: number;
   assignment_seen_by_assignee: boolean;
+  assignment_reason?: string | null;
+  reassigned_by?: string | null;
   created_at: string;
   updated_at: string;
   contact?: Contact;
   channel?: Channel;
   assigned_profile?: Profile;
+  reassigned_by_profile?: Profile;
 }
 
 export interface Message {

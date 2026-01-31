@@ -324,6 +324,7 @@ export type Database = {
       conversations: {
         Row: {
           assigned_to: string | null
+          assignment_reason: string | null
           assignment_seen_by_assignee: boolean
           channel_id: string | null
           contact_id: string
@@ -331,6 +332,7 @@ export type Database = {
           id: string
           last_message_at: string | null
           last_message_preview: string | null
+          reassigned_by: string | null
           status: Database["public"]["Enums"]["conversation_status"]
           tenant_id: string
           unread_count: number
@@ -338,6 +340,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          assignment_reason?: string | null
           assignment_seen_by_assignee?: boolean
           channel_id?: string | null
           contact_id: string
@@ -345,6 +348,7 @@ export type Database = {
           id?: string
           last_message_at?: string | null
           last_message_preview?: string | null
+          reassigned_by?: string | null
           status?: Database["public"]["Enums"]["conversation_status"]
           tenant_id: string
           unread_count?: number
@@ -352,6 +356,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          assignment_reason?: string | null
           assignment_seen_by_assignee?: boolean
           channel_id?: string | null
           contact_id?: string
@@ -359,6 +364,7 @@ export type Database = {
           id?: string
           last_message_at?: string | null
           last_message_preview?: string | null
+          reassigned_by?: string | null
           status?: Database["public"]["Enums"]["conversation_status"]
           tenant_id?: string
           unread_count?: number

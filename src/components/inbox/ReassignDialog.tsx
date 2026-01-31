@@ -11,12 +11,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/Avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Users, Circle, Filter, X, Loader2 } from 'lucide-react';
+import { Search, Users, Circle, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TeamMember {
@@ -52,6 +53,7 @@ export function ReassignDialog({
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [reassignReason, setReassignReason] = useState('');
 
   // Fetch team members and positions
   useEffect(() => {
@@ -162,27 +164,25 @@ export function ReassignDialog({
     setIsAssigning(true);
 
     try {
+      const updateData = { 
+        assigned_to: userId, 
+        status: 'assigned' as const,
+        assignment_seen_by_assignee: false,
+        assignment_reason: reassignReason.trim() || null,
+        reassigned_by: user?.id || null,
+      };
+
       if (conversationId) {
-        // Reassign single conversation - mark as not seen by new assignee
         const { error } = await supabase
           .from('conversations')
-          .update({ 
-            assigned_to: userId, 
-            status: 'assigned',
-            assignment_seen_by_assignee: false 
-          })
+          .update(updateData)
           .eq('id', conversationId);
 
         if (error) throw error;
       } else if (contactId) {
-        // Reassign all conversations for this contact - mark as not seen by new assignee
         const { error } = await supabase
           .from('conversations')
-          .update({ 
-            assigned_to: userId, 
-            status: 'assigned',
-            assignment_seen_by_assignee: false 
-          })
+          .update(updateData)
           .eq('contact_id', contactId);
 
         if (error) throw error;
@@ -195,6 +195,7 @@ export function ReassignDialog({
         description: `Successfully reassigned to ${assignee?.profile.full_name || 'team member'}`,
       });
 
+      setReassignReason('');
       onOpenChange(false);
       onReassigned?.();
     } catch (error) {
@@ -273,6 +274,20 @@ export function ReassignDialog({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
+            />
+          </div>
+
+          {/* Reassign Reason */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">
+              Reason for reassignment (optional)
+            </label>
+            <Textarea
+              value={reassignReason}
+              onChange={(e) => setReassignReason(e.target.value)}
+              placeholder="e.g., Customer needs technical support, Lead requested specific expertise..."
+              className="min-h-[60px] resize-none"
+              rows={2}
             />
           </div>
 

@@ -31,6 +31,7 @@ function InboxContent() {
   const [contactsWithStatus, setContactsWithStatus] = useState<Set<string>>(new Set());
   const [unrepliedConversationIds, setUnrepliedConversationIds] = useState<Set<string>>(new Set());
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [reassignerProfiles, setReassignerProfiles] = useState<Record<string, Profile>>({});
   const [isLoading, setIsLoading] = useState(true);
   
   const { toast } = useToast();
@@ -42,10 +43,11 @@ function InboxContent() {
     tenantId: currentTenant?.id,
   });
 
-  // Fetch team member profiles for admin view
+  // Fetch team member profiles for admin view and reassigner info
   useEffect(() => {
-    if (!currentTenant || !isAdmin) {
+    if (!currentTenant) {
       setProfiles({});
+      setReassignerProfiles({});
       return;
     }
 
@@ -57,27 +59,40 @@ function InboxContent() {
           .filter((id): id is string => !!id)
       )];
 
-      if (assignedUserIds.length === 0) {
+      // Get all reassigner IDs from conversations
+      const reassignerUserIds = [...new Set(
+        conversations
+          .map(c => c.reassigned_by)
+          .filter((id): id is string => !!id)
+      )];
+
+      const allUserIds = [...new Set([...assignedUserIds, ...reassignerUserIds])];
+
+      if (allUserIds.length === 0) {
         setProfiles({});
+        setReassignerProfiles({});
         return;
       }
 
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .in('user_id', assignedUserIds);
+        .in('user_id', allUserIds);
 
       if (!error && data) {
         const profileMap: Record<string, Profile> = {};
+        const reassignerMap: Record<string, Profile> = {};
         data.forEach(p => {
           profileMap[p.user_id] = p as Profile;
+          reassignerMap[p.user_id] = p as Profile;
         });
         setProfiles(profileMap);
+        setReassignerProfiles(reassignerMap);
       }
     };
 
     fetchProfiles();
-  }, [currentTenant, isAdmin, conversations]);
+  }, [currentTenant, conversations]);
 
   // Fetch contacts with specific status for status filter
   useEffect(() => {
@@ -487,6 +502,27 @@ function InboxContent() {
     refreshLinks();
   };
 
+  const handleDismissReason = async () => {
+    if (!selectedConversation) return;
+    
+    const { error } = await supabase
+      .from('conversations')
+      .update({ assignment_reason: null, reassigned_by: null })
+      .eq('id', selectedConversation.id);
+
+    if (!error) {
+      setSelectedConversation((prev) => prev ? { ...prev, assignment_reason: null, reassigned_by: null } : null);
+      setConversations((prev) => 
+        prev.map((c) => c.id === selectedConversation.id ? { ...c, assignment_reason: null, reassigned_by: null } : c)
+      );
+    }
+  };
+
+  // Get reassigner name for current conversation
+  const reassignerName = selectedConversation?.reassigned_by 
+    ? reassignerProfiles[selectedConversation.reassigned_by]?.full_name 
+    : undefined;
+
   return (
     <div className="flex h-full">
       {/* Sub Navigation - shown only when sidebar is collapsed */}
@@ -547,6 +583,8 @@ function InboxContent() {
                   setSelectedConversation(null);
                   setSelectedGroup(null);
                 }}
+                reassignerName={reassignerName}
+                onDismissReason={handleDismissReason}
               />
             </div>
             <div className="w-72 hidden lg:block">
