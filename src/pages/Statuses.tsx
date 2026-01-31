@@ -10,9 +10,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Tag, Trash2, Edit2, Check, Sparkles, GripVertical, Palette, icons, LucideIcon } from 'lucide-react';
+import { Loader2, Plus, Tag, Trash2, Edit2, Check, Sparkles, GripVertical, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { STATUS_ICONS, StatusIndicator } from '@/components/StatusIcon';
+import { STATUS_ICONS, StatusIndicator, getIconComponent } from '@/components/StatusIcon';
 
 interface LeadStatus {
   id: string;
@@ -267,12 +267,8 @@ export default function Statuses() {
     <ScrollArea className="h-40">
       <div className="grid grid-cols-8 gap-2 p-1">
         {STATUS_ICONS.map((iconName) => {
-          const IconComponent = icons[iconName as keyof typeof icons];
-          // Skip if icon doesn't exist or isn't a valid component
-          if (!IconComponent || typeof IconComponent !== 'function') {
-            return null;
-          }
-          const Icon = IconComponent as LucideIcon;
+          const IconComponent = getIconComponent(iconName);
+          if (!IconComponent) return null;
           return (
             <button
               key={iconName}
@@ -285,7 +281,7 @@ export default function Statuses() {
               )}
               style={{ color: selectedIcon === iconName ? getColorHex(color) : undefined }}
             >
-              <Icon className="h-4 w-4" />
+              <IconComponent className="h-4 w-4" />
             </button>
           );
         })}

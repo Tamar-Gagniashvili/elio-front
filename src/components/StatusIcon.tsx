@@ -1,18 +1,68 @@
-import { icons, LucideIcon } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Curated list of status-appropriate icons
-export const STATUS_ICONS = [
-  'Star', 'Heart', 'ThumbsUp', 'ThumbsDown', 'Check', 'X', 'AlertCircle', 'Clock',
-  'Phone', 'Mail', 'MessageSquare', 'Calendar', 'Flag', 'Bookmark', 'Tag', 'Target',
-  'TrendingUp', 'TrendingDown', 'Award', 'Zap', 'Flame', 'Snowflake', 'Sun', 'Moon',
-  'DollarSign', 'CreditCard', 'ShoppingCart', 'Package', 'Gift', 'Truck',
-  'User', 'Users', 'UserCheck', 'UserX', 'Building', 'Home', 'MapPin',
-  'Eye', 'EyeOff', 'Lock', 'Unlock', 'Shield', 'Key',
-  'CircleDot', 'Circle', 'Square', 'Diamond', 'Hexagon', 'Triangle',
-] as const;
+// Map of icon names to their components
+const ICON_MAP: Record<string, LucideIcon> = {
+  Star: LucideIcons.Star,
+  Heart: LucideIcons.Heart,
+  ThumbsUp: LucideIcons.ThumbsUp,
+  ThumbsDown: LucideIcons.ThumbsDown,
+  Check: LucideIcons.Check,
+  X: LucideIcons.X,
+  AlertCircle: LucideIcons.AlertCircle,
+  Clock: LucideIcons.Clock,
+  Phone: LucideIcons.Phone,
+  Mail: LucideIcons.Mail,
+  MessageSquare: LucideIcons.MessageSquare,
+  Calendar: LucideIcons.Calendar,
+  Flag: LucideIcons.Flag,
+  Bookmark: LucideIcons.Bookmark,
+  Tag: LucideIcons.Tag,
+  Target: LucideIcons.Target,
+  TrendingUp: LucideIcons.TrendingUp,
+  TrendingDown: LucideIcons.TrendingDown,
+  Award: LucideIcons.Award,
+  Zap: LucideIcons.Zap,
+  Flame: LucideIcons.Flame,
+  Snowflake: LucideIcons.Snowflake,
+  Sun: LucideIcons.Sun,
+  Moon: LucideIcons.Moon,
+  DollarSign: LucideIcons.DollarSign,
+  CreditCard: LucideIcons.CreditCard,
+  ShoppingCart: LucideIcons.ShoppingCart,
+  Package: LucideIcons.Package,
+  Gift: LucideIcons.Gift,
+  Truck: LucideIcons.Truck,
+  User: LucideIcons.User,
+  Users: LucideIcons.Users,
+  UserCheck: LucideIcons.UserCheck,
+  UserX: LucideIcons.UserX,
+  Building: LucideIcons.Building,
+  Home: LucideIcons.Home,
+  MapPin: LucideIcons.MapPin,
+  Eye: LucideIcons.Eye,
+  EyeOff: LucideIcons.EyeOff,
+  Lock: LucideIcons.Lock,
+  Unlock: LucideIcons.Unlock,
+  Shield: LucideIcons.Shield,
+  Key: LucideIcons.Key,
+  CircleDot: LucideIcons.CircleDot,
+  Circle: LucideIcons.Circle,
+  Square: LucideIcons.Square,
+  Diamond: LucideIcons.Diamond,
+  Hexagon: LucideIcons.Hexagon,
+  Triangle: LucideIcons.Triangle,
+};
 
-export type StatusIconName = typeof STATUS_ICONS[number];
+// Curated list of status-appropriate icons
+export const STATUS_ICONS = Object.keys(ICON_MAP);
+
+export type StatusIconName = keyof typeof ICON_MAP;
+
+export function getIconComponent(iconName: string): LucideIcon | null {
+  return ICON_MAP[iconName] || null;
+}
 
 interface StatusIconProps {
   iconName: string;
@@ -21,10 +71,9 @@ interface StatusIconProps {
 }
 
 export function StatusIcon({ iconName, className, fallbackColor }: StatusIconProps) {
-  const IconComponent = icons[iconName as keyof typeof icons] as LucideIcon | undefined;
+  const IconComponent = ICON_MAP[iconName];
   
   if (!IconComponent) {
-    // Fallback to color dot if icon not found
     return (
       <span 
         className={cn("rounded-full", className)} 
@@ -45,9 +94,11 @@ interface StatusIndicatorProps {
 }
 
 export function StatusIndicator({ icon, color, colorDotClass, iconClass }: StatusIndicatorProps) {
-  if (icon && icons[icon as keyof typeof icons]) {
-    const IconComponent = icons[icon as keyof typeof icons] as LucideIcon;
-    return <IconComponent className={cn("flex-shrink-0", iconClass || "h-3.5 w-3.5")} />;
+  if (icon) {
+    const IconComponent = ICON_MAP[icon];
+    if (IconComponent) {
+      return <IconComponent className={cn("flex-shrink-0", iconClass || "h-3.5 w-3.5")} />;
+    }
   }
   
   return (
