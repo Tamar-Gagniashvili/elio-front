@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,22 +18,28 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [sessionChecked, setSessionChecked] = useState(false);
   
-  const { signIn, user, loading, dataLoaded } = useAuth();
+  const { signIn, user, loading, dataLoaded, session } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect logged-in users away from auth page
-  // Only redirect if we have a valid session (not just cached state)
+  // Double-check session directly with Supabase before redirecting
   useEffect(() => {
-    if (!loading && user && dataLoaded) {
-      // Small delay to ensure session is valid and not stale
-      const timeout = setTimeout(() => {
+    const checkSession = async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession && !loading && dataLoaded) {
+        // Only redirect if there's a REAL active session
         navigate('/', { replace: true });
-      }, 100);
-      return () => clearTimeout(timeout);
+      }
+      setSessionChecked(true);
+    };
+    
+    // Only check after initial auth loading is done
+    if (!loading) {
+      checkSession();
     }
-  }, [user, loading, dataLoaded, navigate]);
+  }, [loading, dataLoaded, navigate]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -77,6 +84,15 @@ export default function Auth() {
       navigate('/');
     }
   };
+
+  // Show loading while checking session
+  if (loading || !sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
