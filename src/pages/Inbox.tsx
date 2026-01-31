@@ -198,11 +198,12 @@ function InboxContent() {
 
   // Fetch conversations
   useEffect(() => {
-    if (!currentTenant) return;
+    if (!currentTenant || !user) return;
 
     const fetchConversations = async () => {
       setIsLoading(true);
-      const query = supabase
+      
+      let query = supabase
         .from('conversations')
         .select(`
           *,
@@ -210,6 +211,11 @@ function InboxContent() {
         `)
         .eq('tenant_id', currentTenant.id)
         .order('last_message_at', { ascending: false, nullsFirst: false });
+
+      // Sales users only see their assigned conversations
+      if (!isAdmin) {
+        query = query.eq('assigned_to', user.id);
+      }
 
       const { data, error } = await query;
 
@@ -247,7 +253,7 @@ function InboxContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentTenant]);
+  }, [currentTenant, user, isAdmin]);
 
   // Handle conversation query parameter from reminder notifications
   useEffect(() => {
