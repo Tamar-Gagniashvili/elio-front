@@ -25,13 +25,13 @@ const POSITIONS = [
 
 export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditMemberDialogProps) {
   const { toast } = useToast();
-  const [position, setPosition] = useState(member?.position || '');
+  const [position, setPosition] = useState(member?.position || 'none');
   const [isSaving, setIsSaving] = useState(false);
 
   // Reset position when member changes
   useState(() => {
     if (member) {
-      setPosition(member.position || '');
+      setPosition(member.position || 'none');
     }
   });
 
@@ -41,7 +41,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
     setIsSaving(true);
     const { error } = await supabase
       .from('tenant_memberships')
-      .update({ position: position || null })
+      .update({ position: position === 'none' ? null : position })
       .eq('id', member.id);
 
     if (error) {
@@ -81,7 +81,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
                 <SelectValue placeholder="Select position" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No position</SelectItem>
+                <SelectItem value="none">No position</SelectItem>
                 {POSITIONS.map((pos) => (
                   <SelectItem key={pos.value} value={pos.value}>
                     {pos.label}
