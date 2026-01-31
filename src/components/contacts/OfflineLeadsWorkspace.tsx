@@ -348,7 +348,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
                       <p className="text-xs text-muted-foreground truncate">
                         {contact.email || contact.phone || 'No contact info'}
                       </p>
-                      {assignment && (
+                      {isAdmin && assignment && (
                         <p className="text-xs text-primary truncate mt-0.5">
                           → {assignment.name}
                         </p>
@@ -386,7 +386,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
                 </h2>
                 <div className="flex items-center gap-2 mt-1">
                   <ChannelBadge channelType={selectedContact.channel_type} size="sm" />
-                  {assignedUsers.get(selectedContact.id) && (
+                  {isAdmin && assignedUsers.get(selectedContact.id) && (
                     <Badge variant="outline" className="text-xs">
                       Assigned to {assignedUsers.get(selectedContact.id)?.name}
                     </Badge>
