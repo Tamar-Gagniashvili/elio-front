@@ -390,6 +390,8 @@ function InboxContent() {
           tenantId={currentTenant?.id}
           currentFilter={currentFilter}
           onFilterChange={setCurrentFilter}
+          conversations={conversations}
+          userId={user?.id}
         />
       )}
 
