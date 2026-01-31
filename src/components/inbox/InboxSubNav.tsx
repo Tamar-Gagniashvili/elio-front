@@ -4,7 +4,7 @@ import { LeadStatus, Conversation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Inbox, User, UserX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Inbox, User, UserX, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { StatusIndicator } from '@/components/StatusIcon';
 import { getColorHex } from '@/pages/Statuses';
@@ -13,6 +13,7 @@ export type InboxFilter =
   | { type: 'all' }
   | { type: 'mine' }
   | { type: 'unassigned' }
+  | { type: 'unreplied' }
   | { type: 'status'; statusId: string; statusName: string };
 
 interface InboxSubNavProps {
@@ -21,6 +22,7 @@ interface InboxSubNavProps {
   onFilterChange: (filter: InboxFilter) => void;
   conversations: Conversation[];
   userId: string | undefined;
+  unrepliedConversationIds: Set<string>;
 }
 
 const SUB_NAV_COLLAPSED_KEY = 'inbox-subnav-collapsed';
@@ -30,7 +32,8 @@ export function InboxSubNav({
   currentFilter, 
   onFilterChange, 
   conversations,
-  userId 
+  userId,
+  unrepliedConversationIds
 }: InboxSubNavProps) {
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
@@ -99,6 +102,7 @@ export function InboxSubNav({
   const allCount = conversations.length;
   const mineCount = conversations.filter(c => c.assigned_to === userId).length;
   const unassignedCount = conversations.filter(c => !c.assigned_to).length;
+  const unrepliedCount = conversations.filter(c => unrepliedConversationIds.has(c.id)).length;
 
   const isActive = (filter: InboxFilter) => {
     if (filter.type !== currentFilter.type) return false;
@@ -206,6 +210,7 @@ export function InboxSubNav({
           <NavButton filter={{ type: 'all' }} icon={Inbox} label="All" count={allCount} />
           <NavButton filter={{ type: 'mine' }} icon={User} label="Mine" count={mineCount} />
           <NavButton filter={{ type: 'unassigned' }} icon={UserX} label="Unassigned" count={unassignedCount} />
+          <NavButton filter={{ type: 'unreplied' }} icon={MessageCircle} label="Unreplied" count={unrepliedCount} />
           
           {/* Divider */}
           {statuses.length > 0 && (
