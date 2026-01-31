@@ -267,7 +267,12 @@ export default function Statuses() {
     <ScrollArea className="h-40">
       <div className="grid grid-cols-8 gap-2 p-1">
         {STATUS_ICONS.map((iconName) => {
-          const IconComponent = icons[iconName as keyof typeof icons] as LucideIcon;
+          const IconComponent = icons[iconName as keyof typeof icons];
+          // Skip if icon doesn't exist or isn't a valid component
+          if (!IconComponent || typeof IconComponent !== 'function') {
+            return null;
+          }
+          const Icon = IconComponent as LucideIcon;
           return (
             <button
               key={iconName}
@@ -280,7 +285,7 @@ export default function Statuses() {
               )}
               style={{ color: selectedIcon === iconName ? getColorHex(color) : undefined }}
             >
-              <IconComponent className="h-4 w-4" />
+              <Icon className="h-4 w-4" />
             </button>
           );
         })}
