@@ -9,33 +9,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Search, 
   Users, 
   Tag, 
   X, 
   StickyNote, 
-  Bell,
-  Plus,
-  ChevronRight,
   Mail,
   Phone,
   Building2,
   Calendar,
-  Trash2,
+  UserPlus,
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStatusColorClasses } from '@/pages/Statuses';
 import { ManageStatusDialog } from '@/components/inbox/ManageStatusDialog';
 import { ContactNotes } from '@/components/inbox/ContactNotes';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { ReassignDialog } from '@/components/inbox/ReassignDialog';
 
 interface LeadStatus {
   id: string;
@@ -56,10 +47,17 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
   const [assignedUsers, setAssignedUsers] = useState<Map<string, { name: string; id: string }>>(new Map());
   
   const { currentTenant, currentMembership, user } = useAuth();
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
+  
+  // Get the current assignee for the selected contact
+  const currentAssignee = selectedContact ? assignedUsers.get(selectedContact.id)?.id : null;
+  
+  // Sales users can reassign leads that are assigned to them
+  const canReassign = isAdmin || (selectedContact && currentAssignee === user?.id);
 
   const fetchData = async () => {
     if (!currentTenant || !user) return;
@@ -392,7 +390,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
                     </Badge>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div className="flex flex-wrap items-center gap-1 mt-2">
                   {renderStatusBadges(selectedContact.id)}
                   <Button
                     variant="ghost"
@@ -403,6 +401,17 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
                     <Tag className="h-3 w-3 mr-1" />
                     Manage
                   </Button>
+                  {canReassign && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setReassignDialogOpen(true)}
+                      className="h-5 px-1.5 text-xs"
+                    >
+                      <UserPlus className="h-3 w-3 mr-1" />
+                      Reassign
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -476,6 +485,20 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
           onOpenChange={setStatusDialogOpen}
           contact={selectedContact}
           onStatusesChanged={fetchData}
+        />
+      )}
+
+      {/* Reassign Dialog */}
+      {selectedContact && (
+        <ReassignDialog
+          open={reassignDialogOpen}
+          onOpenChange={setReassignDialogOpen}
+          contactId={selectedContact.id}
+          currentAssignee={currentAssignee}
+          onReassigned={() => {
+            fetchData();
+            onRefresh?.();
+          }}
         />
       )}
     </div>
