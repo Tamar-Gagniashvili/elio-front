@@ -16,6 +16,7 @@ import Rules from "./pages/Rules";
 import Channels from "./pages/Channels";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import Objects from "./pages/Objects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/rules" element={<Rules />} />
               <Route path="/channels" element={<Channels />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/objects" element={<Objects />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
