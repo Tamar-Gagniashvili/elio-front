@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Package, Loader2, Check, MapPin, DollarSign, Ruler, Building2, Truck, Hash, ArrowLeft, ChevronRight, Send, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ObjectType, BusinessObject, ObjectStatus, ObjectTypeField } from '@/lib/objectTypes';
@@ -116,6 +117,10 @@ export function LinkObjectDialog({
   const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
   const [relatedObjects, setRelatedObjects] = useState<RelatedObject[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
+  
+  // Track selected fields for sending to chat (field name -> boolean)
+  const [selectedMainFields, setSelectedMainFields] = useState<Record<string, boolean>>({});
+  const [selectedRelatedFields, setSelectedRelatedFields] = useState<Record<string, Record<string, boolean>>>({});
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -125,6 +130,8 @@ export function LinkObjectDialog({
       setSelectedStatusId(null);
       setRelatedObjects([]);
       setSearch('');
+      setSelectedMainFields({});
+      setSelectedRelatedFields({});
     }
   }, [open]);
 
@@ -236,7 +243,7 @@ export function LinkObjectDialog({
         
         if (objRes.data && typeRes.data) {
           const objData = objRes.data as any;
-          related.push({
+          const relatedItem = {
             object: { 
               ...objData, 
               metadata: (objData.metadata || {}) as Record<string, unknown>,
@@ -245,7 +252,20 @@ export function LinkObjectDialog({
             objectType: typeRes.data as ObjectType,
             fields: (fieldsRes.data || []) as ObjectTypeField[],
             relationLabel: field.label,
-          });
+          };
+          related.push(relatedItem);
+          
+          // Initialize related object fields as selected
+          const relMeta = (objData.metadata || {}) as Record<string, any>;
+          const initialRelatedFields: Record<string, boolean> = {};
+          for (const f of relatedItem.fields) {
+            if (f.field_type === 'relation' || f.field_type === 'object') continue;
+            const value = relMeta[f.name];
+            if (value !== null && value !== undefined && value !== '') {
+              initialRelatedFields[f.name] = true;
+            }
+          }
+          setSelectedRelatedFields(prev => ({ ...prev, [objData.id]: initialRelatedFields }));
         }
       }
       
@@ -259,6 +279,20 @@ export function LinkObjectDialog({
     setSelectedObject(obj);
     setSelectedStatusId(obj.status_id || null);
     setStep('details');
+    
+    // Initialize all main fields as selected by default
+    const metadata = (obj.metadata || {}) as Record<string, any>;
+    const initialMainFields: Record<string, boolean> = {};
+    for (const field of fields) {
+      if (field.field_type === 'relation' || field.field_type === 'object') continue;
+      const value = metadata[field.name];
+      if (value !== null && value !== undefined && value !== '') {
+        initialMainFields[field.name] = true;
+      }
+    }
+    setSelectedMainFields(initialMainFields);
+    setSelectedRelatedFields({});
+    
     await fetchRelatedObjects(obj);
   };
 
@@ -284,8 +318,14 @@ export function LinkObjectDialog({
     
     setSending(true);
     
-    // Build message with item details
-    const message = formatObjectAsMessage(selectedObject, fields, relatedObjects);
+    // Build message with only selected fields
+    const message = formatObjectAsMessage(
+      selectedObject, 
+      fields, 
+      relatedObjects, 
+      selectedMainFields, 
+      selectedRelatedFields
+    );
     onSendToChat(message);
     
     setSending(false);
@@ -332,13 +372,14 @@ export function LinkObjectDialog({
 
   const getObjectDetails = (obj: BusinessObject, objFields: ObjectTypeField[]) => {
     const metadata = (obj.metadata || {}) as Record<string, any>;
-    const details: { label: string; value: string; icon: React.ReactNode; fieldType: string }[] = [];
+    const details: { name: string; label: string; value: string; icon: React.ReactNode; fieldType: string }[] = [];
     
     for (const field of objFields) {
       if (field.field_type === 'relation' || field.field_type === 'object') continue;
       const value = formatFieldValue(metadata[field.name], field.field_type);
       if (value) {
         details.push({
+          name: field.name,
           label: field.label,
           value,
           icon: getFieldIcon(field.name, field.field_type),
@@ -348,6 +389,23 @@ export function LinkObjectDialog({
     }
     
     return details;
+  };
+  
+  const toggleMainField = (fieldName: string) => {
+    setSelectedMainFields(prev => ({
+      ...prev,
+      [fieldName]: !prev[fieldName]
+    }));
+  };
+  
+  const toggleRelatedField = (objectId: string, fieldName: string) => {
+    setSelectedRelatedFields(prev => ({
+      ...prev,
+      [objectId]: {
+        ...prev[objectId],
+        [fieldName]: !prev[objectId]?.[fieldName]
+      }
+    }));
   };
 
   return (
@@ -485,9 +543,18 @@ export function LinkObjectDialog({
                 return details.length > 0 && (
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 pt-3 border-t border-border/50">
                     {details.map((detail, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm">
+                      <div 
+                        key={idx} 
+                        className="flex items-center gap-2 text-sm cursor-pointer group"
+                        onClick={() => toggleMainField(detail.name)}
+                      >
+                        <Checkbox 
+                          checked={selectedMainFields[detail.name] ?? false}
+                          onCheckedChange={() => toggleMainField(detail.name)}
+                          className="h-4 w-4"
+                        />
                         {detail.icon && <span className="shrink-0 text-muted-foreground">{detail.icon}</span>}
-                        <span>
+                        <span className="group-hover:text-foreground transition-colors">
                           <span className="text-muted-foreground">{detail.label}: </span>
                           <span className="text-foreground font-medium">{detail.value}</span>
                         </span>
@@ -530,9 +597,18 @@ export function LinkObjectDialog({
                       return details.length > 0 && (
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2 pt-2 border-t border-border/30">
                           {details.map((detail, dIdx) => (
-                            <div key={dIdx} className="flex items-center gap-1.5 text-xs">
+                            <div 
+                              key={dIdx} 
+                              className="flex items-center gap-1.5 text-xs cursor-pointer group"
+                              onClick={() => toggleRelatedField(related.object.id, detail.name)}
+                            >
+                              <Checkbox 
+                                checked={selectedRelatedFields[related.object.id]?.[detail.name] ?? false}
+                                onCheckedChange={() => toggleRelatedField(related.object.id, detail.name)}
+                                className="h-3.5 w-3.5"
+                              />
                               {detail.icon && <span className="shrink-0 text-muted-foreground/70">{detail.icon}</span>}
-                              <span>
+                              <span className="group-hover:text-foreground transition-colors">
                                 <span className="text-muted-foreground/70">{detail.label}: </span>
                                 <span className="text-foreground/80">{detail.value}</span>
                               </span>
@@ -649,7 +725,9 @@ export function LinkObjectDialog({
 function formatObjectAsMessage(
   obj: BusinessObject & { status?: ObjectStatus },
   fields: ObjectTypeField[],
-  relatedObjects: RelatedObject[]
+  relatedObjects: RelatedObject[],
+  selectedMainFields: Record<string, boolean>,
+  selectedRelatedFields: Record<string, Record<string, boolean>>
 ): string {
   const metadata = (obj.metadata || {}) as Record<string, any>;
   let message = `📦 *${obj.display_name}*`;
@@ -659,9 +737,11 @@ function formatObjectAsMessage(
   }
   message += '\n\n';
   
-  // Add main object fields
+  // Add only selected main object fields
   for (const field of fields) {
     if (field.field_type === 'relation' || field.field_type === 'object') continue;
+    if (!selectedMainFields[field.name]) continue; // Skip if not selected
+    
     const value = metadata[field.name];
     if (value !== null && value !== undefined && value !== '') {
       const formatted = formatFieldValue(value, field.field_type);
@@ -671,9 +751,15 @@ function formatObjectAsMessage(
     }
   }
   
-  // Add related objects
+  // Add related objects (only fields that are selected)
   for (const related of relatedObjects) {
     const relMeta = (related.object.metadata || {}) as Record<string, any>;
+    const relSelectedFields = selectedRelatedFields[related.object.id] || {};
+    
+    // Check if any fields are selected for this related object
+    const hasSelectedFields = Object.values(relSelectedFields).some(v => v);
+    if (!hasSelectedFields) continue;
+    
     message += `\n🏢 *${related.relationLabel}: ${related.object.display_name}*`;
     if (related.object.status) {
       message += ` (${related.object.status.name})`;
@@ -682,6 +768,8 @@ function formatObjectAsMessage(
     
     for (const field of related.fields) {
       if (field.field_type === 'relation' || field.field_type === 'object') continue;
+      if (!relSelectedFields[field.name]) continue; // Skip if not selected
+      
       const value = relMeta[field.name];
       if (value !== null && value !== undefined && value !== '') {
         const formatted = formatFieldValue(value, field.field_type);
