@@ -26,7 +26,7 @@ import { ContactNotes } from './ContactNotes';
 import { ContactStatusesDisplay } from './ContactStatusesDisplay';
 import { ReassignDialog } from './ReassignDialog';
 import { LinkedObjectsPanel } from './LinkedObjectsPanel';
-import { AISuggestionsPanel } from './AISuggestionsPanel';
+
 import { useConversationObjects } from '@/hooks/useConversationObjects';
 
 interface MediaUpload {
@@ -550,20 +550,6 @@ export function ContactDetails({
         />
       )}
 
-      {/* AI Suggestions Section */}
-      {tenantId && (
-        <AISuggestionsPanel
-          messages={messages.map(m => ({ 
-            id: m.id, 
-            content: m.content, 
-            sender_type: m.sender_type 
-          }))}
-          tenantId={tenantId}
-          conversationId={conversation.id}
-          linkedObjectIds={linkedObjects.map(o => o.id)}
-          onLink={linkObject}
-        />
-      )}
 
       {/* Contact Notes Section */}
       {contact && tenantId && (
