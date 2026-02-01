@@ -469,7 +469,7 @@ export function LinkObjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {(step === 'details' || step === 'confirm') && (
@@ -484,119 +484,122 @@ export function LinkObjectDialog({
         </DialogHeader>
 
         {step === 'select' && (
-          <div className="space-y-4 flex-1 min-h-0 flex flex-col overflow-hidden">
-            {/* Type selector */}
-            <Select
-              value={selectedTypeId || ''}
-              onValueChange={setSelectedTypeId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type..." />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border shadow-md">
-                {objectTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.name_plural}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
+            {/* Fixed header section - never scrolls */}
+            <div className="flex-shrink-0 space-y-4">
+              {/* Type selector */}
+              <Select
+                value={selectedTypeId || ''}
+                onValueChange={setSelectedTypeId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border shadow-md">
+                  {objectTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name_plural}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={`Search ${selectedType?.name_plural?.toLowerCase() || 'items'}...`}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={`Search ${selectedType?.name_plural?.toLowerCase() || 'items'}...`}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-            {/* Filters */}
-            {(statuses.length > 0 || filterableFields.length > 0) && (
-              <Collapsible>
-                <div className="flex items-center gap-2">
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Filter className="h-3.5 w-3.5" />
-                      Filters
-                      {hasActiveFilters && (
-                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-                          {Object.values(fieldFilters).filter(v => v).length + (statusFilter ? 1 : 0)}
-                        </Badge>
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
-                  {hasActiveFilters && (
-                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-8 px-2 text-xs text-muted-foreground">
-                      <X className="h-3 w-3 mr-1" />
-                      Clear all
-                    </Button>
-                  )}
-                </div>
-                <CollapsibleContent className="pt-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Status filter */}
-                    {statuses.length > 0 && (
-                      <Select
-                        value={statusFilter || '__all__'}
-                        onValueChange={(val) => setStatusFilter(val === '__all__' ? '' : val)}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover border shadow-md">
-                          <SelectItem value="__all__">All statuses</SelectItem>
-                          {statuses.map((status) => (
-                            <SelectItem key={status.id} value={status.id}>
-                              <div className="flex items-center gap-2">
-                                <div className={cn('h-2 w-2 rounded-full', getStatusColor(status.color))} />
-                                {status.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+              {/* Filters */}
+              {(statuses.length > 0 || filterableFields.length > 0) && (
+                <Collapsible>
+                  <div className="flex items-center gap-2">
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Filter className="h-3.5 w-3.5" />
+                        Filters
+                        {hasActiveFilters && (
+                          <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                            {Object.values(fieldFilters).filter(v => v).length + (statusFilter ? 1 : 0)}
+                          </Badge>
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    {hasActiveFilters && (
+                      <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-8 px-2 text-xs text-muted-foreground">
+                        <X className="h-3 w-3 mr-1" />
+                        Clear all
+                      </Button>
                     )}
-                    
-                    {/* Field filters */}
-                    {filterableFields.map((field) => (
-                      field.field_type === 'select' ? (
+                  </div>
+                  <CollapsibleContent className="pt-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Status filter */}
+                      {statuses.length > 0 && (
                         <Select
-                          key={field.id}
-                          value={fieldFilters[field.name] || '__all__'}
-                          onValueChange={(value) => setFieldFilters(prev => ({ ...prev, [field.name]: value === '__all__' ? '' : value }))}
+                          value={statusFilter || '__all__'}
+                          onValueChange={(val) => setStatusFilter(val === '__all__' ? '' : val)}
                         >
                           <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder={field.label} />
+                            <SelectValue placeholder="Status" />
                           </SelectTrigger>
                           <SelectContent className="bg-popover border shadow-md">
-                            <SelectItem value="__all__">All {field.label}</SelectItem>
-                            {getSelectOptions(field.name).filter(opt => opt).map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
+                            <SelectItem value="__all__">All statuses</SelectItem>
+                            {statuses.map((status) => (
+                              <SelectItem key={status.id} value={status.id}>
+                                <div className="flex items-center gap-2">
+                                  <div className={cn('h-2 w-2 rounded-full', getStatusColor(status.color))} />
+                                  {status.name}
+                                </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                      ) : (
-                        <Input
-                          key={field.id}
-                          placeholder={field.label}
-                          value={fieldFilters[field.name] || ''}
-                          onChange={(e) => setFieldFilters(prev => ({ ...prev, [field.name]: e.target.value }))}
-                          className="h-8 text-xs"
-                        />
-                      )
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
+                      )}
+                      
+                      {/* Field filters */}
+                      {filterableFields.map((field) => (
+                        field.field_type === 'select' ? (
+                          <Select
+                            key={field.id}
+                            value={fieldFilters[field.name] || '__all__'}
+                            onValueChange={(value) => setFieldFilters(prev => ({ ...prev, [field.name]: value === '__all__' ? '' : value }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder={field.label} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border shadow-md">
+                              <SelectItem value="__all__">All {field.label}</SelectItem>
+                              {getSelectOptions(field.name).filter(opt => opt).map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            key={field.id}
+                            placeholder={field.label}
+                            value={fieldFilters[field.name] || ''}
+                            onChange={(e) => setFieldFilters(prev => ({ ...prev, [field.name]: e.target.value }))}
+                            className="h-8 text-xs"
+                          />
+                        )
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+            </div>
 
-            {/* Objects list */}
-            <ScrollArea className="flex-1 border rounded-lg min-h-0 h-0">
+            {/* Objects list - scrollable */}
+            <ScrollArea className="flex-1 min-h-0 border rounded-lg">
               {loading ? (
                 <div className="flex items-center justify-center h-48">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
