@@ -48,14 +48,14 @@ export function ChatMessageBubble({
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
-            'flex items-center gap-2 p-2 rounded-md transition-colors',
+            'flex items-center gap-2 p-2 rounded-md transition-colors min-w-0 max-w-full',
             isAgent
               ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20'
               : 'bg-foreground/5 hover:bg-foreground/10'
           )}
         >
           <FileText className="h-5 w-5 flex-shrink-0" />
-          <span className="text-sm truncate flex-1">{mediaFilename || 'File'}</span>
+          <span className="text-sm truncate min-w-0">{mediaFilename || 'File'}</span>
           <Download className="h-4 w-4 flex-shrink-0 opacity-50" />
         </a>
       );

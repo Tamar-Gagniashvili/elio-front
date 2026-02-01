@@ -245,7 +245,7 @@ export function ChatView({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 scrollbar-thin">
         {messages.map((message) => {
           const isAgent = message.sender_type === 'agent';
           const isSystem = message.sender_type === 'system';
