@@ -80,15 +80,15 @@ export function ChatMessageBubble({
       )}
       <div
         className={cn(
-          'max-w-[70%] rounded-2xl px-4 py-2',
+          'max-w-[70%] rounded-2xl px-4 py-2 overflow-hidden',
           isAgent
             ? 'bg-chat-bubble-agent text-chat-bubble-agent-text rounded-br-md'
             : 'bg-chat-bubble-contact text-chat-bubble-contact-text rounded-bl-md'
         )}
       >
         {renderMedia()}
-        {message.content && (
-          <p className={cn('text-sm whitespace-pre-wrap', mediaUrl && 'mt-2')}>
+        {message.content && !message.content.match(/^\[(Image|File):/) && (
+          <p className={cn('text-sm whitespace-pre-wrap break-words', mediaUrl && 'mt-2')}>
             {message.content}
           </p>
         )}
