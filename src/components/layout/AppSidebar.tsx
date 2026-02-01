@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { cn } from '@/lib/utils';
 import {
   Inbox,
@@ -33,14 +35,14 @@ import {
 } from '@/components/ui/tooltip';
 
 const navItems = [
-  { href: '/inbox', label: 'Inbox', icon: Inbox },
-  { href: '/contacts', label: 'Contacts', icon: Users },
-  { href: '/objects', label: 'Inventory', icon: Package },
-  { href: '/notes', label: 'Notes', icon: StickyNote },
-  { href: '/statuses', label: 'Statuses', icon: Tag },
-  { href: '/rules', label: 'Rules', icon: Zap, adminOnly: true },
-  { href: '/channels', label: 'Channels', icon: Plug },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/inbox', labelKey: 'nav.inbox', icon: Inbox },
+  { href: '/contacts', labelKey: 'nav.contacts', icon: Users },
+  { href: '/objects', labelKey: 'nav.inventory', icon: Package },
+  { href: '/notes', labelKey: 'nav.notes', icon: StickyNote },
+  { href: '/statuses', labelKey: 'nav.statuses', icon: Tag },
+  { href: '/rules', labelKey: 'nav.rules', icon: Zap, adminOnly: true },
+  { href: '/channels', labelKey: 'nav.channels', icon: Plug },
+  { href: '/settings', labelKey: 'nav.settings', icon: Settings },
 ];
 
 interface AppSidebarProps {
@@ -50,6 +52,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const location = useLocation();
+  const { t } = useTranslation();
   const { profile, currentTenant, currentMembership, memberships, signOut, setCurrentTenant } = useAuth();
 
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
@@ -80,12 +83,12 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                 variant="ghost" 
                 className="w-full justify-between text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
-                <span className="truncate">{currentTenant?.name || 'Select workspace'}</span>
+                <span className="truncate">{currentTenant?.name || t('sidebar.selectWorkspace')}</span>
                 <ChevronDown className="h-4 w-4 flex-shrink-0" />
               </Button>
             </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('sidebar.workspaces')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {memberships.map((membership) => (
                 <DropdownMenuItem
@@ -114,7 +117,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" className="w-56">
-                  <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('sidebar.workspaces')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {memberships.map((membership) => (
                     <DropdownMenuItem
@@ -131,7 +134,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               </DropdownMenu>
             </TooltipTrigger>
             <TooltipContent side="right">
-              {currentTenant?.name || 'Select workspace'}
+              {currentTenant?.name || t('sidebar.selectWorkspace')}
             </TooltipContent>
           </Tooltip>
         )}
@@ -144,6 +147,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           .map((item) => {
             const isActive = location.pathname === item.href;
             const Icon = item.icon;
+            const label = t(item.labelKey);
 
             const linkContent = (
               <Link
@@ -158,7 +162,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                 )}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && item.label}
+                {!collapsed && label}
               </Link>
             );
 
@@ -169,7 +173,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                     {linkContent}
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    {item.label}
+                    {label}
                   </TooltipContent>
                 </Tooltip>
               );
@@ -179,8 +183,10 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           })}
       </nav>
 
-      {/* Collapse Toggle */}
-      <div className="px-2 py-2">
+      {/* Language Switcher & Collapse Toggle */}
+      <div className="px-2 py-2 space-y-1">
+        <LanguageSwitcher collapsed={collapsed} />
+        
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -197,13 +203,13 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               ) : (
                 <>
                   <PanelLeftClose className="h-4 w-4" />
-                  <span className="text-xs">Collapse</span>
+                  <span className="text-xs">{t('nav.collapse')}</span>
                 </>
               )}
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            {collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            {collapsed ? t('nav.expand') : t('nav.collapse')}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -233,11 +239,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('sidebar.myAccount')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Sign out
+                {t('common.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -266,7 +272,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
+                    {t('common.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
