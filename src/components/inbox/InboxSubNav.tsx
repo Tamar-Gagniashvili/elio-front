@@ -66,7 +66,9 @@ export function InboxSubNav({
     fetchStatuses();
   }, [tenantId]);
 
-  // Fetch status counts
+  // Fetch status counts with a ref to avoid stale closure
+  const [statusCountsTrigger, setStatusCountsTrigger] = useState(0);
+
   useEffect(() => {
     if (!tenantId || statuses.length === 0) return;
 
@@ -98,10 +100,14 @@ export function InboxSubNav({
     };
 
     fetchStatusCounts();
+  }, [tenantId, statuses, conversations, statusCountsTrigger]);
 
-    // Subscribe to real-time changes for contact_statuses
+  // Separate effect for realtime subscription
+  useEffect(() => {
+    if (!tenantId) return;
+
     const channel = supabase
-      .channel('subnav-contact-statuses')
+      .channel(`subnav-contact-statuses-${tenantId}`)
       .on(
         'postgres_changes',
         {
@@ -111,8 +117,8 @@ export function InboxSubNav({
           filter: `tenant_id=eq.${tenantId}`,
         },
         () => {
-          // Refetch counts when statuses change
-          fetchStatusCounts();
+          // Trigger a refetch by updating the trigger state
+          setStatusCountsTrigger(prev => prev + 1);
         }
       )
       .subscribe();
@@ -120,7 +126,7 @@ export function InboxSubNav({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tenantId, statuses, conversations]);
+  }, [tenantId]);
 
   // Calculate counts for core filters (exclude archived from non-archived filters)
   const nonArchivedConversations = conversations.filter(c => c.status !== 'archived');
