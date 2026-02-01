@@ -7,6 +7,7 @@
   var position = config.position || 'bottom-right';
   var primaryColor = config.primaryColor || '#8B5CF6';
   var apiUrl = config.apiUrl || 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1/webchat';
+  var uploadUrl = config.uploadUrl || 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1/upload-chat-attachment';
 
   if (!tenantId) {
     console.error('ChatFlow: Missing tenantId in configuration');
@@ -20,7 +21,8 @@
     visitorId: localStorage.getItem('chatflow_visitor_' + tenantId),
     tenantName: '',
     messages: [],
-    isStarted: false
+    isStarted: false,
+    isUploading: false
   };
 
   // Styles
@@ -98,6 +100,23 @@
       color: #333;
       border-bottom-left-radius: 4px;
     }
+    .chatflow-message img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+    .chatflow-message .file-attachment {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 8px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .chatflow-message .file-attachment:hover { background: rgba(0,0,0,0.15); }
     .chatflow-form {
       padding: 20px;
       display: flex;
@@ -132,8 +151,33 @@
       padding: 12px 16px;
       border-top: 1px solid #e0e0e0;
       display: flex;
+      flex-direction: column;
       gap: 8px;
     }
+    .chatflow-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .chatflow-media-buttons {
+      display: flex;
+      gap: 4px;
+    }
+    .chatflow-media-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #f1f3f4;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    .chatflow-media-btn:hover { background: #e0e0e0; }
+    .chatflow-media-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .chatflow-media-btn svg { width: 16px; height: 16px; fill: #666; }
     .chatflow-input-area input {
       flex: 1;
       padding: 10px 14px;
@@ -143,7 +187,7 @@
       outline: none;
     }
     .chatflow-input-area input:focus { border-color: ${primaryColor}; }
-    .chatflow-input-area button {
+    .chatflow-input-area .send-btn {
       width: 40px;
       height: 40px;
       border-radius: 50%;
@@ -154,7 +198,60 @@
       align-items: center;
       justify-content: center;
     }
-    .chatflow-input-area button svg { width: 18px; height: 18px; fill: white; }
+    .chatflow-input-area .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .chatflow-input-area .send-btn svg { width: 18px; height: 18px; fill: white; }
+    .chatflow-pending-media {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: #f1f3f4;
+      border-radius: 8px;
+    }
+    .chatflow-pending-media img {
+      height: 40px;
+      width: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .chatflow-pending-media .file-icon {
+      height: 40px;
+      width: 40px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #666;
+    }
+    .chatflow-pending-media span { flex: 1; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chatflow-pending-media button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: #999;
+    }
+    .chatflow-uploading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: #f1f3f4;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #666;
+    }
+    .chatflow-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e0e0e0;
+      border-top-color: ${primaryColor};
+      border-radius: 50%;
+      animation: chatflow-spin 0.8s linear infinite;
+    }
+    @keyframes chatflow-spin { to { transform: rotate(360deg); } }
     @media (max-width: 420px) {
       .chatflow-window { width: calc(100vw - 40px); height: calc(100vh - 120px); }
     }
@@ -189,6 +286,9 @@
   var content = document.getElementById('chatflow-content');
   var title = document.getElementById('chatflow-title');
 
+  // Pending media state
+  var pendingMedia = null;
+
   // API calls
   function api(action, data) {
     return fetch(apiUrl + '?tenant_id=' + tenantId, {
@@ -196,6 +296,32 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(Object.assign({ action: action }, data))
     }).then(function(r) { return r.json(); });
+  }
+
+  // Upload file
+  function uploadFile(file) {
+    return new Promise(function(resolve, reject) {
+      var formData = new FormData();
+      formData.append('file', file);
+      formData.append('tenant_id', tenantId);
+      if (state.conversationId) {
+        formData.append('conversation_id', state.conversationId);
+      }
+
+      fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          resolve(data);
+        } else {
+          reject(new Error(data.error || 'Upload failed'));
+        }
+      })
+      .catch(reject);
+    });
   }
 
   // Render functions
@@ -244,27 +370,139 @@
     content.innerHTML = `
       <div class="chatflow-messages" id="chatflow-messages"></div>
       <div class="chatflow-input-area">
-        <input type="text" id="chatflow-input" placeholder="Type a message...">
-        <button id="chatflow-send">
-          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </button>
+        <div id="chatflow-pending-preview"></div>
+        <div id="chatflow-upload-status"></div>
+        <div class="chatflow-input-row">
+          <div class="chatflow-media-buttons">
+            <button class="chatflow-media-btn" id="chatflow-image-btn" title="Upload image">
+              <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            </button>
+            <button class="chatflow-media-btn" id="chatflow-file-btn" title="Attach file">
+              <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 0 0 5 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+            </button>
+          </div>
+          <input type="text" id="chatflow-input" placeholder="Type a message...">
+          <button class="send-btn" id="chatflow-send">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
       </div>
+      <input type="file" id="chatflow-image-input" accept="image/*" style="display:none">
+      <input type="file" id="chatflow-file-input" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none">
     `;
 
     var input = document.getElementById('chatflow-input');
     var sendBtn = document.getElementById('chatflow-send');
+    var imageBtn = document.getElementById('chatflow-image-btn');
+    var fileBtn = document.getElementById('chatflow-file-btn');
+    var imageInput = document.getElementById('chatflow-image-input');
+    var fileInput = document.getElementById('chatflow-file-input');
+    var pendingPreview = document.getElementById('chatflow-pending-preview');
+    var uploadStatus = document.getElementById('chatflow-upload-status');
+
+    function updatePendingPreview() {
+      if (!pendingMedia) {
+        pendingPreview.innerHTML = '';
+        return;
+      }
+
+      var isImage = pendingMedia.type === 'image';
+      pendingPreview.innerHTML = `
+        <div class="chatflow-pending-media">
+          ${isImage ? '<img src="' + pendingMedia.url + '" alt="">' : '<div class="file-icon">FILE</div>'}
+          <span>${escapeHtml(pendingMedia.filename)}</span>
+          <button id="chatflow-remove-media">✕</button>
+        </div>
+      `;
+
+      document.getElementById('chatflow-remove-media').onclick = function() {
+        pendingMedia = null;
+        updatePendingPreview();
+      };
+    }
+
+    function showUploading(show) {
+      state.isUploading = show;
+      uploadStatus.innerHTML = show ? '<div class="chatflow-uploading"><div class="chatflow-spinner"></div>Uploading...</div>' : '';
+      imageBtn.disabled = show;
+      fileBtn.disabled = show;
+    }
+
+    function handleFileUpload(file, type) {
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File too large (max 10MB)');
+        return;
+      }
+
+      showUploading(true);
+
+      uploadFile(file).then(function(res) {
+        pendingMedia = {
+          url: res.url,
+          type: res.type,
+          filename: res.filename
+        };
+        updatePendingPreview();
+        showUploading(false);
+      }).catch(function(err) {
+        alert('Upload failed: ' + err.message);
+        showUploading(false);
+      });
+    }
+
+    imageBtn.onclick = function() { imageInput.click(); };
+    fileBtn.onclick = function() { fileInput.click(); };
+
+    imageInput.onchange = function(e) {
+      var file = e.target.files[0];
+      if (file) handleFileUpload(file, 'image');
+      e.target.value = '';
+    };
+
+    fileInput.onchange = function(e) {
+      var file = e.target.files[0];
+      if (file) {
+        var type = file.type.startsWith('image/') ? 'image' : 'file';
+        handleFileUpload(file, type);
+      }
+      e.target.value = '';
+    };
 
     function send() {
       var text = input.value.trim();
-      if (!text || !state.conversationId) return;
+      var media = pendingMedia;
+      
+      if (!text && !media) return;
+      if (!state.conversationId) return;
       
       input.value = '';
-      state.messages.push({ content: text, sender_type: 'contact' });
+      pendingMedia = null;
+      updatePendingPreview();
+
+      // Build message content with media info
+      var messageContent = text;
+      var messageData = { content: text, sender_type: 'contact' };
+      
+      if (media) {
+        messageData.media_url = media.url;
+        messageData.media_type = media.type;
+        messageData.media_filename = media.filename;
+        if (!text) {
+          messageContent = '[' + (media.type === 'image' ? 'Image' : 'File') + ': ' + media.filename + ']';
+          messageData.content = messageContent;
+        }
+      }
+
+      state.messages.push(messageData);
       renderMessages();
 
       api('send', {
         conversation_id: state.conversationId,
-        message: text
+        message: messageContent,
+        media_url: media ? media.url : null,
+        media_type: media ? media.type : null,
+        media_filename: media ? media.filename : null
       });
     }
 
@@ -295,14 +533,35 @@
   }
 
   function renderMessages() {
-    var container = document.getElementById('chatflow-messages');
-    if (!container) return;
+    var messagesContainer = document.getElementById('chatflow-messages');
+    if (!messagesContainer) return;
     
-    container.innerHTML = state.messages.map(function(m) {
-      return '<div class="chatflow-message ' + m.sender_type + '">' + escapeHtml(m.content) + '</div>';
+    messagesContainer.innerHTML = state.messages.map(function(m) {
+      var mediaHtml = '';
+      
+      // Check for media in message
+      var mediaUrl = m.media_url || (m.metadata && m.metadata.media_url);
+      var mediaType = m.media_type || (m.metadata && m.metadata.media_type);
+      var mediaFilename = m.media_filename || (m.metadata && m.metadata.media_filename);
+      
+      if (mediaUrl) {
+        if (mediaType === 'image') {
+          mediaHtml = '<a href="' + escapeHtml(mediaUrl) + '" target="_blank"><img src="' + escapeHtml(mediaUrl) + '" alt="' + escapeHtml(mediaFilename || 'Image') + '"></a>';
+        } else if (mediaType === 'file') {
+          mediaHtml = '<a href="' + escapeHtml(mediaUrl) + '" target="_blank" class="file-attachment"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>' + escapeHtml(mediaFilename || 'File') + '</a>';
+        }
+      }
+      
+      var contentHtml = m.content ? escapeHtml(m.content) : '';
+      // Don't show the placeholder text if we have actual media
+      if (mediaHtml && contentHtml.match(/^\[(Image|File):/)) {
+        contentHtml = '';
+      }
+      
+      return '<div class="chatflow-message ' + m.sender_type + '">' + mediaHtml + (contentHtml ? '<div>' + contentHtml + '</div>' : '') + '</div>';
     }).join('');
     
-    container.scrollTop = container.scrollHeight;
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
   function escapeHtml(text) {

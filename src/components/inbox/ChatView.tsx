@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
 import { Conversation, Message, Contact } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X } from 'lucide-react';
+import { ChatMediaUpload } from './ChatMediaUpload';
+import { ChatMessageBubble } from './ChatMessageBubble';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,10 +26,16 @@ import { ContactNotes } from './ContactNotes';
 import { ContactStatusesDisplay } from './ContactStatusesDisplay';
 import { ReassignDialog } from './ReassignDialog';
 
+interface MediaUpload {
+  url: string;
+  type: 'image' | 'file';
+  filename: string;
+}
+
 interface ChatViewProps {
   conversation: Conversation;
   messages: Message[];
-  onSendMessage: (content: string) => Promise<void>;
+  onSendMessage: (content: string, media?: MediaUpload) => Promise<void>;
   onStatusChange: (status: 'open' | 'assigned' | 'resolved' | 'archived') => void;
   linkedContacts?: Contact[];
   onLinksChanged?: () => void;
@@ -37,6 +44,7 @@ interface ChatViewProps {
   onReassigned?: () => void;
   reassignerName?: string;
   onDismissReason?: () => void;
+  tenantId?: string;
 }
 
 export function ChatView({ 
@@ -51,12 +59,14 @@ export function ChatView({
   onReassigned,
   reassignerName,
   onDismissReason,
+  tenantId,
 }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
+  const [pendingMedia, setPendingMedia] = useState<MediaUpload | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, profile, currentMembership } = useAuth();
   
@@ -71,15 +81,24 @@ export function ChatView({
   }, [messages]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || isSending) return;
+    if ((!newMessage.trim() && !pendingMedia) || isSending) return;
     
     setIsSending(true);
     try {
-      await onSendMessage(newMessage.trim());
+      await onSendMessage(newMessage.trim(), pendingMedia || undefined);
       setNewMessage('');
+      setPendingMedia(null);
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleMediaUpload = (media: MediaUpload) => {
+    setPendingMedia(media);
+  };
+
+  const removePendingMedia = () => {
+    setPendingMedia(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -242,41 +261,15 @@ export function ChatView({
           }
 
           return (
-            <div
+            <ChatMessageBubble
               key={message.id}
-              className={cn(
-                'flex gap-2 animate-fade-in',
-                isAgent ? 'justify-end' : 'justify-start'
-              )}
-            >
-              {!isAgent && (
-                <Avatar
-                  src={conversation.contact?.avatar_url}
-                  name={conversation.contact?.name}
-                  size="sm"
-                />
-              )}
-              <div
-                className={cn(
-                  'max-w-[70%] rounded-2xl px-4 py-2',
-                  isAgent
-                    ? 'bg-chat-bubble-agent text-chat-bubble-agent-text rounded-br-md'
-                    : 'bg-chat-bubble-contact text-chat-bubble-contact-text rounded-bl-md'
-                )}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <span className="text-[10px] opacity-70 mt-1 block">
-                  {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                </span>
-              </div>
-              {isAgent && (
-                <Avatar
-                  src={profile?.avatar_url}
-                  name={profile?.full_name}
-                  size="sm"
-                />
-              )}
-            </div>
+              message={message}
+              isAgent={isAgent}
+              contactAvatar={conversation.contact?.avatar_url}
+              contactName={conversation.contact?.name}
+              agentAvatar={profile?.avatar_url}
+              agentName={profile?.full_name}
+            />
           );
         })}
         <div ref={messagesEndRef} />
@@ -284,18 +277,47 @@ export function ChatView({
 
       {/* Input */}
       <div className="p-4 border-t bg-card">
-        <div className="flex gap-2">
+        {/* Pending media preview */}
+        {pendingMedia && (
+          <div className="mb-2 flex items-center gap-2 p-2 bg-muted rounded-md">
+            {pendingMedia.type === 'image' ? (
+              <img src={pendingMedia.url} alt="" className="h-12 w-12 object-cover rounded" />
+            ) : (
+              <div className="h-12 w-12 bg-muted-foreground/10 rounded flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">FILE</span>
+              </div>
+            )}
+            <span className="flex-1 text-sm truncate">{pendingMedia.filename}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={removePendingMedia}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+        <div className="flex items-end gap-2">
+          {tenantId && (
+            <ChatMediaUpload
+              tenantId={tenantId}
+              conversationId={conversation.id}
+              onUploadComplete={handleMediaUpload}
+              disabled={isSending}
+            />
+          )}
           <Textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="min-h-[44px] max-h-32 resize-none"
+            className="min-h-[44px] max-h-32 resize-none flex-1"
             rows={1}
           />
           <Button 
             onClick={handleSend} 
-            disabled={!newMessage.trim() || isSending}
+            disabled={(!newMessage.trim() && !pendingMedia) || isSending}
             size="icon"
             className="flex-shrink-0"
           >

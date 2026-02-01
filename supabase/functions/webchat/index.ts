@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json()
-    const { action, visitor_id, name, email, message, conversation_id } = body
+    const { action, visitor_id, name, email, message, conversation_id, media_url, media_type, media_filename } = body
 
     console.log('Web chat request:', { action, visitor_id, tenantId })
 
@@ -266,13 +266,20 @@ Deno.serve(async (req) => {
 
       // Create initial message if provided
       if (message) {
+        const messageMetadata: Record<string, unknown> = { source: 'web_widget' }
+        if (media_url) {
+          messageMetadata.media_url = media_url
+          messageMetadata.media_type = media_type
+          messageMetadata.media_filename = media_filename
+        }
+
         await supabase
           .from('messages')
           .insert({
             conversation_id: conversation.id,
             sender_type: 'contact',
             content: message,
-            metadata: { source: 'web_widget' }
+            metadata: messageMetadata
           })
 
         await supabase
@@ -316,13 +323,20 @@ Deno.serve(async (req) => {
         })
       }
 
+      const messageMetadata: Record<string, unknown> = { source: 'web_widget' }
+      if (media_url) {
+        messageMetadata.media_url = media_url
+        messageMetadata.media_type = media_type
+        messageMetadata.media_filename = media_filename
+      }
+
       await supabase
         .from('messages')
         .insert({
           conversation_id: conversation_id,
           sender_type: 'contact',
           content: message,
-          metadata: { source: 'web_widget' }
+          metadata: messageMetadata
         })
 
       await supabase
@@ -350,7 +364,7 @@ Deno.serve(async (req) => {
 
       const { data: messages } = await supabase
         .from('messages')
-        .select('id, content, sender_type, created_at')
+        .select('id, content, sender_type, created_at, metadata')
         .eq('conversation_id', conversation_id)
         .order('created_at', { ascending: true })
 

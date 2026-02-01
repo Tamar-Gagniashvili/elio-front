@@ -427,7 +427,7 @@ function InboxContent() {
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, media?: { url: string; type: 'image' | 'file'; filename: string }) => {
     if (!selectedConversation || !user) return;
 
     const channelType = selectedConversation.contact?.channel_type;
@@ -452,13 +452,20 @@ function InboxContent() {
       }
     }
 
-    // Save message to database
-    const { error } = await supabase.from('messages').insert({
+    // Save message to database with media metadata if provided
+    const messageInsert = {
       conversation_id: selectedConversation.id,
-      sender_type: 'agent',
+      sender_type: 'agent' as const,
       sender_id: user.id,
-      content,
-    });
+      content: content || (media ? `[${media.type === 'image' ? 'Image' : 'File'}: ${media.filename}]` : ''),
+      metadata: media ? {
+        media_url: media.url,
+        media_type: media.type,
+        media_filename: media.filename,
+      } : null,
+    };
+
+    const { error } = await supabase.from('messages').insert(messageInsert);
 
     if (error) {
       console.error('Error sending message:', error);
@@ -475,7 +482,7 @@ function InboxContent() {
       .from('conversations')
       .update({
         last_message_at: new Date().toISOString(),
-        last_message_preview: content.substring(0, 100),
+        last_message_preview: (content || (media?.filename ? `📎 ${media.filename}` : '')).substring(0, 100),
       })
       .eq('id', selectedConversation.id);
   };
@@ -593,6 +600,7 @@ function InboxContent() {
                 }}
                 reassignerName={reassignerName}
                 onDismissReason={handleDismissReason}
+                tenantId={currentTenant?.id}
               />
             </div>
             <div className="w-72 hidden lg:block">
