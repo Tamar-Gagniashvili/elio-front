@@ -463,6 +463,10 @@ function InboxContent() {
         media_type: media.type,
         media_filename: media.filename,
       } : null,
+      // Store in dedicated columns for edge function queries
+      media_url: media?.url ?? null,
+      media_type: media?.type ?? null,
+      media_filename: media?.filename ?? null,
     };
 
     const { error } = await supabase.from('messages').insert(messageInsert);
