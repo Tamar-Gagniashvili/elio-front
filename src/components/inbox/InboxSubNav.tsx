@@ -117,8 +117,10 @@ export function InboxSubNav({
           filter: `tenant_id=eq.${tenantId}`,
         },
         () => {
-          // Trigger a refetch by updating the trigger state
-          setStatusCountsTrigger(prev => prev + 1);
+          // Add small delay to ensure DB change is fully propagated
+          setTimeout(() => {
+            setStatusCountsTrigger(prev => prev + 1);
+          }, 100);
         }
       )
       .subscribe();
