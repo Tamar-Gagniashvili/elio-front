@@ -442,6 +442,9 @@ export type Database = {
           created_at: string
           id: string
           is_read: boolean
+          media_filename: string | null
+          media_type: string | null
+          media_url: string | null
           metadata: Json | null
           sender_id: string | null
           sender_type: Database["public"]["Enums"]["message_sender_type"]
@@ -452,6 +455,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          media_filename?: string | null
+          media_type?: string | null
+          media_url?: string | null
           metadata?: Json | null
           sender_id?: string | null
           sender_type: Database["public"]["Enums"]["message_sender_type"]
@@ -462,6 +468,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          media_filename?: string | null
+          media_type?: string | null
+          media_url?: string | null
           metadata?: Json | null
           sender_id?: string | null
           sender_type?: Database["public"]["Enums"]["message_sender_type"]
