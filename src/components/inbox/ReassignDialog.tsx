@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeamPresence } from '@/hooks/useTeamPresence';
@@ -42,6 +43,7 @@ export function ReassignDialog({
   currentAssignee,
   onReassigned,
 }: ReassignDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant, user } = useAuth();
   const { isOnline, onlineUsers } = useTeamPresence();
   const { toast } = useToast();
@@ -246,8 +248,8 @@ export function ReassignDialog({
       }).catch(err => console.error('Failed to send push notification:', err));
 
       toast({
-        title: 'Contact reassigned',
-        description: `Successfully reassigned to ${assignee?.profile.full_name || 'team member'}`,
+        title: t('inbox.contactReassigned'),
+        description: t('inbox.successfullyReassigned', { name: assignee?.profile.full_name || 'team member' }),
       });
 
       setReassignReason('');
@@ -288,8 +290,8 @@ export function ReassignDialog({
       }
 
       toast({
-        title: 'Contact unassigned',
-        description: 'The contact is now unassigned',
+        title: t('inbox.contactUnassigned'),
+        description: t('inbox.contactNowUnassigned'),
       });
 
       onOpenChange(false);
@@ -318,9 +320,9 @@ export function ReassignDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Reassign Contact</DialogTitle>
+          <DialogTitle>{t('inbox.reassignContact')}</DialogTitle>
           <DialogDescription>
-            Choose a team member to assign this contact to
+            {t('inbox.chooseTeamMember')}
           </DialogDescription>
         </DialogHeader>
 
@@ -329,7 +331,7 @@ export function ReassignDialog({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, or position..."
+              placeholder={t('inbox.searchTeam')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -339,12 +341,12 @@ export function ReassignDialog({
           {/* Reassign Reason */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground">
-              Reason for reassignment (optional)
+              {t('inbox.reassignReason')}
             </label>
             <Textarea
               value={reassignReason}
               onChange={(e) => setReassignReason(e.target.value)}
-              placeholder="e.g., Customer needs technical support, Lead requested specific expertise..."
+              placeholder={t('inbox.reassignReasonPlaceholder')}
               className="min-h-[60px] resize-none"
               rows={2}
             />
@@ -363,7 +365,7 @@ export function ReassignDialog({
                 'h-2 w-2 fill-current',
                 showOnlineOnly ? 'text-green-400' : 'text-muted-foreground'
               )} />
-              Online ({onlineCount})
+              {t('inbox.online')} ({onlineCount})
             </Button>
 
             {/* Position filters */}
@@ -400,8 +402,8 @@ export function ReassignDialog({
                 <Users className="h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">
                   {teamMembers.length === 0 
-                    ? 'No team members found' 
-                    : 'No matching team members'}
+                    ? t('inbox.noTeamMembers')
+                    : t('inbox.noMatchingTeam')}
                 </p>
               </div>
             ) : (
@@ -464,7 +466,7 @@ export function ReassignDialog({
                           online && 'bg-green-500 hover:bg-green-600'
                         )}
                       >
-                        {online ? 'Online' : 'Offline'}
+                        {online ? t('inbox.online') : t('inbox.offline')}
                       </Badge>
                     </button>
                   );
@@ -486,7 +488,7 @@ export function ReassignDialog({
                 {isAssigning ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : null}
-                Remove Assignment
+                {t('inbox.removeAssignment')}
               </Button>
             </div>
           )}

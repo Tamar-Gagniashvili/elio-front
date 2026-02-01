@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Conversation, Message, Contact } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { useAuth } from '@/hooks/useAuth';
@@ -64,6 +65,7 @@ export function ChatView({
   onDismissReason,
   tenantId,
 }: ChatViewProps) {
+  const { t } = useTranslation();
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
@@ -131,9 +133,9 @@ export function ChatView({
               </div>
             )}
           </div>
-          <div>
+        <div>
             <h2 className="font-semibold text-foreground">
-              {conversation.contact?.name || 'Unknown Contact'}
+              {conversation.contact?.name || t('inbox.unknownContact')}
             </h2>
             {/* Only show status and assignment info for admins */}
             {isAdmin && (
@@ -145,10 +147,10 @@ export function ChatView({
                     conversation.status === 'open' && 'bg-success text-success-foreground'
                   )}
                 >
-                  {conversation.status}
+                  {t(`common.${conversation.status}`)}
                 </Badge>
                 {conversation.assigned_to && (
-                  <span>Assigned to {conversation.assigned_profile?.full_name || 'Agent'}</span>
+                  <span>{t('inbox.assignedTo')} {conversation.assigned_profile?.full_name || 'Agent'}</span>
                 )}
               </div>
             )}
@@ -168,29 +170,29 @@ export function ChatView({
                 {(isAdmin || conversation.assigned_to === user?.id) && (
                   <DropdownMenuItem onClick={() => setIsReassignDialogOpen(true)}>
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Reassign Contact
+                    {t('inbox.reassignContact')}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => setIsLinkDialogOpen(true)}>
                   <Link2 className="h-4 w-4 mr-2" />
-                  Link Contact
+                  {t('inbox.linkContact')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsStatusDialogOpen(true)}>
                   <Tag className="h-4 w-4 mr-2" />
-                  Manage Status
+                  {t('inbox.manageStatus')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem onClick={() => onStatusChange('resolved')}>
-              Mark as Resolved
+              {t('inbox.markResolved')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onStatusChange('archived')}>
-              Archive
+              {t('common.archived')}
             </DropdownMenuItem>
             {conversation.status === 'archived' && (
               <DropdownMenuItem onClick={() => onStatusChange('open')}>
-                Reopen
+                {t('inbox.markOpen')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -228,7 +230,7 @@ export function ChatView({
           <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-700 dark:text-amber-400">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle className="flex items-center justify-between">
-              <span>Reassignment Note</span>
+              <span>{t('inbox.reassignmentNote')}</span>
               {onDismissReason && (
                 <Button
                   variant="ghost"
@@ -317,7 +319,7 @@ export function ChatView({
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={t('inbox.typeMessage')}
             className="min-h-[44px] max-h-32 resize-none flex-1"
             rows={1}
           />
@@ -352,10 +354,11 @@ export function ContactDetails({
   tenantId?: string;
   onSendToChat?: (message: string) => void;
 }) {
+  const { t } = useTranslation();
   const contact = conversation.contact;
   
   // Get display name from group or contact
-  const displayName = selectedGroup?.displayName || contact?.name || 'Unknown Contact';
+  const displayName = selectedGroup?.displayName || contact?.name || t('inbox.unknownContact');
   
   // Get all channels from the group
   const channels = selectedGroup?.contacts || (contact ? [contact] : []);
@@ -372,7 +375,7 @@ export function ContactDetails({
     <div className="h-full bg-card border-l flex flex-col overflow-y-auto">
       <div className="p-4 border-b">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-          Contact Details
+          {t('inbox.contactDetails')}
         </h3>
       </div>
 
@@ -439,9 +442,9 @@ export function ContactDetails({
         <div className="flex items-center gap-3 text-sm">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-muted-foreground">
-            Customer since {contact?.created_at 
+            {t('inbox.customerSince')} {contact?.created_at 
               ? new Date(contact.created_at).toLocaleDateString() 
-              : 'Unknown'}
+              : t('common.unknown')}
           </span>
         </div>
       </div>
@@ -457,7 +460,7 @@ export function ContactDetails({
           <div className="flex items-center gap-2 mb-3">
             <Link2 className="h-4 w-4 text-muted-foreground" />
             <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-              All Channels
+              {t('inbox.allChannels')}
             </h4>
           </div>
           <div className="space-y-2">
@@ -484,7 +487,7 @@ export function ContactDetails({
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {channelContact.name || 'Unknown'}
+                      {channelContact.name || t('common.unknown')}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {channelContact.email || channelContact.phone || ''}
@@ -492,7 +495,7 @@ export function ContactDetails({
                   </div>
                   {isActive && (
                     <Badge variant="secondary" className="text-[10px]">
-                      Active
+                      {t('common.active')}
                     </Badge>
                   )}
                 </button>
@@ -508,7 +511,7 @@ export function ContactDetails({
           <div className="flex items-center gap-2 mb-3">
             <Link2 className="h-4 w-4 text-muted-foreground" />
             <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-              Linked Contacts
+              {t('inbox.linkedContacts')}
             </h4>
           </div>
           <div className="space-y-2">
@@ -524,7 +527,7 @@ export function ContactDetails({
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {linkedContact.name || 'Unknown'}
+                    {linkedContact.name || t('common.unknown')}
                   </p>
                   <ChannelBadge
                     channelType={linkedContact.channel_type}

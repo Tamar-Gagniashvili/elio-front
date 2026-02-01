@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { LinkedObject } from '@/hooks/useConversationObjects';
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,7 @@ export function LinkedObjectsPanel({
   tenantId,
   conversationId,
 }: LinkedObjectsPanelProps) {
+  const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
   const [fieldsByType, setFieldsByType] = useState<Record<string, FieldDef[]>>({});
@@ -150,7 +152,7 @@ export function LinkedObjectsPanel({
         <div className="flex items-center gap-2">
           <Package className="h-4 w-4 text-muted-foreground" />
           <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-            Linked Items
+            {t('inbox.linkedItems')}
           </h4>
         </div>
         <Button
@@ -169,14 +171,14 @@ export function LinkedObjectsPanel({
         </div>
       ) : linkedObjects.length === 0 ? (
         <div className="text-center py-4">
-          <p className="text-sm text-muted-foreground mb-2">No items linked</p>
+          <p className="text-sm text-muted-foreground mb-2">{t('inbox.noItemsLinked')}</p>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsDialogOpen(true)}
           >
             <Plus className="h-3 w-3 mr-1" />
-            Link Item
+            {t('inbox.linkItem')}
           </Button>
         </div>
       ) : (
