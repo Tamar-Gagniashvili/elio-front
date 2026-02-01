@@ -71,10 +71,21 @@ export function useConversationObjects(conversationId: string | null, tenantId: 
     fetchLinkedObjects();
   }, [fetchLinkedObjects]);
 
-  const linkObject = async (objectId: string) => {
+  const linkObject = async (objectId: string, newStatusId?: string) => {
     if (!conversationId || !tenantId) return false;
 
     try {
+      // If a new status is provided, update the object's status first
+      if (newStatusId) {
+        const { error: statusError } = await supabase
+          .from('objects')
+          .update({ status_id: newStatusId })
+          .eq('id', objectId);
+        
+        if (statusError) throw statusError;
+      }
+
+      // Link the object to the conversation
       const { error } = await supabase
         .from('conversation_objects')
         .insert({

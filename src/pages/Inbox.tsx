@@ -623,6 +623,7 @@ function InboxContent() {
             <div className="w-72 hidden lg:block">
               <ContactDetails 
                 conversation={selectedConversation}
+                messages={messages}
                 linkedContacts={linkedContacts}
                 selectedGroup={selectedGroup}
                 onSelectConversation={setSelectedConversation}

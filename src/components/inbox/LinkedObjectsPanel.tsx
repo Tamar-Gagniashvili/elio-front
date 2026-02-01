@@ -10,7 +10,7 @@ import { LinkObjectDialog } from './LinkObjectDialog';
 interface LinkedObjectsPanelProps {
   linkedObjects: LinkedObject[];
   loading: boolean;
-  onLink: (objectId: string) => Promise<boolean>;
+  onLink: (objectId: string, newStatusId?: string) => Promise<boolean>;
   onUnlink: (linkId: string) => Promise<boolean>;
   tenantId: string;
   conversationId: string;
