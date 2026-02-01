@@ -5,14 +5,341 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Types for routing rules
+interface RuleCondition {
+  field: string
+  operator: string
+  value: string | string[] | number
+}
+
+interface ConditionGroup {
+  operator: 'AND' | 'OR'
+  conditions: RuleCondition[]
+}
+
+interface RuleAction {
+  type: string
+  user_id?: string
+  user_ids?: string[]
+  status_id?: string
+  content?: string
+}
+
+interface ActionsGroup {
+  actions: RuleAction[]
+  elseActions?: RuleAction[]
+}
+
+interface RoutingRule {
+  id: string
+  tenant_id: string
+  name: string
+  priority: number
+  is_active: boolean
+  conditions: ConditionGroup
+  actions: ActionsGroup
+}
+
+interface RuleContext {
+  channel_type: string
+  message_content: string
+  message_language: string
+  contact_name: string
+  contact_email: string
+  contact_phone: string
+  hour: number
+  day_of_week: number
+}
+
+// Evaluate a single condition
+function evaluateCondition(condition: RuleCondition, context: RuleContext): boolean {
+  let fieldValue: string | number
+
+  switch (condition.field) {
+    case 'channel_type':
+      fieldValue = context.channel_type
+      break
+    case 'message_content':
+      fieldValue = context.message_content
+      break
+    case 'message_language':
+      fieldValue = context.message_language
+      break
+    case 'contact.name':
+      fieldValue = context.contact_name
+      break
+    case 'contact.email':
+      fieldValue = context.contact_email
+      break
+    case 'contact.phone':
+      fieldValue = context.contact_phone
+      break
+    case 'time.hour':
+      fieldValue = context.hour
+      break
+    case 'time.day_of_week':
+      fieldValue = context.day_of_week
+      break
+    default:
+      return false
+  }
+
+  const conditionValue = condition.value
+  const stringFieldValue = String(fieldValue).toLowerCase()
+  const stringConditionValue = String(conditionValue).toLowerCase()
+
+  switch (condition.operator) {
+    case 'equals':
+      return stringFieldValue === stringConditionValue
+    case 'not_equals':
+      return stringFieldValue !== stringConditionValue
+    case 'contains':
+      return stringFieldValue.includes(stringConditionValue)
+    case 'not_contains':
+      return !stringFieldValue.includes(stringConditionValue)
+    case 'starts_with':
+      return stringFieldValue.startsWith(stringConditionValue)
+    case 'ends_with':
+      return stringFieldValue.endsWith(stringConditionValue)
+    case 'greater_than':
+      return Number(fieldValue) > Number(conditionValue)
+    case 'less_than':
+      return Number(fieldValue) < Number(conditionValue)
+    case 'in':
+      if (Array.isArray(conditionValue)) {
+        return conditionValue.map(v => String(v).toLowerCase()).includes(stringFieldValue)
+      }
+      return false
+    case 'not_in':
+      if (Array.isArray(conditionValue)) {
+        return !conditionValue.map(v => String(v).toLowerCase()).includes(stringFieldValue)
+      }
+      return true
+    default:
+      return false
+  }
+}
+
+// Evaluate a condition group
+function evaluateConditionGroup(conditions: ConditionGroup, context: RuleContext): boolean {
+  if (!conditions.conditions || conditions.conditions.length === 0) {
+    return true
+  }
+
+  if (conditions.operator === 'AND') {
+    return conditions.conditions.every(c => evaluateCondition(c, context))
+  } else {
+    return conditions.conditions.some(c => evaluateCondition(c, context))
+  }
+}
+
+// Execute rule actions
+async function executeActions(
+  supabase: any,
+  actions: RuleAction[],
+  conversationId: string,
+  contactId: string,
+  tenantId: string,
+  ruleId: string,
+  channelType: string,
+  channelConfig: any
+): Promise<{ assignedTo?: string; statusId?: string; autoReplyContent?: string }> {
+  const result: { assignedTo?: string; statusId?: string; autoReplyContent?: string } = {}
+
+  for (const action of actions) {
+    console.log(`Executing action: ${action.type}`, action)
+
+    switch (action.type) {
+      case 'assign_to_user':
+        if (action.user_id) {
+          result.assignedTo = action.user_id
+        }
+        break
+
+      case 'assign_to_pool':
+        if (action.user_ids && action.user_ids.length > 0) {
+          let { data: distribution } = await supabase
+            .from('chat_distribution')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .single()
+
+          if (!distribution) {
+            await supabase
+              .from('chat_distribution')
+              .insert({ tenant_id: tenantId, assignment_index: 0 })
+            distribution = { assignment_index: 0 }
+          }
+
+          const poolIndex = distribution.assignment_index % action.user_ids.length
+          result.assignedTo = action.user_ids[poolIndex]
+
+          await supabase
+            .from('chat_distribution')
+            .update({
+              assignment_index: distribution.assignment_index + 1,
+              last_assigned_user_id: result.assignedTo,
+              updated_at: new Date().toISOString()
+            })
+            .eq('tenant_id', tenantId)
+        }
+        break
+
+      case 'apply_status':
+        if (action.status_id) {
+          result.statusId = action.status_id
+          await supabase
+            .from('contact_statuses')
+            .upsert({
+              tenant_id: tenantId,
+              contact_id: contactId,
+              status_id: action.status_id,
+              created_at: new Date().toISOString()
+            }, {
+              onConflict: 'contact_id,status_id',
+              ignoreDuplicates: true
+            })
+        }
+        break
+
+      case 'send_message':
+        if (action.content && conversationId) {
+          result.autoReplyContent = action.content
+          // Insert auto-reply message to database
+          await supabase
+            .from('messages')
+            .insert({
+              conversation_id: conversationId,
+              sender_type: 'system',
+              content: action.content,
+              metadata: { auto_reply: true, rule_id: ruleId }
+            })
+          
+          // Send via Telegram if we have config
+          if (channelType === 'telegram' && channelConfig?.bot_token) {
+            try {
+              const { data: conv } = await supabase
+                .from('conversations')
+                .select('contacts!inner(metadata)')
+                .eq('id', conversationId)
+                .single()
+              
+              const chatId = conv?.contacts?.metadata?.chat_id
+              if (chatId) {
+                let botToken = channelConfig.bot_token
+                if (botToken.startsWith('enc:')) {
+                  botToken = await decryptCredential(botToken)
+                }
+                
+                await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    chat_id: chatId,
+                    text: action.content
+                  })
+                })
+                console.log('Auto-reply sent via Telegram')
+              }
+            } catch (err) {
+              console.error('Error sending Telegram auto-reply:', err)
+            }
+          }
+        }
+        break
+    }
+
+    // Log the action
+    await supabase
+      .from('rule_action_logs')
+      .insert({
+        tenant_id: tenantId,
+        rule_id: ruleId,
+        conversation_id: conversationId,
+        contact_id: contactId,
+        action_type: action.type,
+        action_details: action
+      })
+  }
+
+  return result
+}
+
+// Evaluate and execute routing rules
+async function evaluateRoutingRules(
+  supabase: any,
+  tenantId: string,
+  conversationId: string,
+  contactId: string,
+  context: RuleContext,
+  channelConfig?: any
+): Promise<{ assignedTo?: string }> {
+  console.log('Evaluating routing rules with context:', context)
+
+  const { data: rules, error } = await supabase
+    .from('routing_rules')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .order('priority', { ascending: true })
+
+  if (error || !rules || rules.length === 0) {
+    console.log('No active routing rules found')
+    return {}
+  }
+
+  let finalAssignedTo: string | undefined
+
+  for (const ruleData of rules) {
+    const rule: RoutingRule = {
+      ...ruleData,
+      conditions: ruleData.conditions as ConditionGroup,
+      actions: ruleData.actions as ActionsGroup
+    }
+
+    console.log(`Evaluating rule: ${rule.name}`)
+
+    const conditionsPassed = evaluateConditionGroup(rule.conditions, context)
+
+    if (conditionsPassed) {
+      console.log(`Rule "${rule.name}" matched - executing THEN actions`)
+      const result = await executeActions(
+        supabase,
+        rule.actions.actions || [],
+        conversationId,
+        contactId,
+        tenantId,
+        rule.id,
+        context.channel_type,
+        channelConfig
+      )
+      if (result.assignedTo) finalAssignedTo = result.assignedTo
+    } else if (rule.actions.elseActions && rule.actions.elseActions.length > 0) {
+      console.log(`Rule "${rule.name}" not matched - executing ELSE actions`)
+      const result = await executeActions(
+        supabase,
+        rule.actions.elseActions,
+        conversationId,
+        contactId,
+        tenantId,
+        rule.id,
+        context.channel_type,
+        channelConfig
+      )
+      if (result.assignedTo) finalAssignedTo = result.assignedTo
+    }
+  }
+
+  return { assignedTo: finalAssignedTo }
+}
+
 // Decrypt AES-GCM encrypted credentials
 async function decryptCredential(encryptedValue: string): Promise<string> {
-  // If not encrypted (no prefix), return as-is for backward compatibility
   if (!encryptedValue.startsWith('enc:')) {
     return encryptedValue
   }
   
-  const ciphertext = encryptedValue.slice(4) // Remove 'enc:' prefix
+  const ciphertext = encryptedValue.slice(4)
   
   const keyString = Deno.env.get('CHANNEL_ENCRYPTION_KEY')
   if (!keyString) {
@@ -20,7 +347,6 @@ async function decryptCredential(encryptedValue: string): Promise<string> {
     return encryptedValue
   }
   
-  // Create key from secret
   const encoder = new TextEncoder()
   const keyData = encoder.encode(keyString)
   const hashBuffer = await crypto.subtle.digest('SHA-256', keyData)
@@ -33,10 +359,7 @@ async function decryptCredential(encryptedValue: string): Promise<string> {
     ['decrypt']
   )
   
-  // Decode base64
   const combined = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0))
-  
-  // Extract IV and ciphertext
   const iv = combined.slice(0, 12)
   const encrypted = combined.slice(12)
   
@@ -52,17 +375,14 @@ async function decryptCredential(encryptedValue: string): Promise<string> {
 
 // Verify Telegram webhook secret token
 async function verifyTelegramSignature(req: Request, channel: any): Promise<boolean> {
-  // Telegram sends the secret token in X-Telegram-Bot-Api-Secret-Token header
   const secretToken = req.headers.get('X-Telegram-Bot-Api-Secret-Token')
   let storedToken = (channel?.config as any)?.secret_token
   
-  // If no secret token is configured, log warning but allow (backward compatibility)
   if (!storedToken) {
     console.warn('No secret_token configured for Telegram channel - signature verification skipped')
     return true
   }
   
-  // Decrypt if encrypted
   storedToken = await decryptCredential(storedToken)
   
   if (!secretToken) {
@@ -73,9 +393,8 @@ async function verifyTelegramSignature(req: Request, channel: any): Promise<bool
   return secretToken === storedToken
 }
 
-// Get next sales rep using round-robin
+// Get next sales rep using round-robin (fallback)
 async function getNextSalesRep(supabase: any, tenantId: string) {
-  // Get all active sales reps for this tenant
   const { data: salesReps, error: salesError } = await supabase
     .from('tenant_memberships')
     .select('user_id')
@@ -89,7 +408,6 @@ async function getNextSalesRep(supabase: any, tenantId: string) {
     return null
   }
 
-  // Get or create distribution record for this tenant
   let { data: distribution } = await supabase
     .from('chat_distribution')
     .select('*')
@@ -114,11 +432,9 @@ async function getNextSalesRep(supabase: any, tenantId: string) {
     distribution = newDist
   }
 
-  // Calculate next index using round-robin
   const nextIndex = distribution.assignment_index % salesReps.length
   const nextSalesRep = salesReps[nextIndex].user_id
 
-  // Update distribution record
   await supabase
     .from('chat_distribution')
     .update({
@@ -154,7 +470,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Find channel first to verify signature
     const { data: channel } = await supabase
       .from('channels')
       .select('*')
@@ -171,7 +486,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Verify Telegram signature
     const isValid = await verifyTelegramSignature(req, channel)
     if (!isValid) {
       console.error('Invalid Telegram signature for tenant:', tenantId)
@@ -184,7 +498,6 @@ Deno.serve(async (req) => {
     const body = await req.json()
     console.log('Telegram webhook received:', JSON.stringify(body, null, 2))
 
-    // Extract message from Telegram update
     const message = body.message || body.edited_message
     if (!message) {
       console.log('No message in update')
@@ -229,6 +542,19 @@ Deno.serve(async (req) => {
       contact = newContact
     }
 
+    // Build rule context
+    const now = new Date()
+    const ruleContext: RuleContext = {
+      channel_type: 'telegram',
+      message_content: text,
+      message_language: 'en', // Could be detected
+      contact_name: contact.name || '',
+      contact_email: contact.email || '',
+      contact_phone: contact.phone || '',
+      hour: now.getHours(),
+      day_of_week: now.getDay()
+    }
+
     // Find or create conversation
     let { data: conversation } = await supabase
       .from('conversations')
@@ -239,8 +565,17 @@ Deno.serve(async (req) => {
       .single()
 
     if (!conversation) {
-      // Get next sales rep for assignment
-      const assignedTo = await getNextSalesRep(supabase, tenantId)
+      // Evaluate routing rules first
+      const ruleResult = await evaluateRoutingRules(
+        supabase,
+        tenantId,
+        '', // Will update after creation
+        contact.id,
+        ruleContext,
+        channel.config
+      )
+
+      const assignedTo = ruleResult.assignedTo || await getNextSalesRep(supabase, tenantId)
 
       const { data: newConversation, error: convError } = await supabase
         .from('conversations')
@@ -263,8 +598,27 @@ Deno.serve(async (req) => {
       }
       conversation = newConversation
       console.log('Created new conversation with assignment:', assignedTo)
+
+      // Re-run rules with conversation ID for actions
+      await evaluateRoutingRules(
+        supabase,
+        tenantId,
+        conversation.id,
+        contact.id,
+        ruleContext,
+        channel.config
+      )
     } else {
-      // Update conversation
+      // Existing conversation - still evaluate rules for auto-replies
+      await evaluateRoutingRules(
+        supabase,
+        tenantId,
+        conversation.id,
+        contact.id,
+        ruleContext,
+        channel.config
+      )
+
       await supabase
         .from('conversations')
         .update({
