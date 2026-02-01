@@ -121,6 +121,9 @@ export function LinkObjectDialog({
   // Track selected fields for sending to chat (field name -> boolean)
   const [selectedMainFields, setSelectedMainFields] = useState<Record<string, boolean>>({});
   const [selectedRelatedFields, setSelectedRelatedFields] = useState<Record<string, Record<string, boolean>>>({});
+  // Track if header (name + status) should be included
+  const [includeMainHeader, setIncludeMainHeader] = useState(true);
+  const [includeRelatedHeaders, setIncludeRelatedHeaders] = useState<Record<string, boolean>>({});
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -132,6 +135,8 @@ export function LinkObjectDialog({
       setSearch('');
       setSelectedMainFields({});
       setSelectedRelatedFields({});
+      setIncludeMainHeader(true);
+      setIncludeRelatedHeaders({});
     }
   }, [open]);
 
@@ -266,6 +271,8 @@ export function LinkObjectDialog({
             }
           }
           setSelectedRelatedFields(prev => ({ ...prev, [objData.id]: initialRelatedFields }));
+          // Include related header by default
+          setIncludeRelatedHeaders(prev => ({ ...prev, [objData.id]: true }));
         }
       }
       
@@ -324,7 +331,9 @@ export function LinkObjectDialog({
       fields, 
       relatedObjects, 
       selectedMainFields, 
-      selectedRelatedFields
+      selectedRelatedFields,
+      includeMainHeader,
+      includeRelatedHeaders
     );
     onSendToChat(message);
     
@@ -523,20 +532,30 @@ export function LinkObjectDialog({
           <div className="space-y-4 flex-1 overflow-auto">
             {/* Main item details */}
             <div className="bg-muted/50 rounded-lg p-4 border">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <Package className="h-3.5 w-3.5" />
-                <span>{selectedType?.name}</span>
-                {selectedObject.status && (
-                  <>
-                    <span>•</span>
-                    <Badge variant="outline" className="text-[10px] h-5 gap-1">
-                      <div className={cn('h-1.5 w-1.5 rounded-full', getStatusColor(selectedObject.status.color))} />
-                      {selectedObject.status.name}
-                    </Badge>
-                  </>
-                )}
+              <div 
+                className="flex items-center gap-2 cursor-pointer group"
+                onClick={() => setIncludeMainHeader(!includeMainHeader)}
+              >
+                <Checkbox 
+                  checked={includeMainHeader}
+                  onCheckedChange={() => setIncludeMainHeader(!includeMainHeader)}
+                  className="h-4 w-4"
+                />
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Package className="h-3.5 w-3.5" />
+                  <span>{selectedType?.name}</span>
+                  {selectedObject.status && (
+                    <>
+                      <span>•</span>
+                      <Badge variant="outline" className="text-[10px] h-5 gap-1">
+                        <div className={cn('h-1.5 w-1.5 rounded-full', getStatusColor(selectedObject.status.color))} />
+                        {selectedObject.status.name}
+                      </Badge>
+                    </>
+                  )}
+                </div>
               </div>
-              <p className="font-semibold text-lg">{selectedObject.display_name}</p>
+              <p className="font-semibold text-lg ml-6">{selectedObject.display_name}</p>
               
               {(() => {
                 const details = getObjectDetails(selectedObject, fields);
@@ -577,20 +596,30 @@ export function LinkObjectDialog({
                 
                 {relatedObjects.map((related, idx) => (
                   <div key={idx} className="bg-muted/30 rounded-lg p-4 border border-dashed">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                      <Building2 className="h-3.5 w-3.5" />
-                      <span>{related.relationLabel}: {related.objectType.name}</span>
-                      {related.object.status && (
-                        <>
-                          <span>•</span>
-                          <Badge variant="outline" className="text-[10px] h-5 gap-1">
-                            <div className={cn('h-1.5 w-1.5 rounded-full', getStatusColor(related.object.status.color))} />
-                            {related.object.status.name}
-                          </Badge>
-                        </>
-                      )}
+                    <div 
+                      className="flex items-center gap-2 cursor-pointer group"
+                      onClick={() => setIncludeRelatedHeaders(prev => ({ ...prev, [related.object.id]: !prev[related.object.id] }))}
+                    >
+                      <Checkbox 
+                        checked={includeRelatedHeaders[related.object.id] ?? false}
+                        onCheckedChange={() => setIncludeRelatedHeaders(prev => ({ ...prev, [related.object.id]: !prev[related.object.id] }))}
+                        className="h-4 w-4"
+                      />
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Building2 className="h-3.5 w-3.5" />
+                        <span>{related.relationLabel}: {related.objectType.name}</span>
+                        {related.object.status && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="outline" className="text-[10px] h-5 gap-1">
+                              <div className={cn('h-1.5 w-1.5 rounded-full', getStatusColor(related.object.status.color))} />
+                              {related.object.status.name}
+                            </Badge>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <p className="font-semibold">{related.object.display_name}</p>
+                    <p className="font-semibold ml-6">{related.object.display_name}</p>
                     
                     {(() => {
                       const details = getObjectDetails(related.object, related.fields);
@@ -727,17 +756,24 @@ function formatObjectAsMessage(
   fields: ObjectTypeField[],
   relatedObjects: RelatedObject[],
   selectedMainFields: Record<string, boolean>,
-  selectedRelatedFields: Record<string, Record<string, boolean>>
+  selectedRelatedFields: Record<string, Record<string, boolean>>,
+  includeMainHeader: boolean,
+  includeRelatedHeaders: Record<string, boolean>
 ): string {
   const metadata = (obj.metadata || {}) as Record<string, any>;
-  let message = `📦 *${obj.display_name}*`;
+  let message = '';
   
-  if (obj.status) {
-    message += ` (${obj.status.name})`;
+  // Only include main header if selected
+  if (includeMainHeader) {
+    message = `📦 *${obj.display_name}*`;
+    if (obj.status) {
+      message += ` (${obj.status.name})`;
+    }
+    message += '\n';
   }
-  message += '\n\n';
   
   // Add only selected main object fields
+  const mainFields: string[] = [];
   for (const field of fields) {
     if (field.field_type === 'relation' || field.field_type === 'object') continue;
     if (!selectedMainFields[field.name]) continue; // Skip if not selected
@@ -746,26 +782,36 @@ function formatObjectAsMessage(
     if (value !== null && value !== undefined && value !== '') {
       const formatted = formatFieldValue(value, field.field_type);
       if (formatted) {
-        message += `• ${field.label}: ${formatted}\n`;
+        mainFields.push(`• ${field.label}: ${formatted}`);
       }
     }
+  }
+  
+  if (mainFields.length > 0) {
+    if (message) message += '\n';
+    message += mainFields.join('\n');
   }
   
   // Add related objects (only fields that are selected)
   for (const related of relatedObjects) {
     const relMeta = (related.object.metadata || {}) as Record<string, any>;
     const relSelectedFields = selectedRelatedFields[related.object.id] || {};
+    const showHeader = includeRelatedHeaders[related.object.id] ?? false;
     
-    // Check if any fields are selected for this related object
+    // Check if header or any fields are selected for this related object
     const hasSelectedFields = Object.values(relSelectedFields).some(v => v);
-    if (!hasSelectedFields) continue;
+    if (!showHeader && !hasSelectedFields) continue;
     
-    message += `\n🏢 *${related.relationLabel}: ${related.object.display_name}*`;
-    if (related.object.status) {
-      message += ` (${related.object.status.name})`;
+    // Add header if selected
+    if (showHeader) {
+      message += `\n\n🏢 *${related.relationLabel}: ${related.object.display_name}*`;
+      if (related.object.status) {
+        message += ` (${related.object.status.name})`;
+      }
     }
-    message += '\n';
     
+    // Add selected fields
+    const relFields: string[] = [];
     for (const field of related.fields) {
       if (field.field_type === 'relation' || field.field_type === 'object') continue;
       if (!relSelectedFields[field.name]) continue; // Skip if not selected
@@ -774,9 +820,13 @@ function formatObjectAsMessage(
       if (value !== null && value !== undefined && value !== '') {
         const formatted = formatFieldValue(value, field.field_type);
         if (formatted) {
-          message += `  • ${field.label}: ${formatted}\n`;
+          relFields.push(`  • ${field.label}: ${formatted}`);
         }
       }
+    }
+    
+    if (relFields.length > 0) {
+      message += '\n' + relFields.join('\n');
     }
   }
   
