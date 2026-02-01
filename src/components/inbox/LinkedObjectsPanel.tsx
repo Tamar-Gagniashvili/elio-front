@@ -12,6 +12,7 @@ interface LinkedObjectsPanelProps {
   loading: boolean;
   onLink: (objectId: string, newStatusId?: string) => Promise<boolean>;
   onUnlink: (linkId: string) => Promise<boolean>;
+  onSendToChat?: (message: string) => void;
   tenantId: string;
   conversationId: string;
 }
@@ -82,6 +83,7 @@ export function LinkedObjectsPanel({
   loading,
   onLink,
   onUnlink,
+  onSendToChat,
   tenantId,
   conversationId,
 }: LinkedObjectsPanelProps) {
@@ -257,6 +259,7 @@ export function LinkedObjectsPanel({
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onLink={onLink}
+        onSendToChat={onSendToChat}
         tenantId={tenantId}
         linkedObjectIds={linkedObjects.map((o) => o.id)}
       />

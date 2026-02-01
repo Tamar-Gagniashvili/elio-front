@@ -342,6 +342,7 @@ export function ContactDetails({
   selectedGroup,
   onSelectConversation,
   tenantId,
+  onSendToChat,
 }: { 
   conversation: Conversation;
   messages?: Message[];
@@ -349,6 +350,7 @@ export function ContactDetails({
   selectedGroup?: GroupedConversation | null;
   onSelectConversation?: (conversation: Conversation) => void;
   tenantId?: string;
+  onSendToChat?: (message: string) => void;
 }) {
   const contact = conversation.contact;
   
@@ -542,6 +544,7 @@ export function ContactDetails({
           loading={objectsLoading}
           onLink={linkObject}
           onUnlink={unlinkObject}
+          onSendToChat={onSendToChat}
           tenantId={tenantId}
           conversationId={conversation.id}
         />

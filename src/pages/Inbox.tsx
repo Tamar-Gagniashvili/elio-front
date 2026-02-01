@@ -628,6 +628,7 @@ function InboxContent() {
                 selectedGroup={selectedGroup}
                 onSelectConversation={setSelectedConversation}
                 tenantId={currentTenant?.id}
+                onSendToChat={(message) => handleSendMessage(message)}
               />
             </div>
           </>
