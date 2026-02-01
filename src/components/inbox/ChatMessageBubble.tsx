@@ -26,6 +26,15 @@ export function ChatMessageBubble({
   const mediaType = metadata.media_type as 'image' | 'file' | undefined;
   const mediaFilename = metadata.media_filename as string | undefined;
 
+  // Truncate filename to max 10 characters + extension
+  const truncateFilename = (filename: string, maxLength = 10) => {
+    if (filename.length <= maxLength) return filename;
+    const ext = filename.includes('.') ? filename.slice(filename.lastIndexOf('.')) : '';
+    const name = filename.slice(0, filename.lastIndexOf('.') || filename.length);
+    if (name.length <= maxLength) return filename;
+    return name.slice(0, maxLength) + '...' + ext;
+  };
+
   const renderMedia = () => {
     if (!mediaUrl) return null;
 
@@ -55,7 +64,7 @@ export function ChatMessageBubble({
           )}
         >
           <FileText className="h-5 w-5 flex-shrink-0" />
-          <span className="text-sm truncate min-w-0">{mediaFilename || 'File'}</span>
+          <span className="text-sm truncate min-w-0" title={mediaFilename}>{truncateFilename(mediaFilename || 'File')}</span>
           <Download className="h-4 w-4 flex-shrink-0 opacity-50" />
         </a>
       );
