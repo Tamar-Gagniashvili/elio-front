@@ -321,6 +321,55 @@ export type Database = {
           },
         ]
       }
+      conversation_objects: {
+        Row: {
+          conversation_id: string
+          id: string
+          linked_at: string
+          linked_by: string | null
+          object_id: string
+          tenant_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          linked_at?: string
+          linked_by?: string | null
+          object_id: string
+          tenant_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          linked_at?: string
+          linked_by?: string | null
+          object_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_objects_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_objects_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_objects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           assigned_to: string | null
@@ -481,6 +530,216 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_statuses: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          id: string
+          is_default: boolean
+          name: string
+          object_type_id: string
+          tenant_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          name: string
+          object_type_id: string
+          tenant_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          name?: string
+          object_type_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_statuses_object_type_id_fkey"
+            columns: ["object_type_id"]
+            isOneToOne: false
+            referencedRelation: "object_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "object_statuses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_type_fields: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_config: Json | null
+          field_type: Database["public"]["Enums"]["object_field_type"]
+          id: string
+          is_required: boolean
+          is_searchable: boolean
+          label: string
+          name: string
+          object_type_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          field_config?: Json | null
+          field_type?: Database["public"]["Enums"]["object_field_type"]
+          id?: string
+          is_required?: boolean
+          is_searchable?: boolean
+          label: string
+          name: string
+          object_type_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_config?: Json | null
+          field_type?: Database["public"]["Enums"]["object_field_type"]
+          id?: string
+          is_required?: boolean
+          is_searchable?: boolean
+          label?: string
+          name?: string
+          object_type_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_type_fields_object_type_id_fkey"
+            columns: ["object_type_id"]
+            isOneToOne: false
+            referencedRelation: "object_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "object_type_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_types: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          icon: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          name_plural: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          name_plural: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          name_plural?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objects: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_name: string
+          id: string
+          is_archived: boolean
+          metadata: Json | null
+          object_type_id: string
+          status_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          id?: string
+          is_archived?: boolean
+          metadata?: Json | null
+          object_type_id: string
+          status_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          id?: string
+          is_archived?: boolean
+          metadata?: Json | null
+          object_type_id?: string
+          status_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objects_object_type_id_fkey"
+            columns: ["object_type_id"]
+            isOneToOne: false
+            referencedRelation: "object_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objects_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "object_statuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -796,6 +1055,7 @@ export type Database = {
         | "email"
       conversation_status: "open" | "assigned" | "resolved" | "archived"
       message_sender_type: "contact" | "agent" | "system"
+      object_field_type: "text" | "number" | "price" | "select" | "relation"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -937,6 +1197,7 @@ export const Constants = {
       ],
       conversation_status: ["open", "assigned", "resolved", "archived"],
       message_sender_type: ["contact", "agent", "system"],
+      object_field_type: ["text", "number", "price", "select", "relation"],
     },
   },
 } as const
