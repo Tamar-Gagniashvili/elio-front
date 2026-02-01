@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +11,7 @@ import { ObjectType, ObjectTypeField, ObjectStatus } from '@/lib/objectTypes';
 import { Loader2 } from 'lucide-react';
 
 export default function Objects() {
+  const { t } = useTranslation();
   const { currentTenant, currentMembership } = useAuth();
   const [objectTypes, setObjectTypes] = useState<ObjectType[]>([]);
   const [fields, setFields] = useState<Record<string, ObjectTypeField[]>>({});
@@ -112,9 +114,9 @@ export default function Objects() {
     <AppLayout>
       <div className="flex flex-col h-full">
         <div className="border-b px-6 py-4">
-          <h1 className="text-2xl font-bold">Inventory</h1>
+          <h1 className="text-2xl font-bold">{t('objects.title')}</h1>
           <p className="text-muted-foreground text-sm">
-            Manage your business objects and inventory
+            {t('objects.subtitle')}
           </p>
         </div>
 
@@ -123,11 +125,11 @@ export default function Objects() {
             <TabsList className="h-12">
               {isAdmin && (
                 <TabsTrigger value="types" className="data-[state=active]:bg-background">
-                  Object Types
+                  {t('objects.objectTypes')}
                 </TabsTrigger>
               )}
               <TabsTrigger value="inventory" className="data-[state=active]:bg-background">
-                Inventory
+                {t('objects.title')}
               </TabsTrigger>
             </TabsList>
           </div>

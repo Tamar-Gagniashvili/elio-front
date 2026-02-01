@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function Rules() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTenant, currentMembership, dataLoaded } = useAuth();
   const [rules, setRules] = useState<RoutingRule[]>([]);
@@ -79,10 +81,10 @@ export default function Rules() {
       .eq('id', rule.id);
 
     if (error) {
-      toast({ title: 'Error updating rule', description: error.message, variant: 'destructive' });
+      toast({ title: t('errors.failedToUpdate'), description: error.message, variant: 'destructive' });
     } else {
       setRules(rules.map(r => r.id === rule.id ? { ...r, is_active: !r.is_active } : r));
-      toast({ title: rule.is_active ? 'Rule disabled' : 'Rule enabled' });
+      toast({ title: rule.is_active ? t('rules.ruleDisabled') : t('rules.ruleEnabled') });
     }
   };
 
@@ -110,10 +112,10 @@ export default function Rules() {
       .eq('id', ruleToDelete.id);
 
     if (error) {
-      toast({ title: 'Error deleting rule', description: error.message, variant: 'destructive' });
+      toast({ title: t('errors.failedToDelete'), description: error.message, variant: 'destructive' });
     } else {
       setRules(rules.filter(r => r.id !== ruleToDelete.id));
-      toast({ title: 'Rule deleted' });
+      toast({ title: t('success.deleted') });
     }
     setDeleteDialogOpen(false);
     setRuleToDelete(null);
@@ -127,7 +129,7 @@ export default function Rules() {
 
   const getConditionSummary = (conditions: ConditionGroup) => {
     if (!conditions.conditions || conditions.conditions.length === 0) {
-      return 'No conditions';
+      return t('rules.noConditions');
     }
     const count = conditions.conditions.length;
     return `${count} condition${count !== 1 ? 's' : ''} (${conditions.operator})`;
@@ -146,22 +148,22 @@ export default function Rules() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Routing Rules</h1>
+            <h1 className="text-2xl font-bold">{t('rules.title')}</h1>
             <p className="text-muted-foreground">
-              Automate how leads flow through your pipeline
+              {t('rules.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2">
             {rules.length > 0 && (
               <Button variant="outline" onClick={() => setSimulatorOpen(true)}>
                 <Play className="h-4 w-4 mr-2" />
-                Test Rules
+                {t('rules.testRules')}
               </Button>
             )}
             {isAdmin && (
               <Button onClick={handleCreate}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Rule
+                {t('rules.newRule')}
               </Button>
             )}
           </div>
@@ -177,14 +179,14 @@ export default function Rules() {
               <div className="p-3 rounded-full bg-muted mb-4">
                 <Zap className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No routing rules yet</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('rules.noRules')}</h3>
               <p className="text-muted-foreground text-center mb-4 max-w-md">
-                Create rules to automatically route leads based on channel, message content, language, and more.
+                {t('rules.noRulesDesc')}
               </p>
               {isAdmin && (
                 <Button onClick={handleCreate}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create your first rule
+                  {t('rules.createFirstRule')}
                 </Button>
               )}
             </CardContent>
@@ -209,10 +211,10 @@ export default function Rules() {
                         <GitBranch className="h-4 w-4 text-muted-foreground" />
                         {rule.name}
                         {!rule.is_active && (
-                          <Badge variant="secondary">Paused</Badge>
+                          <Badge variant="secondary">{t('rules.paused')}</Badge>
                         )}
                         {rule.actions.elseActions && rule.actions.elseActions.length > 0 && (
-                          <Badge variant="outline" className="text-xs">+ELSE</Badge>
+                          <Badge variant="outline" className="text-xs">+{t('rules.else').toUpperCase()}</Badge>
                         )}
                       </CardTitle>
                       {rule.description && (
@@ -265,14 +267,14 @@ export default function Rules() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Rule</AlertDialogTitle>
+              <AlertDialogTitle>{t('rules.deleteRule')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete "{ruleToDelete?.name}"? This action cannot be undone.
+                {t('rules.confirmDelete', { name: ruleToDelete?.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm}>{t('common.delete')}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

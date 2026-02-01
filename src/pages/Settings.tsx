@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { TenantMembership, Profile } from '@/lib/types';
@@ -26,6 +27,7 @@ const POSITION_LABELS: Record<string, string> = {
 };
 
 export default function Settings() {
+  const { t } = useTranslation();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
@@ -77,24 +79,24 @@ export default function Settings() {
     <AppLayout>
       <div className="p-6 max-w-4xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Settings</h1>
+          <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
           <p className="text-muted-foreground">
-            Manage your workspace and team settings
+            {t('settings.subtitle')}
           </p>
         </div>
 
         <Tabs defaultValue="team" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="team">Team</TabsTrigger>
-            <TabsTrigger value="workspace">Workspace</TabsTrigger>
+            <TabsTrigger value="team">{t('settings.team')}</TabsTrigger>
+            <TabsTrigger value="workspace">{t('settings.workspace')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="team" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Team Members</CardTitle>
+                <CardTitle>{t('settings.teamMembers')}</CardTitle>
                 <CardDescription>
-                  View who has access to this workspace
+                  {t('settings.viewTeamAccess')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -114,7 +116,7 @@ export default function Settings() {
                           <p className="font-medium">
                             {member.profile?.full_name || 'Unknown'}
                             {member.user_id === profile?.user_id && (
-                              <span className="text-muted-foreground ml-1">(you)</span>
+                              <span className="text-muted-foreground ml-1">({t('common.you')})</span>
                             )}
                           </p>
                           <p className="text-sm text-muted-foreground">
@@ -152,18 +154,18 @@ export default function Settings() {
           <TabsContent value="workspace" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Workspace Details</CardTitle>
+                <CardTitle>{t('settings.workspaceDetails')}</CardTitle>
                 <CardDescription>
-                  Basic information about your workspace
+                  {t('settings.workspaceDetailsDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Workspace Name</Label>
+                  <Label>{t('settings.workspaceName')}</Label>
                   <Input value={currentTenant?.name || ''} disabled />
                 </div>
                 <div className="space-y-2">
-                  <Label>Workspace ID</Label>
+                  <Label>{t('settings.workspaceId')}</Label>
                   <Input value={currentTenant?.slug || ''} disabled />
                 </div>
               </CardContent>

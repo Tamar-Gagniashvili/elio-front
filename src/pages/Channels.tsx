@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Channel, ChannelType, CHANNEL_CONFIG } from '@/lib/types';
@@ -13,6 +14,7 @@ import { Settings, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { ChannelConfigDialog } from '@/components/channels/ChannelConfigDialog';
 
 export default function Channels() {
+  const { t } = useTranslation();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [enabledChannelTypes, setEnabledChannelTypes] = useState<ChannelType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -151,8 +153,8 @@ export default function Channels() {
           )
         );
         toast({
-          title: 'Configuration saved',
-          description: `${CHANNEL_CONFIG[selectedChannel.channel_type].label} credentials have been encrypted and saved`,
+          title: t('channels.configSaved'),
+          description: t('channels.configSavedDesc', { channel: CHANNEL_CONFIG[selectedChannel.channel_type].label }),
         });
         setConfigDialogOpen(false);
       }
@@ -172,8 +174,8 @@ export default function Channels() {
     // Check if channel is configured before enabling
     if (!channel.is_active && !isChannelConfigured(channel)) {
       toast({
-        title: 'Configuration required',
-        description: 'Please configure the channel credentials first',
+        title: t('channels.configRequired'),
+        description: t('channels.configRequiredDesc'),
         variant: 'destructive',
       });
       handleConfigureChannel(channel.channel_type);
@@ -214,9 +216,9 @@ export default function Channels() {
     <AppLayout>
       <div className="p-6 max-w-4xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Channels</h1>
+          <h1 className="text-2xl font-bold">{t('channels.title')}</h1>
           <p className="text-muted-foreground">
-            Configure your messaging channels to receive customer conversations
+            {t('channels.subtitle')}
           </p>
         </div>
 
@@ -225,9 +227,9 @@ export default function Channels() {
             <Card>
               <CardContent className="py-12 text-center">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold mb-1">No channels enabled</h3>
+                <h3 className="font-semibold mb-1">{t('channels.noChannels')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Contact your administrator to enable messaging channels for your workspace
+                  {t('channels.noChannelsDesc')}
                 </p>
               </CardContent>
             </Card>
@@ -249,12 +251,12 @@ export default function Channels() {
                             {configured || isWebChat ? (
                               <Badge variant="secondary" className="text-primary">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                                {isWebChat ? 'Ready' : 'Configured'}
+                                {isWebChat ? t('common.ready') : t('common.configured')}
                               </Badge>
                             ) : (
                               <Badge variant="destructive">
                                 <AlertCircle className="h-3 w-3 mr-1" />
-                                Not configured
+                                {t('common.notConfigured')}
                               </Badge>
                             )}
                           </div>
@@ -267,7 +269,7 @@ export default function Channels() {
                       <div className="flex items-center gap-4">
                         {channel && (
                           <Badge variant={channel.is_active ? 'default' : 'secondary'}>
-                            {channel.is_active ? 'Active' : 'Inactive'}
+                            {channel.is_active ? t('common.active') : t('common.inactive')}
                           </Badge>
                         )}
                         {isAdmin && (
