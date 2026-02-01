@@ -3,10 +3,11 @@ import { Conversation, ChannelType, Profile, LeadStatus } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
+import { StatusIndicator } from '@/components/StatusIcon';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Link2 } from 'lucide-react';
-import { getStatusColorClasses } from '@/pages/Statuses';
+import { getColorHex } from '@/pages/Statuses';
 
 interface UnifiedConversationListProps {
   groupedConversations: GroupedConversation[];
@@ -212,23 +213,23 @@ export function UnifiedConversationList({
 
                 {/* Lead status icons - bottom right corner */}
                 {groupStatuses.length > 0 && (
-                  <div className="flex items-center gap-0.5">
-                    {groupStatuses.slice(0, 3).map((leadStatus) => {
-                      const colorClasses = getStatusColorClasses(leadStatus.color);
-                      return (
-                        <div
-                          key={leadStatus.id}
-                          title={leadStatus.name}
-                          className={cn(
-                            'h-2.5 w-2.5 rounded-full border',
-                            colorClasses.bg,
-                            colorClasses.border
-                          )}
+                  <div className="flex items-center gap-1">
+                    {groupStatuses.slice(0, 3).map((leadStatus) => (
+                      <div
+                        key={leadStatus.id}
+                        title={leadStatus.name}
+                        className="flex-shrink-0"
+                      >
+                        <StatusIndicator
+                          icon={leadStatus.icon}
+                          color={getColorHex(leadStatus.color)}
+                          colorDotClass="h-3 w-3"
+                          iconClass="h-3.5 w-3.5"
                         />
-                      );
-                    })}
+                      </div>
+                    ))}
                     {groupStatuses.length > 3 && (
-                      <span className="text-[9px] text-muted-foreground ml-0.5">
+                      <span className="text-[9px] text-muted-foreground">
                         +{groupStatuses.length - 3}
                       </span>
                     )}
