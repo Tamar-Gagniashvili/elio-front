@@ -5,17 +5,65 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Decrypt AES-GCM encrypted credentials
+async function decryptCredential(encryptedValue: string): Promise<string> {
+  // If not encrypted (no prefix), return as-is for backward compatibility
+  if (!encryptedValue.startsWith('enc:')) {
+    return encryptedValue
+  }
+  
+  const ciphertext = encryptedValue.slice(4) // Remove 'enc:' prefix
+  
+  const keyString = Deno.env.get('CHANNEL_ENCRYPTION_KEY')
+  if (!keyString) {
+    console.warn('CHANNEL_ENCRYPTION_KEY not set, returning value as-is')
+    return encryptedValue
+  }
+  
+  // Create key from secret
+  const encoder = new TextEncoder()
+  const keyData = encoder.encode(keyString)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', keyData)
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    hashBuffer,
+    { name: 'AES-GCM' },
+    false,
+    ['decrypt']
+  )
+  
+  // Decode base64
+  const combined = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0))
+  
+  // Extract IV and ciphertext
+  const iv = combined.slice(0, 12)
+  const encrypted = combined.slice(12)
+  
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encrypted
+  )
+  
+  const decoder = new TextDecoder()
+  return decoder.decode(decrypted)
+}
+
 // Verify Telegram webhook secret token
 async function verifyTelegramSignature(req: Request, channel: any): Promise<boolean> {
   // Telegram sends the secret token in X-Telegram-Bot-Api-Secret-Token header
   const secretToken = req.headers.get('X-Telegram-Bot-Api-Secret-Token')
-  const storedToken = (channel?.config as any)?.secret_token
+  let storedToken = (channel?.config as any)?.secret_token
   
   // If no secret token is configured, log warning but allow (backward compatibility)
   if (!storedToken) {
     console.warn('No secret_token configured for Telegram channel - signature verification skipped')
     return true
   }
+  
+  // Decrypt if encrypted
+  storedToken = await decryptCredential(storedToken)
   
   if (!secretToken) {
     console.error('Missing X-Telegram-Bot-Api-Secret-Token header')

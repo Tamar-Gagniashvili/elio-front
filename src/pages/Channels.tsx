@@ -102,32 +102,69 @@ export default function Channels() {
   };
 
   const handleSaveConfig = async (config: Record<string, string>) => {
-    if (!selectedChannel) return;
+    if (!selectedChannel || !currentTenant) return;
 
     setIsSaving(true);
-    const { error } = await supabase
-      .from('channels')
-      .update({ config })
-      .eq('id', selectedChannel.id);
+    
+    try {
+      // Encrypt sensitive credentials before saving
+      const { data: encryptResult, error: encryptError } = await supabase.functions.invoke(
+        'encrypt-channel-config',
+        {
+          body: {
+            action: 'encrypt',
+            channelType: selectedChannel.channel_type,
+            config,
+            tenantId: currentTenant.id,
+          },
+        }
+      );
 
-    if (error) {
+      if (encryptError) {
+        console.error('Encryption error:', encryptError);
+        toast({
+          title: 'Error',
+          description: 'Failed to encrypt credentials',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      const encryptedConfig = encryptResult?.config || config;
+
+      const { error } = await supabase
+        .from('channels')
+        .update({ config: encryptedConfig })
+        .eq('id', selectedChannel.id);
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to save configuration',
+          variant: 'destructive',
+        });
+      } else {
+        setChannels((prev) =>
+          prev.map((c) =>
+            c.id === selectedChannel.id ? { ...c, config: encryptedConfig } : c
+          )
+        );
+        toast({
+          title: 'Configuration saved',
+          description: `${CHANNEL_CONFIG[selectedChannel.channel_type].label} credentials have been encrypted and saved`,
+        });
+        setConfigDialogOpen(false);
+      }
+    } catch (err) {
+      console.error('Save error:', err);
       toast({
         title: 'Error',
         description: 'Failed to save configuration',
         variant: 'destructive',
       });
-    } else {
-      setChannels((prev) =>
-        prev.map((c) =>
-          c.id === selectedChannel.id ? { ...c, config } : c
-        )
-      );
-      toast({
-        title: 'Configuration saved',
-        description: `${CHANNEL_CONFIG[selectedChannel.channel_type].label} credentials have been saved`,
-      });
-      setConfigDialogOpen(false);
     }
+    
     setIsSaving(false);
   };
 

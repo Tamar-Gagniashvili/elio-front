@@ -5,6 +5,51 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Decrypt AES-GCM encrypted credentials
+async function decryptCredential(encryptedValue: string): Promise<string> {
+  // If not encrypted (no prefix), return as-is for backward compatibility
+  if (!encryptedValue.startsWith('enc:')) {
+    return encryptedValue
+  }
+  
+  const ciphertext = encryptedValue.slice(4) // Remove 'enc:' prefix
+  
+  const keyString = Deno.env.get('CHANNEL_ENCRYPTION_KEY')
+  if (!keyString) {
+    console.warn('CHANNEL_ENCRYPTION_KEY not set, returning value as-is')
+    return encryptedValue
+  }
+  
+  // Create key from secret
+  const encoder = new TextEncoder()
+  const keyData = encoder.encode(keyString)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', keyData)
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    hashBuffer,
+    { name: 'AES-GCM' },
+    false,
+    ['decrypt']
+  )
+  
+  // Decode base64
+  const combined = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0))
+  
+  // Extract IV and ciphertext
+  const iv = combined.slice(0, 12)
+  const encrypted = combined.slice(12)
+  
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encrypted
+  )
+  
+  const decoder = new TextDecoder()
+  return decoder.decode(decrypted)
+}
+
 // Verify Facebook webhook signature using HMAC SHA-256
 async function verifyFacebookSignature(req: Request, bodyText: string, appSecret: string | undefined): Promise<boolean> {
   const signature = req.headers.get('X-Hub-Signature-256')
@@ -14,6 +59,9 @@ async function verifyFacebookSignature(req: Request, bodyText: string, appSecret
     console.warn('No app_secret configured for Messenger channel - signature verification skipped')
     return true
   }
+  
+  // Decrypt if encrypted
+  const decryptedSecret = await decryptCredential(appSecret)
   
   if (!signature) {
     console.error('Missing X-Hub-Signature-256 header')
@@ -31,7 +79,7 @@ async function verifyFacebookSignature(req: Request, bodyText: string, appSecret
   
   // Calculate expected hash using Web Crypto API
   const encoder = new TextEncoder()
-  const keyData = encoder.encode(appSecret)
+  const keyData = encoder.encode(decryptedSecret)
   const messageData = encoder.encode(bodyText)
   
   const key = await crypto.subtle.importKey(
@@ -79,7 +127,11 @@ Deno.serve(async (req) => {
         .eq('channel_type', 'messenger')
         .single()
 
-      const storedToken = (channel?.config as any)?.verify_token
+      let storedToken = (channel?.config as any)?.verify_token
+      // Decrypt if encrypted
+      if (storedToken) {
+        storedToken = await decryptCredential(storedToken)
+      }
       if (token === storedToken) {
         console.log('Messenger webhook verified')
         return new Response(challenge, { status: 200 })

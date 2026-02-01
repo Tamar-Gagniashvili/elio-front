@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.upload-chat-attachment]
+verify_jwt = false
+
+[functions.encrypt-channel-config]
+verify_jwt = false
