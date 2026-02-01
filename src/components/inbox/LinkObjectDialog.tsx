@@ -540,14 +540,14 @@ export function LinkObjectDialog({
                     {/* Status filter */}
                     {statuses.length > 0 && (
                       <Select
-                        value={statusFilter}
-                        onValueChange={setStatusFilter}
+                        value={statusFilter || '__all__'}
+                        onValueChange={(val) => setStatusFilter(val === '__all__' ? '' : val)}
                       >
                         <SelectTrigger className="h-8 text-xs">
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent className="bg-popover border shadow-md">
-                          <SelectItem value="">All statuses</SelectItem>
+                          <SelectItem value="__all__">All statuses</SelectItem>
                           {statuses.map((status) => (
                             <SelectItem key={status.id} value={status.id}>
                               <div className="flex items-center gap-2">
@@ -565,15 +565,15 @@ export function LinkObjectDialog({
                       field.field_type === 'select' ? (
                         <Select
                           key={field.id}
-                          value={fieldFilters[field.name] || ''}
-                          onValueChange={(value) => setFieldFilters(prev => ({ ...prev, [field.name]: value }))}
+                          value={fieldFilters[field.name] || '__all__'}
+                          onValueChange={(value) => setFieldFilters(prev => ({ ...prev, [field.name]: value === '__all__' ? '' : value }))}
                         >
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder={field.label} />
                           </SelectTrigger>
                           <SelectContent className="bg-popover border shadow-md">
-                            <SelectItem value="">All {field.label}</SelectItem>
-                            {getSelectOptions(field.name).map((option) => (
+                            <SelectItem value="__all__">All {field.label}</SelectItem>
+                            {getSelectOptions(field.name).filter(opt => opt).map((option) => (
                               <SelectItem key={option} value={option}>
                                 {option}
                               </SelectItem>
