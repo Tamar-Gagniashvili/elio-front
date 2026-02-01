@@ -6,7 +6,300 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
-// Get next sales rep using round-robin
+// Types for routing rules
+interface RuleCondition {
+  field: string
+  operator: string
+  value: string | string[] | number
+}
+
+interface ConditionGroup {
+  operator: 'AND' | 'OR'
+  conditions: RuleCondition[]
+}
+
+interface RuleAction {
+  type: string
+  user_id?: string
+  user_ids?: string[]
+  status_id?: string
+  content?: string
+}
+
+interface ActionsGroup {
+  actions: RuleAction[]
+  elseActions?: RuleAction[]
+}
+
+interface RoutingRule {
+  id: string
+  tenant_id: string
+  name: string
+  priority: number
+  is_active: boolean
+  conditions: ConditionGroup
+  actions: ActionsGroup
+}
+
+interface RuleContext {
+  channel_type: string
+  message_content: string
+  message_language: string
+  contact_name: string
+  contact_email: string
+  contact_phone: string
+  hour: number
+  day_of_week: number
+}
+
+// Evaluate a single condition
+function evaluateCondition(condition: RuleCondition, context: RuleContext): boolean {
+  let fieldValue: string | number
+
+  switch (condition.field) {
+    case 'channel_type':
+      fieldValue = context.channel_type
+      break
+    case 'message_content':
+      fieldValue = context.message_content
+      break
+    case 'message_language':
+      fieldValue = context.message_language
+      break
+    case 'contact.name':
+      fieldValue = context.contact_name
+      break
+    case 'contact.email':
+      fieldValue = context.contact_email
+      break
+    case 'contact.phone':
+      fieldValue = context.contact_phone
+      break
+    case 'time.hour':
+      fieldValue = context.hour
+      break
+    case 'time.day_of_week':
+      fieldValue = context.day_of_week
+      break
+    default:
+      return false
+  }
+
+  const conditionValue = condition.value
+  const stringFieldValue = String(fieldValue).toLowerCase()
+  const stringConditionValue = String(conditionValue).toLowerCase()
+
+  switch (condition.operator) {
+    case 'equals':
+      return stringFieldValue === stringConditionValue
+    case 'not_equals':
+      return stringFieldValue !== stringConditionValue
+    case 'contains':
+      return stringFieldValue.includes(stringConditionValue)
+    case 'not_contains':
+      return !stringFieldValue.includes(stringConditionValue)
+    case 'starts_with':
+      return stringFieldValue.startsWith(stringConditionValue)
+    case 'ends_with':
+      return stringFieldValue.endsWith(stringConditionValue)
+    case 'greater_than':
+      return Number(fieldValue) > Number(conditionValue)
+    case 'less_than':
+      return Number(fieldValue) < Number(conditionValue)
+    case 'in':
+      if (Array.isArray(conditionValue)) {
+        return conditionValue.map(v => String(v).toLowerCase()).includes(stringFieldValue)
+      }
+      return false
+    case 'not_in':
+      if (Array.isArray(conditionValue)) {
+        return !conditionValue.map(v => String(v).toLowerCase()).includes(stringFieldValue)
+      }
+      return true
+    default:
+      return false
+  }
+}
+
+// Evaluate a condition group
+function evaluateConditionGroup(conditions: ConditionGroup, context: RuleContext): boolean {
+  if (!conditions.conditions || conditions.conditions.length === 0) {
+    return true
+  }
+
+  if (conditions.operator === 'AND') {
+    return conditions.conditions.every(c => evaluateCondition(c, context))
+  } else {
+    return conditions.conditions.some(c => evaluateCondition(c, context))
+  }
+}
+
+// Execute rule actions
+async function executeActions(
+  supabase: any,
+  actions: RuleAction[],
+  conversationId: string,
+  contactId: string,
+  tenantId: string,
+  ruleId: string
+): Promise<{ assignedTo?: string; statusId?: string; autoReplyContent?: string }> {
+  const result: { assignedTo?: string; statusId?: string; autoReplyContent?: string } = {}
+
+  for (const action of actions) {
+    console.log(`Executing action: ${action.type}`, action)
+
+    switch (action.type) {
+      case 'assign_to_user':
+        if (action.user_id) {
+          result.assignedTo = action.user_id
+        }
+        break
+
+      case 'assign_to_pool':
+        if (action.user_ids && action.user_ids.length > 0) {
+          // Get distribution record for round-robin within pool
+          let { data: distribution } = await supabase
+            .from('chat_distribution')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .single()
+
+          if (!distribution) {
+            await supabase
+              .from('chat_distribution')
+              .insert({ tenant_id: tenantId, assignment_index: 0 })
+            distribution = { assignment_index: 0 }
+          }
+
+          const poolIndex = distribution.assignment_index % action.user_ids.length
+          result.assignedTo = action.user_ids[poolIndex]
+
+          await supabase
+            .from('chat_distribution')
+            .update({
+              assignment_index: distribution.assignment_index + 1,
+              last_assigned_user_id: result.assignedTo,
+              updated_at: new Date().toISOString()
+            })
+            .eq('tenant_id', tenantId)
+        }
+        break
+
+      case 'apply_status':
+        if (action.status_id) {
+          result.statusId = action.status_id
+          // Apply status to contact
+          await supabase
+            .from('contact_statuses')
+            .upsert({
+              tenant_id: tenantId,
+              contact_id: contactId,
+              status_id: action.status_id,
+              created_at: new Date().toISOString()
+            }, {
+              onConflict: 'contact_id,status_id',
+              ignoreDuplicates: true
+            })
+        }
+        break
+
+      case 'send_message':
+        if (action.content) {
+          result.autoReplyContent = action.content
+          // Insert auto-reply message
+          await supabase
+            .from('messages')
+            .insert({
+              conversation_id: conversationId,
+              sender_type: 'system',
+              content: action.content,
+              metadata: { auto_reply: true, rule_id: ruleId }
+            })
+        }
+        break
+    }
+
+    // Log the action
+    await supabase
+      .from('rule_action_logs')
+      .insert({
+        tenant_id: tenantId,
+        rule_id: ruleId,
+        conversation_id: conversationId,
+        contact_id: contactId,
+        action_type: action.type,
+        action_details: action
+      })
+  }
+
+  return result
+}
+
+// Evaluate and execute routing rules
+async function evaluateRoutingRules(
+  supabase: any,
+  tenantId: string,
+  conversationId: string,
+  contactId: string,
+  context: RuleContext
+): Promise<{ assignedTo?: string }> {
+  console.log('Evaluating routing rules with context:', context)
+
+  // Fetch active rules ordered by priority
+  const { data: rules, error } = await supabase
+    .from('routing_rules')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .order('priority', { ascending: true })
+
+  if (error || !rules || rules.length === 0) {
+    console.log('No active routing rules found')
+    return {}
+  }
+
+  let finalAssignedTo: string | undefined
+
+  for (const ruleData of rules) {
+    const rule: RoutingRule = {
+      ...ruleData,
+      conditions: ruleData.conditions as ConditionGroup,
+      actions: ruleData.actions as ActionsGroup
+    }
+
+    console.log(`Evaluating rule: ${rule.name}`)
+
+    const conditionsPassed = evaluateConditionGroup(rule.conditions, context)
+
+    if (conditionsPassed) {
+      console.log(`Rule "${rule.name}" matched - executing THEN actions`)
+      const result = await executeActions(
+        supabase,
+        rule.actions.actions || [],
+        conversationId,
+        contactId,
+        tenantId,
+        rule.id
+      )
+      if (result.assignedTo) finalAssignedTo = result.assignedTo
+    } else if (rule.actions.elseActions && rule.actions.elseActions.length > 0) {
+      console.log(`Rule "${rule.name}" not matched - executing ELSE actions`)
+      const result = await executeActions(
+        supabase,
+        rule.actions.elseActions,
+        conversationId,
+        contactId,
+        tenantId,
+        rule.id
+      )
+      if (result.assignedTo) finalAssignedTo = result.assignedTo
+    }
+  }
+
+  return { assignedTo: finalAssignedTo }
+}
+
+// Get next sales rep using round-robin (fallback when no rules match)
 async function getNextSalesRep(supabase: any, tenantId: string) {
   const { data: salesReps, error: salesError } = await supabase
     .from('tenant_memberships')
@@ -242,8 +535,31 @@ Deno.serve(async (req) => {
       let conversation = existingConversations?.[0] || null
       console.log('Existing conversation:', conversation?.id || 'none')
 
+      // Build context for rule evaluation
+      const now = new Date()
+      const ruleContext: RuleContext = {
+        channel_type: 'web_chat',
+        message_content: message || '',
+        message_language: 'en', // Default, could be detected
+        contact_name: name || contact.name || '',
+        contact_email: email || contact.email || '',
+        contact_phone: contact.phone || '',
+        hour: now.getHours(),
+        day_of_week: now.getDay()
+      }
+
       if (!conversation) {
-        const assignedTo = await getNextSalesRep(supabase, tenantId)
+        // Evaluate routing rules first
+        const ruleResult = await evaluateRoutingRules(
+          supabase,
+          tenantId,
+          '', // Conversation not created yet, will update after
+          contact.id,
+          ruleContext
+        )
+
+        // Use rule-assigned user or fall back to round-robin
+        const assignedTo = ruleResult.assignedTo || await getNextSalesRep(supabase, tenantId)
 
         const { data: newConv, error: convError } = await supabase
           .from('conversations')
@@ -262,6 +578,24 @@ Deno.serve(async (req) => {
 
         if (convError) throw convError
         conversation = newConv
+
+        // Re-run rules now with the conversation ID for actions that need it
+        await evaluateRoutingRules(
+          supabase,
+          tenantId,
+          conversation.id,
+          contact.id,
+          ruleContext
+        )
+      } else {
+        // Existing conversation - still evaluate rules for auto-replies
+        await evaluateRoutingRules(
+          supabase,
+          tenantId,
+          conversation.id,
+          contact.id,
+          ruleContext
+        )
       }
 
       // Create initial message if provided
@@ -312,7 +646,7 @@ Deno.serve(async (req) => {
 
       const { data: conversation } = await supabase
         .from('conversations')
-        .select('*')
+        .select('*, contacts!inner(id, name, email, phone)')
         .eq('id', conversation_id)
         .single()
 
@@ -322,6 +656,28 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       }
+
+      // Build context for rule evaluation on each message
+      const now = new Date()
+      const ruleContext: RuleContext = {
+        channel_type: 'web_chat',
+        message_content: message,
+        message_language: 'en',
+        contact_name: conversation.contacts?.name || '',
+        contact_email: conversation.contacts?.email || '',
+        contact_phone: conversation.contacts?.phone || '',
+        hour: now.getHours(),
+        day_of_week: now.getDay()
+      }
+
+      // Evaluate rules for auto-replies
+      await evaluateRoutingRules(
+        supabase,
+        tenantId,
+        conversation_id,
+        conversation.contact_id,
+        ruleContext
+      )
 
       const messageMetadata: Record<string, unknown> = { source: 'web_widget' }
       if (media_url) {
