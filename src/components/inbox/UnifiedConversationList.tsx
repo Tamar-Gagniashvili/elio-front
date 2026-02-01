@@ -175,16 +175,18 @@ export function UnifiedConversationList({
                   </Badge>
                 ) : null}
 
-                {/* Status badge */}
-                <Badge 
-                  variant={status === 'open' ? 'default' : 'secondary'}
-                  className={cn(
-                    'h-5 text-[10px]',
-                    status === 'open' && 'bg-success text-success-foreground'
-                  )}
-                >
-                  {status}
-                </Badge>
+                {/* Status badge - only show for admins */}
+                {isAdmin && (
+                  <Badge 
+                    variant={status === 'open' ? 'default' : 'secondary'}
+                    className={cn(
+                      'h-5 text-[10px]',
+                      status === 'open' && 'bg-success text-success-foreground'
+                    )}
+                  >
+                    {status}
+                  </Badge>
+                )}
               </div>
             </div>
           </button>
