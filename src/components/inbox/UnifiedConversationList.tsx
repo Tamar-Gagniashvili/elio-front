@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import { Conversation, ChannelType, Profile, LeadStatus } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
@@ -30,6 +31,8 @@ export function UnifiedConversationList({
   profiles = {},
   statusesByContact = {},
 }: UnifiedConversationListProps) {
+  const { t } = useTranslation();
+  
   if (groupedConversations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-12 px-4 text-center">
@@ -38,9 +41,9 @@ export function UnifiedConversationList({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </div>
-        <h3 className="font-semibold text-foreground mb-1">No conversations yet</h3>
+        <h3 className="font-semibold text-foreground mb-1">{t('inbox.noConversations')}</h3>
         <p className="text-sm text-muted-foreground">
-          When customers message you, they'll appear here
+          {t('inbox.noConversationsDesc')}
         </p>
       </div>
     );
@@ -146,7 +149,7 @@ export function UnifiedConversationList({
               </div>
 
               <p className="text-sm text-muted-foreground truncate">
-                {latestConversation?.last_message_preview || 'No messages yet'}
+                {latestConversation?.last_message_preview || t('inbox.noMessagesYet')}
               </p>
 
               {/* Channel badges row with per-channel unread counts */}
@@ -194,7 +197,7 @@ export function UnifiedConversationList({
                     variant="outline"
                     className="h-5 text-[10px]"
                   >
-                    unassigned
+                    {t('inbox.filters.unassigned').toLowerCase()}
                   </Badge>
                 ) : null}
 
@@ -207,7 +210,7 @@ export function UnifiedConversationList({
                       status === 'open' && 'bg-success text-success-foreground'
                     )}
                   >
-                    {status}
+                    {t(`common.${status}`)}
                   </Badge>
                 )}
 

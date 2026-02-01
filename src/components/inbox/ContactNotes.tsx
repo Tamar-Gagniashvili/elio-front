@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLinkedContacts } from '@/hooks/useLinkedContacts';
@@ -39,14 +40,14 @@ interface ContactNotesProps {
   tenantId: string;
 }
 
-const REMINDER_OPTIONS = [
-  { value: 'none', label: 'No reminder' },
-  { value: '5', label: 'In 5 minutes' },
-  { value: '10', label: 'In 10 minutes' },
-  { value: '30', label: 'In 30 minutes' },
-  { value: '60', label: 'In 1 hour' },
-  { value: '1440', label: 'In 1 day' },
-  { value: 'custom', label: 'Custom time...' },
+const REMINDER_OPTIONS_KEYS = [
+  { value: 'none', key: 'notes.reminder.none' },
+  { value: '5', key: 'notes.reminder.5min' },
+  { value: '10', key: 'notes.reminder.10min' },
+  { value: '30', key: 'notes.reminder.30min' },
+  { value: '60', key: 'notes.reminder.1hour' },
+  { value: '1440', key: 'notes.reminder.1day' },
+  { value: 'custom', key: 'notes.reminder.custom' },
 ];
 
 const NOTE_COLORS = [
@@ -63,6 +64,7 @@ const getColorClasses = (color: string) => {
 };
 
 export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
+  const { t } = useTranslation();
   const { linkedContactIds, isLinked, isLoading: isLoadingLinks } = useLinkedContacts(contactId, tenantId);
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -213,7 +215,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
         <div className="flex items-center gap-2">
           <StickyNote className="h-4 w-4 text-muted-foreground" />
           <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-            Notes
+            {t('common.notes')}
           </h4>
           {isLinked && (
             <span title="Shared across linked contacts">
@@ -238,13 +240,13 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
           <Textarea
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Write your note..."
+            placeholder={t('notes.whatOnMind')}
             className="min-h-[80px] resize-none bg-transparent border-none focus-visible:ring-0 placeholder:text-yellow-600/50"
           />
           
           {/* Color picker */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Color:</span>
+            <span className="text-xs text-muted-foreground">{t('notes.color')}:</span>
             <div className="flex gap-1">
               {NOTE_COLORS.map((color) => (
                 <button
@@ -265,12 +267,12 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
             <Bell className="h-4 w-4 text-muted-foreground" />
             <Select value={reminderOption} onValueChange={setReminderOption}>
               <SelectTrigger className="flex-1 h-8 bg-background/50">
-                <SelectValue placeholder="Set reminder" />
+                <SelectValue placeholder={t('notes.setReminder')} />
               </SelectTrigger>
               <SelectContent>
-                {REMINDER_OPTIONS.map(option => (
+                {REMINDER_OPTIONS_KEYS.map(option => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.key)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -340,14 +342,14 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                 setSelectedColor('yellow');
               }}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               size="sm"
               onClick={handleAddNote}
               disabled={!newNote.trim() || isSaving}
             >
-              Pin it!
+              {t('notes.pinIt')}
             </Button>
           </div>
         </div>
@@ -356,7 +358,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
       <div className="space-y-3">
         {notes.length === 0 && !isAdding ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No notes yet
+            {t('notes.noNotes')}
           </p>
         ) : (
           notes.map((note) => {
@@ -392,14 +394,14 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                     <Textarea
                       value={newNote}
                       onChange={(e) => setNewNote(e.target.value)}
-                      placeholder="Write your note..."
+                      placeholder={t('notes.whatOnMind')}
                       className="min-h-[80px] resize-none bg-transparent border-none focus-visible:ring-0 text-sm"
                       autoFocus
                     />
                     
                     {/* Color picker */}
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Color:</span>
+                      <span className="text-xs text-muted-foreground">{t('notes.color')}:</span>
                       <div className="flex gap-1">
                         {NOTE_COLORS.map((color) => (
                           <button
@@ -421,12 +423,12 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                       <Bell className="h-3 w-3 text-muted-foreground" />
                       <Select value={reminderOption} onValueChange={setReminderOption}>
                         <SelectTrigger className="flex-1 h-7 text-xs bg-background/50">
-                          <SelectValue placeholder="Set reminder" />
+                          <SelectValue placeholder={t('notes.setReminder')} />
                         </SelectTrigger>
                         <SelectContent>
-                          {REMINDER_OPTIONS.map(option => (
+                          {REMINDER_OPTIONS_KEYS.map(option => (
                             <SelectItem key={option.value} value={option.value}>
-                              {option.label}
+                              {t(option.key)}
                             </SelectItem>
                           ))}
                         </SelectContent>

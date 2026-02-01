@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { LeadStatus, Conversation } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
@@ -40,6 +41,7 @@ export function InboxSubNav({
   userId,
   unrepliedConversationIds
 }: InboxSubNavProps) {
+  const { t } = useTranslation();
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [collapsed, setCollapsed] = useState(() => {
@@ -279,11 +281,11 @@ export function InboxSubNav({
       <ScrollArea className="flex-1">
         <div className="flex flex-col gap-1 p-2">
           {/* Core filters */}
-          <NavButton filter={{ type: 'all' }} icon={Inbox} label="All" count={allCount} />
-          <NavButton filter={{ type: 'mine' }} icon={User} label="Mine" count={mineCount} />
-          <NavButton filter={{ type: 'unassigned' }} icon={UserX} label="Unassigned" count={unassignedCount} />
-          <NavButton filter={{ type: 'unreplied' }} icon={MessageCircle} label="Unreplied" count={unrepliedCount} />
-          <NavButton filter={{ type: 'archived' }} icon={Archive} label="Archived" count={archivedCount} />
+          <NavButton filter={{ type: 'all' }} icon={Inbox} label={t('inbox.filters.all')} count={allCount} />
+          <NavButton filter={{ type: 'mine' }} icon={User} label={t('inbox.filters.mine')} count={mineCount} />
+          <NavButton filter={{ type: 'unassigned' }} icon={UserX} label={t('inbox.filters.unassigned')} count={unassignedCount} />
+          <NavButton filter={{ type: 'unreplied' }} icon={MessageCircle} label={t('inbox.filters.unreplied')} count={unrepliedCount} />
+          <NavButton filter={{ type: 'archived' }} icon={Archive} label={t('inbox.filters.archived')} count={archivedCount} />
           
           {/* Newly Assigned section */}
           {newlyAssignedCount > 0 && (
@@ -292,7 +294,7 @@ export function InboxSubNav({
               <NavButton 
                 filter={{ type: 'newly_assigned' }} 
                 icon={UserPlus} 
-                label="Newly Assigned" 
+                label={t('inbox.filters.newlyAssigned')} 
                 count={newlyAssignedCount} 
               />
             </>
