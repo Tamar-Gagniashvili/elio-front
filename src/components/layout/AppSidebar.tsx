@@ -16,6 +16,7 @@ import {
   Zap,
   PanelLeftClose,
   PanelLeft,
+  Package,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -34,6 +35,7 @@ import {
 const navItems = [
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/contacts', label: 'Contacts', icon: Users },
+  { href: '/objects', label: 'Inventory', icon: Package },
   { href: '/notes', label: 'Notes', icon: StickyNote },
   { href: '/statuses', label: 'Statuses', icon: Tag },
   { href: '/rules', label: 'Rules', icon: Zap, adminOnly: true },
