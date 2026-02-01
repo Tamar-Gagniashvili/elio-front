@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation, Message, Contact, ConversationStatus, ChannelType, Profile } from '@/lib/types';
 import { useUnifiedContacts, GroupedConversation } from '@/hooks/useUnifiedContacts';
+import { useContactStatuses } from '@/hooks/useContactStatuses';
 import { AppLayout, useSidebarState } from '@/components/layout/AppLayout';
 import { UnifiedConversationList } from '@/components/inbox/UnifiedConversationList';
 import { ChatView, ContactDetails } from '@/components/inbox/ChatView';
@@ -43,6 +44,16 @@ function InboxContent() {
     conversations,
     tenantId: currentTenant?.id,
   });
+
+  // Get all contact IDs from conversations for status fetching
+  const allContactIds = conversations.map(c => c.contact_id).filter(Boolean);
+  
+  // Use contact statuses hook with real-time updates
+  const { statusesByContact, refresh: refreshStatuses } = useContactStatuses(
+    allContactIds,
+    currentTenant?.id,
+    allContactIds.length > 0
+  );
 
   // Fetch team member profiles for admin view and reassigner info
   useEffect(() => {
@@ -579,6 +590,7 @@ function InboxContent() {
             onSelectChannel={handleSelectChannel}
             isAdmin={isAdmin}
             profiles={profiles}
+            statusesByContact={statusesByContact}
           />
         </div>
       </div>

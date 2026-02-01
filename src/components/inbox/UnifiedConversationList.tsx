@@ -1,11 +1,12 @@
 import { formatDistanceToNow } from 'date-fns';
-import { Conversation, ChannelType, Profile } from '@/lib/types';
+import { Conversation, ChannelType, Profile, LeadStatus } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Link2 } from 'lucide-react';
+import { getStatusColorClasses } from '@/pages/Statuses';
 
 interface UnifiedConversationListProps {
   groupedConversations: GroupedConversation[];
@@ -15,6 +16,7 @@ interface UnifiedConversationListProps {
   onSelectChannel?: (group: GroupedConversation, channelType: ChannelType) => void;
   isAdmin?: boolean;
   profiles?: Record<string, Profile>;
+  statusesByContact?: Record<string, LeadStatus[]>;
 }
 
 export function UnifiedConversationList({ 
@@ -25,6 +27,7 @@ export function UnifiedConversationList({
   onSelectChannel,
   isAdmin = false,
   profiles = {},
+  statusesByContact = {},
 }: UnifiedConversationListProps) {
   if (groupedConversations.length === 0) {
     return (
@@ -76,6 +79,24 @@ export function UnifiedConversationList({
     return null;
   };
 
+  // Get combined statuses for all contacts in a group
+  const getGroupStatuses = (group: GroupedConversation): LeadStatus[] => {
+    const uniqueStatuses: LeadStatus[] = [];
+    const seenIds = new Set<string>();
+    
+    for (const contact of group.contacts) {
+      const contactStatuses = statusesByContact[contact.id] || [];
+      for (const status of contactStatuses) {
+        if (!seenIds.has(status.id)) {
+          seenIds.add(status.id);
+          uniqueStatuses.push(status);
+        }
+      }
+    }
+    
+    return uniqueStatuses;
+  };
+
   return (
     <div className="flex flex-col divide-y divide-border">
       {groupedConversations.map((group) => {
@@ -86,6 +107,7 @@ export function UnifiedConversationList({
         const status = getGroupStatus(group);
         const primaryContact = group.contacts[0];
         const assigneeName = isAdmin ? getAssigneeName(group) : null;
+        const groupStatuses = getGroupStatuses(group);
 
         return (
           <button
@@ -158,6 +180,29 @@ export function UnifiedConversationList({
                     </div>
                   );
                 })}
+
+                {/* Lead status badges - show next to channel icons */}
+                {groupStatuses.slice(0, 2).map((leadStatus) => {
+                  const colorClasses = getStatusColorClasses(leadStatus.color);
+                  return (
+                    <Badge
+                      key={leadStatus.id}
+                      className={cn(
+                        'h-5 text-[10px] border',
+                        colorClasses.bg,
+                        colorClasses.text,
+                        colorClasses.border
+                      )}
+                    >
+                      {leadStatus.name}
+                    </Badge>
+                  );
+                })}
+                {groupStatuses.length > 2 && (
+                  <span className="text-[10px] text-muted-foreground">
+                    +{groupStatuses.length - 2}
+                  </span>
+                )}
 
                 <div className="flex-1" />
                 
