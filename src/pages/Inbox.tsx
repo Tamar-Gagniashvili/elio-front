@@ -554,8 +554,8 @@ function InboxContent() {
 
   return (
     <div className="flex h-full">
-      {/* Sub Navigation - shown only when sidebar is collapsed */}
-      {sidebarCollapsed && (
+      {/* Sub Navigation - always mounted for realtime, hidden when sidebar expanded */}
+      <div className={sidebarCollapsed ? '' : 'hidden'}>
         <InboxSubNav
           tenantId={currentTenant?.id}
           currentFilter={currentFilter}
@@ -564,7 +564,7 @@ function InboxContent() {
           userId={user?.id}
           unrepliedConversationIds={unrepliedConversationIds}
         />
-      )}
+      </div>
 
       {/* Conversation List Panel */}
       <div className="w-80 border-r flex flex-col bg-card">
