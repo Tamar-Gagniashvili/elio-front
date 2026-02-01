@@ -132,20 +132,23 @@ export function ChatView({
             <h2 className="font-semibold text-foreground">
               {conversation.contact?.name || 'Unknown Contact'}
             </h2>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge 
-                variant={conversation.status === 'open' ? 'default' : 'secondary'}
-                className={cn(
-                  'h-5 text-[10px]',
-                  conversation.status === 'open' && 'bg-success text-success-foreground'
+            {/* Only show status and assignment info for admins */}
+            {isAdmin && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Badge 
+                  variant={conversation.status === 'open' ? 'default' : 'secondary'}
+                  className={cn(
+                    'h-5 text-[10px]',
+                    conversation.status === 'open' && 'bg-success text-success-foreground'
+                  )}
+                >
+                  {conversation.status}
+                </Badge>
+                {conversation.assigned_to && (
+                  <span>Assigned to {conversation.assigned_profile?.full_name || 'Agent'}</span>
                 )}
-              >
-                {conversation.status}
-              </Badge>
-              {conversation.assigned_to && (
-                <span>Assigned to {conversation.assigned_profile?.full_name || 'Agent'}</span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
