@@ -35,6 +35,7 @@ interface ObjectTypeEditorProps {
   objectType: ObjectType | null;
   existingFields: ObjectTypeField[];
   existingStatuses: ObjectStatus[];
+  allObjectTypes: ObjectType[];
   onSave: () => void;
 }
 
@@ -44,6 +45,7 @@ export function ObjectTypeEditor({
   objectType,
   existingFields,
   existingStatuses,
+  allObjectTypes,
   onSave,
 }: ObjectTypeEditorProps) {
   const { currentTenant, user } = useAuth();
@@ -353,7 +355,12 @@ export function ObjectTypeEditor({
               </TabsContent>
 
               <TabsContent value="fields" className="m-0">
-                <FieldBuilder fields={fields} onChange={setFields} />
+                <FieldBuilder
+                  fields={fields}
+                  onChange={setFields}
+                  objectTypes={allObjectTypes}
+                  currentTypeId={objectType?.id}
+                />
               </TabsContent>
 
               <TabsContent value="statuses" className="m-0">

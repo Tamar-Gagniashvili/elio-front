@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ObjectTypeField, ObjectFieldType, FIELD_TYPES, CURRENCIES } from '@/lib/objectTypes';
+import { ObjectType, ObjectTypeField, ObjectFieldType, FIELD_TYPES, CURRENCIES } from '@/lib/objectTypes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,9 +27,11 @@ import { Badge } from '@/components/ui/badge';
 interface FieldBuilderProps {
   fields: Partial<ObjectTypeField>[];
   onChange: (fields: Partial<ObjectTypeField>[]) => void;
+  objectTypes?: ObjectType[];
+  currentTypeId?: string;
 }
 
-export function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
+export function FieldBuilder({ fields, onChange, objectTypes = [], currentTypeId }: FieldBuilderProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const addField = () => {
@@ -74,9 +76,16 @@ export function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
     onChange(newFields);
   };
 
-  const getFieldTypeLabel = (type: ObjectFieldType) => {
+  const getFieldTypeLabel = (type: ObjectFieldType, config?: ObjectTypeField['field_config']) => {
+    if (type === 'object' && config?.related_object_type_id) {
+      const relatedType = objectTypes.find((t) => t.id === config.related_object_type_id);
+      return relatedType ? `→ ${relatedType.name}` : 'Object';
+    }
     return FIELD_TYPES.find((t) => t.value === type)?.label || type;
   };
+
+  // Filter out current type from available object types to prevent self-reference
+  const availableObjectTypes = objectTypes.filter((t) => t.id !== currentTypeId);
 
   return (
     <div className="space-y-3">
@@ -123,7 +132,7 @@ export function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
                           {field.label || 'Untitled Field'}
                         </span>
                         <Badge variant="secondary" className="text-xs">
-                          {getFieldTypeLabel(field.field_type || 'text')}
+                          {getFieldTypeLabel(field.field_type || 'text', field.field_config)}
                         </Badge>
                         {field.is_required && (
                           <Badge variant="outline" className="text-xs">
@@ -284,6 +293,40 @@ export function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
                             }
                           />
                         </div>
+                      </div>
+                    )}
+
+                    {field.field_type === 'object' && (
+                      <div className="space-y-2">
+                        <Label>Related Object Type</Label>
+                        {availableObjectTypes.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            Create other object types first to link to them.
+                          </p>
+                        ) : (
+                          <Select
+                            value={field.field_config?.related_object_type_id || ''}
+                            onValueChange={(value) =>
+                              updateField(index, {
+                                field_config: {
+                                  ...field.field_config,
+                                  related_object_type_id: value,
+                                },
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select object type..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableObjectTypes.map((type) => (
+                                <SelectItem key={type.id} value={type.id}>
+                                  {type.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     )}
 

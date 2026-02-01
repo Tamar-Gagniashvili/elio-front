@@ -57,6 +57,7 @@ export function ObjectsTable({
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingObject, setEditingObject] = useState<BusinessObject | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [relatedObjectsMap, setRelatedObjectsMap] = useState<Record<string, string>>({});
 
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
   const selectedType = objectTypes.find((t) => t.id === selectedTypeId);
@@ -92,12 +93,39 @@ export function ObjectsTable({
 
       if (error) throw error;
 
-      setObjects(
-        (data || []).map((obj: any) => ({
-          ...obj,
-          status: obj.object_statuses,
-        }))
-      );
+      const fetchedObjects = (data || []).map((obj: any) => ({
+        ...obj,
+        status: obj.object_statuses,
+      }));
+      
+      setObjects(fetchedObjects);
+
+      // Fetch related object names for 'object' type fields
+      const objectFields = typeFields.filter((f) => f.field_type === 'object');
+      if (objectFields.length > 0 && fetchedObjects.length > 0) {
+        const relatedIds = new Set<string>();
+        fetchedObjects.forEach((obj: BusinessObject) => {
+          objectFields.forEach((field) => {
+            const id = obj.metadata?.[field.name];
+            if (id && typeof id === 'string') {
+              relatedIds.add(id);
+            }
+          });
+        });
+
+        if (relatedIds.size > 0) {
+          const { data: relatedData } = await supabase
+            .from('objects')
+            .select('id, display_name')
+            .in('id', Array.from(relatedIds));
+
+          const nameMap: Record<string, string> = {};
+          (relatedData || []).forEach((obj: any) => {
+            nameMap[obj.id] = obj.display_name;
+          });
+          setRelatedObjectsMap(nameMap);
+        }
+      }
     } catch (error) {
       console.error('Error fetching objects:', error);
     } finally {
@@ -181,6 +209,11 @@ export function ObjectsTable({
         style: 'currency',
         currency,
       }).format(Number(value));
+    }
+
+    // Resolve object relations to display names
+    if (field.field_type === 'object' && typeof value === 'string') {
+      return relatedObjectsMap[value] || value.slice(0, 8) + '...';
     }
 
     return String(value);

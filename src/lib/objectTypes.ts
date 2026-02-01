@@ -1,6 +1,6 @@
 // Object Types system - TypeScript interfaces and constants
 
-export type ObjectFieldType = 'text' | 'number' | 'price' | 'select' | 'relation';
+export type ObjectFieldType = 'text' | 'number' | 'price' | 'select' | 'relation' | 'object';
 
 export interface ObjectType {
   id: string;
@@ -39,8 +39,10 @@ export interface FieldConfig {
   currency?: string;
   // For select fields
   options?: string[];
-  // For relation fields
+  // For relation fields (contact)
   relation_type?: 'contact';
+  // For object relation fields
+  related_object_type_id?: string;
   // Index signature for JSON compatibility
   [key: string]: unknown;
 }
@@ -114,6 +116,7 @@ export const FIELD_TYPES: { value: ObjectFieldType; label: string; description: 
   { value: 'price', label: 'Price', description: 'Monetary value with currency' },
   { value: 'select', label: 'Select', description: 'Dropdown with predefined options' },
   { value: 'relation', label: 'Contact', description: 'Link to a contact' },
+  { value: 'object', label: 'Object', description: 'Link to another object type' },
 ];
 
 // Common currencies
