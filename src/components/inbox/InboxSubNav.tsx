@@ -98,6 +98,28 @@ export function InboxSubNav({
     };
 
     fetchStatusCounts();
+
+    // Subscribe to real-time changes for contact_statuses
+    const channel = supabase
+      .channel('subnav-contact-statuses')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_statuses',
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        () => {
+          // Refetch counts when statuses change
+          fetchStatusCounts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [tenantId, statuses, conversations]);
 
   // Calculate counts for core filters (exclude archived from non-archived filters)
