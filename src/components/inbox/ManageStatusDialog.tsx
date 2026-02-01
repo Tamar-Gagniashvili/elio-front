@@ -4,14 +4,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLinkedContacts } from '@/hooks/useLinkedContacts';
 import { Contact } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getStatusColorClasses } from '@/pages/Statuses';
+import { StatusIndicator } from '@/components/StatusIcon';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, Tag, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,6 +19,7 @@ interface LeadStatus {
   id: string;
   name: string;
   color: string;
+  icon?: string | null;
 }
 
 interface ManageStatusDialogProps {
@@ -61,7 +61,7 @@ export function ManageStatusDialog({
     // Fetch available statuses
     const { data: statusesData } = await supabase
       .from('lead_statuses')
-      .select('id, name, color')
+      .select('id, name, color, icon')
       .eq('tenant_id', currentTenant.id)
       .order('created_at');
 
@@ -175,7 +175,6 @@ export function ManageStatusDialog({
           ) : (
             <div className="space-y-2">
               {availableStatuses.map((status) => {
-                const colorClasses = getStatusColorClasses(status.color);
                 const isAssigned = assignedStatusIds.has(status.id);
 
                 return (
@@ -185,18 +184,25 @@ export function ManageStatusDialog({
                     disabled={isSaving}
                     className={cn(
                       'w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all',
-                      colorClasses.bg,
                       isAssigned 
-                        ? 'border-primary ring-1 ring-primary' 
-                        : cn(colorClasses.border, 'hover:border-primary/50')
+                        ? 'border-primary ring-1 ring-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/50 bg-muted/30'
                     )}
                   >
-                    <span className={cn(
-                      'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border',
-                      colorClasses.bg,
-                      colorClasses.text,
-                      colorClasses.border
-                    )}>
+                    <span 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
+                      style={{ 
+                        backgroundColor: `${status.color}20`,
+                        borderColor: `${status.color}40`,
+                        color: status.color
+                      }}
+                    >
+                      <StatusIndicator 
+                        icon={status.icon} 
+                        color={status.color} 
+                        iconClass="h-3 w-3"
+                        colorDotClass="h-2 w-2"
+                      />
                       {status.name}
                     </span>
                     {isAssigned ? (
