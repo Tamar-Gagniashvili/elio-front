@@ -561,6 +561,7 @@ function InboxContent() {
           currentFilter={currentFilter}
           onFilterChange={setCurrentFilter}
           conversations={conversations}
+          groupedConversations={groupedConversations}
           userId={user?.id}
           unrepliedConversationIds={unrepliedConversationIds}
         />

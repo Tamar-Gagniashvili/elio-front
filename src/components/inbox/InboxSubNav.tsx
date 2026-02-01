@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LeadStatus, Conversation } from '@/lib/types';
+import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { StatusIndicator } from '@/components/StatusIcon';
 import { getColorHex } from '@/pages/Statuses';
 
-export type InboxFilter = 
+export type InboxFilter =
   | { type: 'all' }
   | { type: 'mine' }
   | { type: 'unassigned' }
@@ -23,6 +24,7 @@ interface InboxSubNavProps {
   currentFilter: InboxFilter;
   onFilterChange: (filter: InboxFilter) => void;
   conversations: Conversation[];
+  groupedConversations: GroupedConversation[];
   userId: string | undefined;
   unrepliedConversationIds: Set<string>;
 }
@@ -34,6 +36,7 @@ export function InboxSubNav({
   currentFilter, 
   onFilterChange, 
   conversations,
+  groupedConversations,
   userId,
   unrepliedConversationIds
 }: InboxSubNavProps) {
@@ -70,69 +73,69 @@ export function InboxSubNav({
   const [statusCountsTrigger, setStatusCountsTrigger] = useState(0);
 
   useEffect(() => {
-    if (!tenantId || statuses.length === 0) return;
+    if (!tenantId || statuses.length === 0 || groupedConversations.length === 0) {
+      setStatusCounts({});
+      return;
+    }
 
     const fetchStatusCounts = async () => {
       const counts: Record<string, number> = {};
       
-      // Get contact IDs from conversations
-      const contactIds = conversations.map(c => c.contact_id).filter(Boolean);
+      // Get all contact IDs from grouped conversations (for status lookup)
+      const allContactIds = new Set<string>();
+      for (const group of groupedConversations) {
+        for (const contact of group.contacts) {
+          allContactIds.add(contact.id);
+        }
+      }
       
-      if (contactIds.length === 0) {
+      if (allContactIds.size === 0) {
         setStatusCounts({});
         return;
       }
 
-      // First, fetch contact links to identify linked contact groups
-      const { data: links } = await supabase
-        .from('contact_links')
-        .select('contact_id, link_group_id')
+      // Fetch contact statuses for all contacts
+      const { data: contactStatusData } = await supabase
+        .from('contact_statuses')
+        .select('contact_id, status_id')
         .eq('tenant_id', tenantId)
-        .in('contact_id', contactIds);
+        .in('contact_id', Array.from(allContactIds));
 
-      // Create a map of contact_id -> link_group_id
-      const contactToGroup = new Map<string, string>();
-      if (links) {
-        for (const link of links) {
-          contactToGroup.set(link.contact_id, link.link_group_id);
+      // Create a map of contact_id -> Set of status_ids
+      const contactStatusMap = new Map<string, Set<string>>();
+      if (contactStatusData) {
+        for (const cs of contactStatusData) {
+          if (!contactStatusMap.has(cs.contact_id)) {
+            contactStatusMap.set(cs.contact_id, new Set());
+          }
+          contactStatusMap.get(cs.contact_id)!.add(cs.status_id);
         }
       }
 
+      // Count grouped conversations (treating linked contacts as 1)
       for (const status of statuses) {
-        const { data: statusContacts, error } = await supabase
-          .from('contact_statuses')
-          .select('contact_id')
-          .eq('tenant_id', tenantId)
-          .eq('status_id', status.id)
-          .in('contact_id', contactIds);
-
-        if (!error && statusContacts) {
-          // Count unique leads (linked contacts count as 1)
-          const countedGroups = new Set<string>();
-          const countedStandalone = new Set<string>();
+        let count = 0;
+        
+        for (const group of groupedConversations) {
+          // Check if ANY contact in the group has this status
+          const hasStatus = group.contacts.some(contact => 
+            contactStatusMap.get(contact.id)?.has(status.id)
+          );
           
-          for (const { contact_id } of statusContacts) {
-            const groupId = contactToGroup.get(contact_id);
-            if (groupId) {
-              // Linked contact - count the group only once
-              countedGroups.add(groupId);
-            } else {
-              // Standalone contact
-              countedStandalone.add(contact_id);
-            }
+          if (hasStatus) {
+            // Count the group as 1, regardless of how many contacts have the status
+            count++;
           }
-          
-          counts[status.id] = countedGroups.size + countedStandalone.size;
-        } else {
-          counts[status.id] = 0;
         }
+        
+        counts[status.id] = count;
       }
 
       setStatusCounts(counts);
     };
 
     fetchStatusCounts();
-  }, [tenantId, statuses, conversations, statusCountsTrigger]);
+  }, [tenantId, statuses, groupedConversations, statusCountsTrigger]);
 
   // Separate effect for realtime subscription
   useEffect(() => {
