@@ -133,6 +133,7 @@ export function ObjectTypeList({ objectTypes, fields, statuses, onRefresh }: Obj
         objectType={editingType}
         existingFields={editingType ? fields[editingType.id] || [] : []}
         existingStatuses={editingType ? statuses[editingType.id] || [] : []}
+        allObjectTypes={objectTypes}
         onSave={onRefresh}
       />
     </div>

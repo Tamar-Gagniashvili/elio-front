@@ -1055,7 +1055,13 @@ export type Database = {
         | "email"
       conversation_status: "open" | "assigned" | "resolved" | "archived"
       message_sender_type: "contact" | "agent" | "system"
-      object_field_type: "text" | "number" | "price" | "select" | "relation"
+      object_field_type:
+        | "text"
+        | "number"
+        | "price"
+        | "select"
+        | "relation"
+        | "object"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1197,7 +1203,14 @@ export const Constants = {
       ],
       conversation_status: ["open", "assigned", "resolved", "archived"],
       message_sender_type: ["contact", "agent", "system"],
-      object_field_type: ["text", "number", "price", "select", "relation"],
+      object_field_type: [
+        "text",
+        "number",
+        "price",
+        "select",
+        "relation",
+        "object",
+      ],
     },
   },
 } as const

@@ -1,4 +1,5 @@
-import { ObjectTypeField, CURRENCIES } from '@/lib/objectTypes';
+import { useState, useEffect } from 'react';
+import { ObjectTypeField, CURRENCIES, BusinessObject } from '@/lib/objectTypes';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -8,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DynamicFieldInputProps {
   field: ObjectTypeField;
@@ -16,9 +19,31 @@ interface DynamicFieldInputProps {
 }
 
 export function DynamicFieldInput({ field, value, onChange }: DynamicFieldInputProps) {
+  const { currentTenant } = useAuth();
+  const [relatedObjects, setRelatedObjects] = useState<BusinessObject[]>([]);
+  const [loadingObjects, setLoadingObjects] = useState(false);
+
   const getCurrencySymbol = (code: string) => {
     return CURRENCIES.find((c) => c.code === code)?.symbol || '$';
   };
+
+  // Fetch related objects for 'object' field type
+  useEffect(() => {
+    if (field.field_type === 'object' && field.field_config?.related_object_type_id && currentTenant?.id) {
+      setLoadingObjects(true);
+      supabase
+        .from('objects')
+        .select('id, display_name')
+        .eq('tenant_id', currentTenant.id)
+        .eq('object_type_id', field.field_config.related_object_type_id)
+        .eq('is_archived', false)
+        .order('display_name')
+        .then(({ data }) => {
+          setRelatedObjects((data || []) as BusinessObject[]);
+          setLoadingObjects(false);
+        });
+    }
+  }, [field.field_type, field.field_config?.related_object_type_id, currentTenant?.id]);
 
   const renderInput = () => {
     switch (field.field_type) {
@@ -101,13 +126,38 @@ export function DynamicFieldInput({ field, value, onChange }: DynamicFieldInputP
 
       case 'relation':
         // For MVP, just show a text input for contact reference
-        // Could be enhanced to show a contact picker
         return (
           <Input
             placeholder="Enter contact email or phone..."
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
           />
+        );
+
+      case 'object':
+        // Object relation picker
+        return (
+          <Select
+            value={(value as string) || ''}
+            onValueChange={(val) => onChange(val || undefined)}
+            disabled={loadingObjects}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={loadingObjects ? 'Loading...' : `Select ${field.label.toLowerCase()}...`} />
+            </SelectTrigger>
+            <SelectContent>
+              {relatedObjects.map((obj) => (
+                <SelectItem key={obj.id} value={obj.id}>
+                  {obj.display_name}
+                </SelectItem>
+              ))}
+              {relatedObjects.length === 0 && !loadingObjects && (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                  No objects available
+                </div>
+              )}
+            </SelectContent>
+          </Select>
         );
 
       default:
