@@ -1,7 +1,18 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, MessageCircle, Send, Instagram, Facebook, Globe, Phone, Mail } from 'lucide-react';
 import inboxMockup from '@/assets/landing/inbox-mockup.png';
+
+const floatingChannels = [
+  { name: 'WhatsApp', icon: MessageCircle, color: 'bg-channel-whatsapp', position: 'top-[15%] right-[5%]', delay: '0s', duration: '6s' },
+  { name: 'Telegram', icon: Send, color: 'bg-channel-telegram', position: 'bottom-[25%] left-[8%]', delay: '1s', duration: '7s' },
+  { name: 'Instagram', icon: Instagram, color: 'bg-channel-instagram', position: 'top-[35%] right-[2%]', delay: '0.5s', duration: '5s' },
+  { name: 'Messenger', icon: Facebook, color: 'bg-channel-messenger', position: 'top-[8%] left-[45%]', delay: '2s', duration: '8s' },
+  { name: 'Web Chat', icon: Globe, color: 'bg-primary', position: 'bottom-[15%] right-[15%]', delay: '1.5s', duration: '6s' },
+  { name: 'SMS', icon: Phone, color: 'bg-channel-sms', position: 'top-[55%] left-[3%]', delay: '0.8s', duration: '7s' },
+  { name: 'Email', icon: Mail, color: 'bg-channel-email', position: 'bottom-[40%] right-[3%]', delay: '2.5s', duration: '5s' },
+  { name: 'TikTok', icon: Globe, color: 'bg-channel-tiktok', position: 'top-[75%] left-[15%]', delay: '1.2s', duration: '6s' },
+];
 
 export default function HeroSection() {
   const scrollToContact = () => {
@@ -9,13 +20,30 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-background via-primary/5 to-accent/20 py-16 md:py-24 lg:py-32">
+    <section className="relative overflow-hidden bg-gradient-to-br from-background via-primary/5 to-accent/20 py-16 md:py-24 lg:py-32 min-h-[90vh]">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-primary/20 blur-[100px] animate-pulse-soft" />
         <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-accent/30 blur-[120px] animate-pulse-soft" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-primary/10 blur-[150px]" />
       </div>
+
+      {/* Floating channel badges - stars in the sky */}
+      {floatingChannels.map((channel) => (
+        <div
+          key={channel.name}
+          className={`absolute ${channel.position} z-20 hidden md:flex`}
+          style={{
+            animation: `float ${channel.duration} ease-in-out infinite`,
+            animationDelay: channel.delay,
+          }}
+        >
+          <div className="flex items-center gap-2 bg-card/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-border/50 hover:scale-110 transition-transform cursor-default">
+            <div className={`h-3 w-3 rounded-full ${channel.color}`} />
+            <span className="text-sm font-medium text-foreground whitespace-nowrap">{channel.name}</span>
+          </div>
+        </div>
+      ))}
 
       <div className="container max-w-screen-xl relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -87,24 +115,27 @@ export default function HeroSection() {
               {/* Overlay gradient */}
               <div className="absolute inset-0 bg-gradient-to-t from-background/20 to-transparent pointer-events-none" />
             </div>
-
-            {/* Floating elements */}
-            <div className="absolute -top-4 -right-4 bg-card rounded-lg shadow-lg px-4 py-2 border border-border/50 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-channel-whatsapp" />
-                <span className="text-sm font-medium text-foreground">WhatsApp</span>
-              </div>
-            </div>
-            
-            <div className="absolute -bottom-4 -left-4 bg-card rounded-lg shadow-lg px-4 py-2 border border-border/50 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-channel-telegram" />
-                <span className="text-sm font-medium text-foreground">Telegram</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
+
+      {/* CSS for floating animation */}
+      <style>{`
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          25% {
+            transform: translateY(-10px) rotate(1deg);
+          }
+          50% {
+            transform: translateY(-5px) rotate(-1deg);
+          }
+          75% {
+            transform: translateY(-15px) rotate(0.5deg);
+          }
+        }
+      `}</style>
     </section>
   );
 }
