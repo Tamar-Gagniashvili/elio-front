@@ -484,7 +484,7 @@ export function LinkObjectDialog({
         </DialogHeader>
 
         {step === 'select' && (
-          <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+          <div className="space-y-4 flex-1 min-h-0 flex flex-col overflow-hidden">
             {/* Type selector */}
             <Select
               value={selectedTypeId || ''}
@@ -596,7 +596,7 @@ export function LinkObjectDialog({
             )}
 
             {/* Objects list */}
-            <ScrollArea className="flex-1 border rounded-lg min-h-0">
+            <ScrollArea className="flex-1 border rounded-lg min-h-0 h-0">
               {loading ? (
                 <div className="flex items-center justify-center h-48">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
