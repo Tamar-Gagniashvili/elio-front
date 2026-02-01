@@ -71,7 +71,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             <MessageSquare className="h-6 w-6 text-white" />
           </div>
           {!collapsed && (
-            <span className="font-bold text-lg text-sidebar-foreground">ChatFlow</span>
+            <span className="font-bold text-lg text-sidebar-foreground">ReLink</span>
           )}
         </div>
 
