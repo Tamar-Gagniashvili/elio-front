@@ -5,6 +5,51 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Decrypt AES-GCM encrypted credentials
+async function decryptCredential(encryptedValue: string): Promise<string> {
+  // If not encrypted (no prefix), return as-is for backward compatibility
+  if (!encryptedValue.startsWith('enc:')) {
+    return encryptedValue
+  }
+  
+  const ciphertext = encryptedValue.slice(4) // Remove 'enc:' prefix
+  
+  const keyString = Deno.env.get('CHANNEL_ENCRYPTION_KEY')
+  if (!keyString) {
+    console.warn('CHANNEL_ENCRYPTION_KEY not set, returning value as-is')
+    return encryptedValue
+  }
+  
+  // Create key from secret
+  const encoder = new TextEncoder()
+  const keyData = encoder.encode(keyString)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', keyData)
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    hashBuffer,
+    { name: 'AES-GCM' },
+    false,
+    ['decrypt']
+  )
+  
+  // Decode base64
+  const combined = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0))
+  
+  // Extract IV and ciphertext
+  const iv = combined.slice(0, 12)
+  const encrypted = combined.slice(12)
+  
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encrypted
+  )
+  
+  const decoder = new TextDecoder()
+  return decoder.decode(decrypted)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -76,6 +121,9 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Decrypt bot token if encrypted
+    const botToken = await decryptCredential(config.bot_token)
+
     // Get chat_id from contact metadata
     const metadata = contact.metadata as { chat_id?: string }
     const chatId = metadata?.chat_id || contact.external_id
@@ -88,7 +136,7 @@ Deno.serve(async (req) => {
     }
 
     // Send message to Telegram
-    const telegramUrl = `https://api.telegram.org/bot${config.bot_token}/sendMessage`
+    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`
     const telegramResponse = await fetch(telegramUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
