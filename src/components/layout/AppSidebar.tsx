@@ -67,7 +67,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           "flex items-center gap-3 mb-3",
           collapsed && "justify-center"
         )}>
-          <img src={relinkLogo} alt="ReLink" className="h-10 w-10 flex-shrink-0" />
+          <img src={relinkLogo} alt="ReLink" className="h-8 w-auto flex-shrink-0" />
           {!collapsed && (
             <span className="font-bold text-lg text-sidebar-foreground">ReLink</span>
           )}
