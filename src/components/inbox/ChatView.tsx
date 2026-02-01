@@ -25,6 +25,8 @@ import { ManageStatusDialog } from './ManageStatusDialog';
 import { ContactNotes } from './ContactNotes';
 import { ContactStatusesDisplay } from './ContactStatusesDisplay';
 import { ReassignDialog } from './ReassignDialog';
+import { LinkedObjectsPanel } from './LinkedObjectsPanel';
+import { useConversationObjects } from '@/hooks/useConversationObjects';
 
 interface MediaUpload {
   url: string;
@@ -353,6 +355,14 @@ export function ContactDetails({
   // Get all channels from the group
   const channels = selectedGroup?.contacts || (contact ? [contact] : []);
 
+  // Linked objects hook
+  const {
+    linkedObjects,
+    loading: objectsLoading,
+    linkObject,
+    unlinkObject,
+  } = useConversationObjects(conversation.id, tenantId || null);
+
   return (
     <div className="h-full bg-card border-l flex flex-col overflow-y-auto">
       <div className="p-4 border-b">
@@ -520,6 +530,18 @@ export function ContactDetails({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Linked Objects Section */}
+      {tenantId && (
+        <LinkedObjectsPanel
+          linkedObjects={linkedObjects}
+          loading={objectsLoading}
+          onLink={linkObject}
+          onUnlink={unlinkObject}
+          tenantId={tenantId}
+          conversationId={conversation.id}
+        />
       )}
 
       {/* Contact Notes Section */}
