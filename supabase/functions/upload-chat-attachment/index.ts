@@ -73,16 +73,26 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Generate signed URL (expires in 7 days - 604800 seconds)
+    // This is used for initial display; client will refresh signed URLs as needed
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('chat-attachments')
-      .getPublicUrl(uniqueName)
+      .createSignedUrl(uniqueName, 604800)
+
+    if (signedUrlError) {
+      console.error('Signed URL error:', signedUrlError)
+      return new Response(JSON.stringify({ error: 'Failed to generate signed URL' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
     const isImage = file.type.startsWith('image/')
 
     return new Response(JSON.stringify({
       ok: true,
-      url: urlData.publicUrl,
+      url: signedUrlData.signedUrl,
+      path: uniqueName, // Store the path for future signed URL generation
       filename: file.name,
       type: isImage ? 'image' : 'file',
       mime_type: file.type
