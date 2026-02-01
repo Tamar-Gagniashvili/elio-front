@@ -4,7 +4,6 @@ import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
-  MessageSquare,
   Inbox,
   Users,
   Settings,
@@ -18,6 +17,7 @@ import {
   PanelLeft,
   Package,
 } from 'lucide-react';
+import relinkLogo from '@/assets/relink-logo.png';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,9 +67,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           "flex items-center gap-3 mb-3",
           collapsed && "justify-center"
         )}>
-          <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-            <MessageSquare className="h-6 w-6 text-white" />
-          </div>
+          <img src={relinkLogo} alt="ReLink" className="h-10 w-10 flex-shrink-0" />
           {!collapsed && (
             <span className="font-bold text-lg text-sidebar-foreground">ReLink</span>
           )}
