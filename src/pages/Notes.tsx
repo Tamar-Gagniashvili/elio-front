@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -45,14 +46,14 @@ interface ContactNote {
   contact?: NoteContact | null;
 }
 
-const REMINDER_OPTIONS = [
-  { value: 'none', label: 'No reminder' },
-  { value: '5', label: 'In 5 minutes' },
-  { value: '10', label: 'In 10 minutes' },
-  { value: '30', label: 'In 30 minutes' },
-  { value: '60', label: 'In 1 hour' },
-  { value: '1440', label: 'In 1 day' },
-  { value: 'custom', label: 'Custom time...' },
+const REMINDER_OPTIONS_KEYS = [
+  { value: 'none', key: 'notes.reminder.none' },
+  { value: '5', key: 'notes.reminder.5min' },
+  { value: '10', key: 'notes.reminder.10min' },
+  { value: '30', key: 'notes.reminder.30min' },
+  { value: '60', key: 'notes.reminder.1hour' },
+  { value: '1440', key: 'notes.reminder.1day' },
+  { value: 'custom', key: 'notes.reminder.custom' },
 ];
 
 const NOTE_COLORS = [
@@ -69,6 +70,7 @@ const getColorClasses = (color: string) => {
 };
 
 export default function Notes() {
+  const { t } = useTranslation();
   const { user, currentTenant } = useAuth();
   const navigate = useNavigate();
   const [notes, setNotes] = useState<ContactNote[]>([]);
@@ -282,27 +284,27 @@ export default function Notes() {
                 <StickyNote className="h-6 w-6 text-amber-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">My Notes</h1>
-                <p className="text-sm text-muted-foreground">Personal reminders and chat notes</p>
+                <h1 className="text-2xl font-bold">{t('notes.title')}</h1>
+                <p className="text-sm text-muted-foreground">{t('notes.subtitle')}</p>
               </div>
             </div>
             <Button onClick={() => { resetForm(); setIsAdding(true); }} className="gap-2">
               <Plus className="h-4 w-4" />
-              New Note
+              {t('notes.newNote')}
             </Button>
           </div>
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
             <TabsList>
-              <TabsTrigger value="all">All Notes</TabsTrigger>
+              <TabsTrigger value="all">{t('notes.allNotes')}</TabsTrigger>
               <TabsTrigger value="personal" className="gap-2">
                 <Coffee className="h-4 w-4" />
-                Personal
+                {t('notes.personal')}
               </TabsTrigger>
               <TabsTrigger value="chat" className="gap-2">
                 <User className="h-4 w-4" />
-                Chat Notes
+                {t('notes.chatNotes')}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -317,25 +319,24 @@ export default function Notes() {
                 formColorClasses.border,
                 "dark:bg-opacity-30"
               )}>
-                <h3 className="font-semibold mb-4">{editingNote ? 'Edit Note' : 'New Note'}</h3>
+                <h3 className="font-semibold mb-4">{editingNote ? t('notes.editNote') : t('notes.newNote')}</h3>
               
               <Textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
-                placeholder="What's on your mind? ☕"
+                placeholder={t('notes.whatOnMind')}
                 className="min-h-[100px] resize-none bg-transparent border-none focus-visible:ring-0 text-base mb-4"
                 autoFocus
               />
 
-              {/* Assign to contact */}
               <div className="flex items-center gap-2 mb-4">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <Select value={selectedContactId} onValueChange={setSelectedContactId}>
                   <SelectTrigger className="flex-1 bg-background/50">
-                    <SelectValue placeholder="Assign to contact (optional)" />
+                    <SelectValue placeholder={t('notes.assignToContact')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Personal note (no contact)</SelectItem>
+                    <SelectItem value="none">{t('notes.personalNote')}</SelectItem>
                     {contacts.map(contact => (
                       <SelectItem key={contact.id} value={contact.id}>
                         {contact.name || contact.external_id || 'Unknown'}
@@ -347,7 +348,7 @@ export default function Notes() {
               
               {/* Color picker */}
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm text-muted-foreground">Color:</span>
+                <span className="text-sm text-muted-foreground">{t('notes.color')}:</span>
                 <div className="flex gap-1">
                   {NOTE_COLORS.map((color) => (
                     <button
@@ -369,12 +370,12 @@ export default function Notes() {
                 <Bell className="h-4 w-4 text-muted-foreground" />
                 <Select value={reminderOption} onValueChange={setReminderOption}>
                   <SelectTrigger className="flex-1 bg-background/50">
-                    <SelectValue placeholder="Set reminder" />
+                    <SelectValue placeholder={t('notes.setReminder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {REMINDER_OPTIONS.map(option => (
+                    {REMINDER_OPTIONS_KEYS.map(option => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {t(option.key)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -395,7 +396,7 @@ export default function Notes() {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {customDate ? format(customDate, "PPP") : "Pick a date"}
+                        {customDate ? format(customDate, "PPP") : t('notes.reminder.pickDate')}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -423,13 +424,13 @@ export default function Notes() {
 
               <div className="flex gap-2 justify-end">
                 <Button variant="ghost" onClick={resetForm}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   onClick={editingNote ? handleUpdateNote : handleAddNote}
                   disabled={!newNote.trim() || isSaving}
                 >
-                  {editingNote ? 'Update' : 'Pin it!'}
+                  {editingNote ? t('common.update') : t('notes.pinIt')}
                 </Button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, ChannelType } from '@/lib/types';
@@ -36,6 +37,7 @@ interface GroupedContact {
 }
 
 export default function Contacts() {
+  const { t } = useTranslation();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [linkGroups, setLinkGroups] = useState<Map<string, { groupId: string; displayName?: string }>>(new Map());
   const [contactStatuses, setContactStatuses] = useState<Map<string, LeadStatus[]>>(new Map());
@@ -322,10 +324,10 @@ export default function Contacts() {
             <ChannelBadge channelType={contact.channel_type} size="sm" />
           </div>
           <div className="text-sm text-muted-foreground">
-            {contact.email || contact.phone || contact.external_id || 'No contact info'}
-          </div>
-          {renderStatusBadges(statuses)}
+          {contact.email || contact.phone || contact.external_id || t('contacts.noContactInfo')}
         </div>
+        {renderStatusBadges(statuses)}
+      </div>
         <div className="text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(contact.created_at), { addSuffix: true })}
         </div>
@@ -338,15 +340,15 @@ export default function Contacts() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
           <div>
-            <h1 className="text-2xl font-bold">Contacts</h1>
+            <h1 className="text-2xl font-bold">{t('contacts.title')}</h1>
             <p className="text-muted-foreground">
-              {isAdmin ? 'All customers who have messaged your business' : 'Your assigned contacts'}
+              {isAdmin ? t('contacts.subtitle') : t('contacts.subtitleSales')}
             </p>
           </div>
           {isAdmin && (
             <Button onClick={() => setImportDialogOpen(true)} variant="outline" className="gap-2">
               <Upload className="h-4 w-4" />
-              Import Leads
+              {t('contacts.importLeads')}
             </Button>
           )}
         </div>
@@ -355,14 +357,14 @@ export default function Contacts() {
           <TabsList className="mb-6 max-w-4xl mx-auto">
             <TabsTrigger value="online" className="gap-2">
               <Globe className="h-4 w-4" />
-              Online Contacts
+              {t('contacts.onlineContacts')}
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 {contacts.length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="imported" className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
-              Imported Leads
+              {t('contacts.importedLeads')}
               {offlineCount > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                   {offlineCount}
@@ -376,7 +378,7 @@ export default function Contacts() {
               <div className="relative max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search contacts or statuses..."
+                  placeholder={t('contacts.searchContactsOrStatuses')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -387,7 +389,7 @@ export default function Contacts() {
               {availableStatuses.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap">
                   <Tag className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Filter by status:</span>
+                  <span className="text-sm text-muted-foreground">{t('common.filterByStatus')}:</span>
                   {availableStatuses.map((status) => {
                     const colorClasses = getStatusColorClasses(status.color);
                     const isSelected = selectedStatusFilter === status.id;
@@ -427,7 +429,7 @@ export default function Contacts() {
                       }}
                       className="text-xs h-6"
                     >
-                      Clear filter
+                      {t('common.clearFilter')}
                     </Button>
                   )}
                 </div>
@@ -440,9 +442,9 @@ export default function Contacts() {
                   <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                     <Users className="h-8 w-8 text-muted-foreground" />
                   </div>
-                  <h3 className="font-semibold mb-1">No online contacts yet</h3>
+                  <h3 className="font-semibold mb-1">{t('contacts.noOnlineContacts')}</h3>
                   <p className="text-sm text-muted-foreground">
-                    When customers message you through channels, they'll appear here
+                    {t('contacts.noOnlineContactsDesc')}
                   </p>
                 </CardContent>
               </Card>

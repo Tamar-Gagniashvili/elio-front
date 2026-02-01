@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Building2, Loader2, ArrowRight } from 'lucide-react';
 
 export default function Onboarding() {
+  const { t } = useTranslation();
   const [companyName, setCompanyName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user, setCurrentTenant } = useAuth();
@@ -75,16 +77,16 @@ export default function Onboarding() {
       setCurrentTenant(tenant as unknown as import('@/lib/types').Tenant);
       
       toast({
-        title: 'Workspace created!',
-        description: `${companyName} is ready to go.`,
+        title: t('onboarding.workspaceCreated'),
+        description: t('onboarding.workspaceCreatedDesc', { name: companyName }),
       });
 
       navigate('/inbox');
     } catch (error: unknown) {
       console.error('Error creating workspace:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to create workspace. Please try again.',
+        title: t('errors.somethingWentWrong'),
+        description: t('onboarding.createFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -100,20 +102,20 @@ export default function Onboarding() {
             <div className="mx-auto h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
               <Building2 className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl">Create your workspace</CardTitle>
+            <CardTitle className="text-2xl">{t('onboarding.title')}</CardTitle>
             <CardDescription>
-              Set up your company's chat inbox to start managing customer conversations
+              {t('onboarding.subtitle')}
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="company-name">Company Name</Label>
+                <Label htmlFor="company-name">{t('onboarding.companyName')}</Label>
                 <Input
                   id="company-name"
                   type="text"
-                  placeholder="Acme Inc."
+                  placeholder={t('onboarding.companyNamePlaceholder')}
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   disabled={isLoading}
@@ -130,11 +132,11 @@ export default function Onboarding() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating workspace...
+                    {t('onboarding.creatingWorkspace')}
                   </>
                 ) : (
                   <>
-                    Continue
+                    {t('common.continue')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
