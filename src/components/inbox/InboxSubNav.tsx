@@ -83,16 +83,48 @@ export function InboxSubNav({
         return;
       }
 
+      // First, fetch contact links to identify linked contact groups
+      const { data: links } = await supabase
+        .from('contact_links')
+        .select('contact_id, link_group_id')
+        .eq('tenant_id', tenantId)
+        .in('contact_id', contactIds);
+
+      // Create a map of contact_id -> link_group_id
+      const contactToGroup = new Map<string, string>();
+      if (links) {
+        for (const link of links) {
+          contactToGroup.set(link.contact_id, link.link_group_id);
+        }
+      }
+
       for (const status of statuses) {
-        const { count, error } = await supabase
+        const { data: statusContacts, error } = await supabase
           .from('contact_statuses')
-          .select('contact_id', { count: 'exact', head: true })
+          .select('contact_id')
           .eq('tenant_id', tenantId)
           .eq('status_id', status.id)
           .in('contact_id', contactIds);
 
-        if (!error) {
-          counts[status.id] = count || 0;
+        if (!error && statusContacts) {
+          // Count unique leads (linked contacts count as 1)
+          const countedGroups = new Set<string>();
+          const countedStandalone = new Set<string>();
+          
+          for (const { contact_id } of statusContacts) {
+            const groupId = contactToGroup.get(contact_id);
+            if (groupId) {
+              // Linked contact - count the group only once
+              countedGroups.add(groupId);
+            } else {
+              // Standalone contact
+              countedStandalone.add(contact_id);
+            }
+          }
+          
+          counts[status.id] = countedGroups.size + countedStandalone.size;
+        } else {
+          counts[status.id] = 0;
         }
       }
 
