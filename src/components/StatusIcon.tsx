@@ -97,13 +97,14 @@ export function StatusIndicator({ icon, color, colorDotClass, iconClass }: Statu
   if (icon) {
     const IconComponent = ICON_MAP[icon];
     if (IconComponent) {
-      return <IconComponent className={cn("flex-shrink-0", iconClass || "h-3.5 w-3.5")} />;
+      return <IconComponent className={cn("flex-shrink-0", iconClass || "h-3.5 w-3.5")} style={{ color }} />;
     }
   }
   
+  // Always show a color dot when no icon is set
   return (
     <span 
-      className={cn("rounded-full flex-shrink-0", colorDotClass || "h-2.5 w-2.5")} 
+      className={cn("rounded-full flex-shrink-0 block", colorDotClass || "h-2.5 w-2.5")} 
       style={{ backgroundColor: color }}
     />
   );
