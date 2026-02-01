@@ -181,29 +181,6 @@ export function UnifiedConversationList({
                   );
                 })}
 
-                {/* Lead status badges - show next to channel icons */}
-                {groupStatuses.slice(0, 2).map((leadStatus) => {
-                  const colorClasses = getStatusColorClasses(leadStatus.color);
-                  return (
-                    <Badge
-                      key={leadStatus.id}
-                      className={cn(
-                        'h-5 text-[10px] border',
-                        colorClasses.bg,
-                        colorClasses.text,
-                        colorClasses.border
-                      )}
-                    >
-                      {leadStatus.name}
-                    </Badge>
-                  );
-                })}
-                {groupStatuses.length > 2 && (
-                  <span className="text-[10px] text-muted-foreground">
-                    +{groupStatuses.length - 2}
-                  </span>
-                )}
-
                 <div className="flex-1" />
                 
                 {/* Show assignee name for admins, or status badge */}
@@ -231,6 +208,31 @@ export function UnifiedConversationList({
                   >
                     {status}
                   </Badge>
+                )}
+
+                {/* Lead status icons - bottom right corner */}
+                {groupStatuses.length > 0 && (
+                  <div className="flex items-center gap-0.5">
+                    {groupStatuses.slice(0, 3).map((leadStatus) => {
+                      const colorClasses = getStatusColorClasses(leadStatus.color);
+                      return (
+                        <div
+                          key={leadStatus.id}
+                          title={leadStatus.name}
+                          className={cn(
+                            'h-2.5 w-2.5 rounded-full border',
+                            colorClasses.bg,
+                            colorClasses.border
+                          )}
+                        />
+                      );
+                    })}
+                    {groupStatuses.length > 3 && (
+                      <span className="text-[9px] text-muted-foreground ml-0.5">
+                        +{groupStatuses.length - 3}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
