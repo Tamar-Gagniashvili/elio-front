@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Plus, GripVertical, Pencil, Trash2, Zap, GitBranch } from 'lucide-react';
+import { Plus, GripVertical, Pencil, Trash2, Zap, GitBranch, Play } from 'lucide-react';
 import { RuleEditor } from '@/components/rules/RuleEditor';
+import { RuleSimulator } from '@/components/rules/RuleSimulator';
 import type { RoutingRule, ConditionGroup, ActionsGroup } from '@/lib/ruleTypes';
 import {
   AlertDialog,
@@ -31,6 +32,7 @@ export default function Rules() {
   const [editingRule, setEditingRule] = useState<RoutingRule | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<RoutingRule | null>(null);
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
 
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
 
@@ -149,12 +151,20 @@ export default function Rules() {
               Automate how leads flow through your pipeline
             </p>
           </div>
-          {isAdmin && (
-            <Button onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Rule
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {rules.length > 0 && (
+              <Button variant="outline" onClick={() => setSimulatorOpen(true)}>
+                <Play className="h-4 w-4 mr-2" />
+                Test Rules
+              </Button>
+            )}
+            {isAdmin && (
+              <Button onClick={handleCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Rule
+              </Button>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -266,6 +276,12 @@ export default function Rules() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <RuleSimulator
+          open={simulatorOpen}
+          onOpenChange={setSimulatorOpen}
+          rules={rules}
+        />
       </div>
     </AppLayout>
   );
