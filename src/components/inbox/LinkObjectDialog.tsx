@@ -20,8 +20,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Package, Loader2, Check, MapPin, DollarSign, Ruler, Building2, Truck, Hash, ArrowLeft, ChevronRight, Send, Link2 } from 'lucide-react';
+import { Search, Package, Loader2, Check, MapPin, DollarSign, Ruler, Building2, Truck, Hash, ArrowLeft, ChevronRight, Send, Link2, Filter, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ObjectType, BusinessObject, ObjectStatus, ObjectTypeField } from '@/lib/objectTypes';
 
 interface LinkObjectDialogProps {
@@ -110,6 +111,8 @@ export function LinkObjectDialog({
   const [loading, setLoading] = useState(false);
   const [linking, setLinking] = useState(false);
   const [sending, setSending] = useState(false);
+  const [fieldFilters, setFieldFilters] = useState<Record<string, string>>({});
+  const [statusFilter, setStatusFilter] = useState<string>('');
   
   // Steps: 'select' -> 'details' -> 'confirm'
   const [step, setStep] = useState<'select' | 'details' | 'confirm'>('select');
@@ -137,6 +140,8 @@ export function LinkObjectDialog({
       setSelectedRelatedFields({});
       setIncludeMainHeader(true);
       setIncludeRelatedHeaders({});
+      setFieldFilters({});
+      setStatusFilter('');
     }
   }, [open]);
 
@@ -352,25 +357,70 @@ export function LinkObjectDialog({
     }
   };
 
-  // Filter objects by search
+  // Get filterable fields (select fields and searchable fields)
+  const filterableFields = fields.filter(f => 
+    f.field_type === 'select' || (f.is_searchable && f.field_type !== 'object' && f.field_type !== 'relation')
+  );
+
+  // Get unique values for select fields
+  const getSelectOptions = (fieldName: string): string[] => {
+    const field = fields.find(f => f.name === fieldName);
+    if (field?.field_type === 'select' && field.field_config) {
+      const config = field.field_config as { options?: string[] };
+      return config.options || [];
+    }
+    return [];
+  };
+
+  // Filter objects by search and field filters
   const filteredObjects = objects.filter((obj) => {
+    const metadata = (obj.metadata || {}) as Record<string, any>;
+    
+    // Apply status filter
+    if (statusFilter && obj.status_id !== statusFilter) {
+      return false;
+    }
+    
+    // Apply field filters
+    for (const [fieldName, filterValue] of Object.entries(fieldFilters)) {
+      if (!filterValue) continue;
+      
+      const field = fields.find(f => f.name === fieldName);
+      const objValue = metadata[fieldName];
+      
+      if (field?.field_type === 'select') {
+        // Exact match for select fields
+        if (objValue !== filterValue) return false;
+      } else {
+        // Partial match for other fields
+        if (!objValue || !String(objValue).toLowerCase().includes(filterValue.toLowerCase())) {
+          return false;
+        }
+      }
+    }
+    
+    // Apply search filter
     if (!search.trim()) return true;
     const searchLower = search.toLowerCase();
     
     if (obj.display_name.toLowerCase().includes(searchLower)) return true;
     
-    if (obj.metadata) {
-      const metadata = obj.metadata as Record<string, any>;
-      for (const key of Object.keys(metadata)) {
-        const value = metadata[key];
-        if (value && String(value).toLowerCase().includes(searchLower)) {
-          return true;
-        }
+    for (const key of Object.keys(metadata)) {
+      const value = metadata[key];
+      if (value && String(value).toLowerCase().includes(searchLower)) {
+        return true;
       }
     }
     
     return false;
   });
+
+  const hasActiveFilters = statusFilter || Object.values(fieldFilters).some(v => v);
+  
+  const clearAllFilters = () => {
+    setFieldFilters({});
+    setStatusFilter('');
+  };
 
   const availableObjects = filteredObjects.filter(
     (obj) => !linkedObjectIds.includes(obj.id)
@@ -463,6 +513,88 @@ export function LinkObjectDialog({
               />
             </div>
 
+            {/* Filters */}
+            {(statuses.length > 0 || filterableFields.length > 0) && (
+              <Collapsible>
+                <div className="flex items-center gap-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Filter className="h-3.5 w-3.5" />
+                      Filters
+                      {hasActiveFilters && (
+                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                          {Object.values(fieldFilters).filter(v => v).length + (statusFilter ? 1 : 0)}
+                        </Badge>
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-8 px-2 text-xs text-muted-foreground">
+                      <X className="h-3 w-3 mr-1" />
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+                <CollapsibleContent className="pt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Status filter */}
+                    {statuses.length > 0 && (
+                      <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border shadow-md">
+                          <SelectItem value="">All statuses</SelectItem>
+                          {statuses.map((status) => (
+                            <SelectItem key={status.id} value={status.id}>
+                              <div className="flex items-center gap-2">
+                                <div className={cn('h-2 w-2 rounded-full', getStatusColor(status.color))} />
+                                {status.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    
+                    {/* Field filters */}
+                    {filterableFields.map((field) => (
+                      field.field_type === 'select' ? (
+                        <Select
+                          key={field.id}
+                          value={fieldFilters[field.name] || ''}
+                          onValueChange={(value) => setFieldFilters(prev => ({ ...prev, [field.name]: value }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder={field.label} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border shadow-md">
+                            <SelectItem value="">All {field.label}</SelectItem>
+                            {getSelectOptions(field.name).map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          key={field.id}
+                          placeholder={field.label}
+                          value={fieldFilters[field.name] || ''}
+                          onChange={(e) => setFieldFilters(prev => ({ ...prev, [field.name]: e.target.value }))}
+                          className="h-8 text-xs"
+                        />
+                      )
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
             {/* Objects list */}
             <ScrollArea className="flex-1 border rounded-lg min-h-0">
               {loading ? (
@@ -473,10 +605,15 @@ export function LinkObjectDialog({
                 <div className="flex flex-col items-center justify-center h-48 text-center p-4">
                   <Package className="h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    {search
+                    {search || hasActiveFilters
                       ? 'No matching items found'
                       : `No ${selectedType?.name_plural?.toLowerCase() || 'items'} available`}
                   </p>
+                  {hasActiveFilters && (
+                    <Button variant="link" size="sm" onClick={clearAllFilters} className="mt-2 text-xs">
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="p-2 space-y-2">
