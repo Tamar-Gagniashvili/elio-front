@@ -73,13 +73,22 @@
     }
     .chatflow-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
     .chatflow-header button { background: none; border: none; color: white; cursor: pointer; padding: 4px; }
+    .chatflow-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
     .chatflow-messages {
       flex: 1;
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
+      min-height: 0;
     }
     .chatflow-message {
       max-width: 80%;
@@ -153,6 +162,8 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      flex-shrink: 0;
+      background: white;
     }
     .chatflow-input-row {
       display: flex;
@@ -274,7 +285,7 @@
           </svg>
         </button>
       </div>
-      <div id="chatflow-content"></div>
+      <div id="chatflow-content" class="chatflow-content"></div>
     </div>
   `;
   document.body.appendChild(container);
