@@ -366,47 +366,47 @@ export function ObjectsTable({
           </CardContent>
         </Card>
       ) : (
-        <div className="border rounded-lg">
+        <div className="border rounded-lg bg-card overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="font-medium">Name</TableHead>
+                <TableHead className="font-medium">Status</TableHead>
                 {typeFields.slice(0, 4).map((field) => (
-                  <TableHead key={field.id}>{field.label}</TableHead>
+                  <TableHead key={field.id} className="font-medium">{field.label}</TableHead>
                 ))}
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredObjects.map((obj) => (
-                <TableRow key={obj.id}>
+                <TableRow key={obj.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium">{obj.display_name}</TableCell>
                   <TableCell>
                     <Select
                       value={obj.status_id || ''}
                       onValueChange={(value) => handleStatusChange(obj.id, value)}
                     >
-                      <SelectTrigger className="w-32 h-8">
+                      <SelectTrigger className="w-[160px] h-9 border-muted-foreground/20 bg-background">
                         <SelectValue>
                           {obj.status && (
                             <div className="flex items-center gap-2">
                               <div
                                 className={`h-2 w-2 rounded-full ${getStatusColor(obj.status.color)}`}
                               />
-                              {obj.status.name}
+                              <span className="text-sm">{obj.status.name}</span>
                             </div>
                           )}
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-popover border shadow-md">
                         {typeStatuses.map((status) => (
                           <SelectItem key={status.id} value={status.id}>
                             <div className="flex items-center gap-2">
                               <div
                                 className={`h-2 w-2 rounded-full ${getStatusColor(status.color)}`}
                               />
-                              {status.name}
+                              <span>{status.name}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -414,16 +414,18 @@ export function ObjectsTable({
                     </Select>
                   </TableCell>
                   {typeFields.slice(0, 4).map((field) => (
-                    <TableCell key={field.id}>{getFieldValue(obj, field)}</TableCell>
+                    <TableCell key={field.id} className="text-muted-foreground">
+                      {getFieldValue(obj, field)}
+                    </TableCell>
                   ))}
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-popover border shadow-md">
                         <DropdownMenuItem onClick={() => handleEdit(obj)}>
                           <Pencil className="h-4 w-4 mr-2" />
                           Edit
