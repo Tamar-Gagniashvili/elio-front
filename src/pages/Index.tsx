@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import Landing from './Landing';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -36,10 +37,8 @@ export default function Index() {
   useEffect(() => {
     if (loading) return;
 
-    if (!user) {
-      navigate('/auth', { replace: true });
-      return;
-    }
+    // If no user and not loading, we show the landing page (handled in render)
+    if (!user) return;
 
     // Wait for both data loaded AND role check to complete
     if (!dataLoaded || !roleChecked) return;
@@ -58,6 +57,12 @@ export default function Index() {
     // If memberships exist but no currentTenant yet, wait for useAuth to auto-select
   }, [user, loading, dataLoaded, roleChecked, isSuperAdmin, memberships, currentTenant, navigate]);
 
+  // Show landing page for non-authenticated users
+  if (!loading && !user) {
+    return <Landing />;
+  }
+
+  // Show loading state for authenticated users while checking roles/memberships
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center">
