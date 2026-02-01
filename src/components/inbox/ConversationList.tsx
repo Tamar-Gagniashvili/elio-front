@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { Conversation } from '@/lib/types';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
@@ -12,6 +13,8 @@ interface ConversationListProps {
 }
 
 export function ConversationList({ conversations, selectedId, onSelect }: ConversationListProps) {
+  const { t } = useTranslation();
+
   if (conversations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-12 px-4 text-center">
@@ -20,9 +23,9 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </div>
-        <h3 className="font-semibold text-foreground mb-1">No conversations yet</h3>
+        <h3 className="font-semibold text-foreground mb-1">{t('inbox.noConversations')}</h3>
         <p className="text-sm text-muted-foreground">
-          When customers message you, they'll appear here
+          {t('inbox.noConversationsDesc')}
         </p>
       </div>
     );
@@ -58,7 +61,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 mb-0.5">
               <span className="font-medium text-foreground truncate">
-                {conversation.contact?.name || 'Unknown Contact'}
+                {conversation.contact?.name || t('inbox.unknownContact')}
               </span>
               <span className="text-xs text-muted-foreground flex-shrink-0">
                 {conversation.last_message_at
@@ -68,7 +71,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
             </div>
 
             <p className="text-sm text-muted-foreground truncate">
-              {conversation.last_message_preview || 'No messages yet'}
+              {conversation.last_message_preview || t('inbox.noMessagesYet')}
             </p>
 
             <div className="flex items-center gap-2 mt-1.5">
@@ -84,11 +87,11 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
                   conversation.status === 'open' && 'bg-success text-success-foreground'
                 )}
               >
-                {conversation.status}
+                {t(`common.${conversation.status}`)}
               </Badge>
               {conversation.assigned_to && (
                 <span className="text-xs text-muted-foreground">
-                  Assigned
+                  {t('common.assigned')}
                 </span>
               )}
             </div>

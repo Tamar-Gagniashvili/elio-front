@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,13 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import relinkLogo from '@/assets/relink-logo.png';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
 export default function Auth() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,7 +77,7 @@ export default function Auth() {
 
     if (error) {
       toast({
-        title: 'Sign in failed',
+        title: t('auth.signIn') + ' ' + t('errors.somethingWentWrong').toLowerCase(),
         description: error.message === 'Invalid login credentials' 
           ? 'Invalid email or password. Please try again.'
           : error.message,
@@ -98,25 +101,23 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="h-14 w-14 rounded-xl gradient-primary flex items-center justify-center mb-4">
-            <MessageSquare className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">ChatFlow</h1>
-          <p className="text-muted-foreground">Omnichannel inbox for your team</p>
+          <img src={relinkLogo} alt="ReLink" className="h-14 w-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground">ReLink</h1>
+          <p className="text-muted-foreground">Conversation-Centric CRM</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Welcome back</CardTitle>
+            <CardTitle className="text-lg">{t('auth.welcomeBack')}</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+              {t('auth.enterCredentials')}
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signin-email">Email</Label>
+                <Label htmlFor="signin-email">{t('auth.email')}</Label>
                 <Input
                   id="signin-email"
                   type="email"
@@ -131,7 +132,7 @@ export default function Auth() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="signin-password">Password</Label>
+                <Label htmlFor="signin-password">{t('auth.password')}</Label>
                 <Input
                   id="signin-password"
                   type="password"
@@ -149,10 +150,10 @@ export default function Auth() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    {t('common.loading')}
                   </>
                 ) : (
-                  'Sign In'
+                  t('auth.signIn')
                 )}
               </Button>
             </form>
