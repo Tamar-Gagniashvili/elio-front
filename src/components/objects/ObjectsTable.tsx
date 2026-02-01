@@ -19,9 +19,8 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search, Package, Loader2, MoreHorizontal, Archive, Pencil } from 'lucide-react';
+import { Plus, Search, Package, Loader2, MoreHorizontal, Archive, Pencil, Upload } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ObjectEditor } from './ObjectEditor';
+import { ImportObjectsDialog } from './ImportObjectsDialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface ObjectsTableProps {
@@ -56,6 +56,7 @@ export function ObjectsTable({
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingObject, setEditingObject] = useState<BusinessObject | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
   const selectedType = objectTypes.find((t) => t.id === selectedTypeId);
@@ -287,10 +288,16 @@ export function ObjectsTable({
         </div>
 
         {isAdmin && selectedTypeId && (
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add {selectedType?.name || 'Object'}
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+            <Button onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add {selectedType?.name || 'Object'}
+            </Button>
+          </>
         )}
       </div>
 
@@ -425,6 +432,18 @@ export function ObjectsTable({
           }}
         />
       )}
+
+      <ImportObjectsDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        objectTypes={objectTypes}
+        fields={fields}
+        statuses={statuses}
+        onImportComplete={() => {
+          fetchObjects();
+          setImportOpen(false);
+        }}
+      />
     </div>
   );
 }
