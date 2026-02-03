@@ -2,10 +2,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { StickyNote, Trash2, Pin, Pencil, Clock, MessageSquare, Coffee } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ContactNote, getColorClasses } from './types';
+import { ContactNote, NoteStatus, getColorClasses } from './types';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface NotesGridViewProps {
   notes: ContactNote[];
+  statuses: NoteStatus[];
   editingNoteId: string | undefined;
   onEditNote: (note: ContactNote) => void;
   onDeleteNote: (noteId: string) => void;
@@ -15,6 +21,7 @@ interface NotesGridViewProps {
 
 export function NotesGridView({
   notes,
+  statuses,
   editingNoteId,
   onEditNote,
   onDeleteNote,
@@ -36,11 +43,15 @@ export function NotesGridView({
     );
   }
 
+  // Build status lookup
+  const statusMap = new Map(statuses.map(s => [s.id, s]));
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {notes.map((note) => {
         const colorClasses = getColorClasses(note.color || 'yellow');
         const isEditing = editingNoteId === note.id;
+        const noteStatus = note.status_id ? statusMap.get(note.status_id) : null;
         
         if (isEditing) return null;
         
@@ -65,6 +76,32 @@ export function NotesGridView({
             )}>
               <Pin className="h-5 w-5 fill-current drop-shadow-sm" style={{ transform: 'rotate(45deg)' }} />
             </div>
+
+            {/* Status badge - top right */}
+            {noteStatus && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div 
+                    className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-1"
+                    style={{ 
+                      backgroundColor: `${noteStatus.color}20`,
+                      color: noteStatus.color,
+                      borderColor: `${noteStatus.color}40`,
+                      borderWidth: '1px'
+                    }}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: noteStatus.color }}
+                    />
+                    <span className="truncate max-w-[60px]">{noteStatus.name}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{noteStatus.name}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             {/* Action buttons */}
             <div className="absolute top-1 right-1 flex gap-1 opacity-0 hover:opacity-100 transition-opacity">
