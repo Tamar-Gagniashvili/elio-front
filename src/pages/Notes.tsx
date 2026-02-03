@@ -21,30 +21,18 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StickyNote, Bell, Trash2, Plus, Clock, Pin, Pencil, CalendarIcon, User, Coffee, MessageSquare } from 'lucide-react';
-import { formatDistanceToNow, addMinutes, format, set } from 'date-fns';
+import { StickyNote, Bell, Plus, Clock, Pencil, CalendarIcon, User, Coffee, LayoutGrid, Kanban, Settings2 } from 'lucide-react';
+import { addMinutes, format, set } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Contact } from '@/lib/types';
+import { NotesKanbanBoard } from '@/components/notes/NotesKanbanBoard';
+import { ManageNoteStatusesDialog } from '@/components/notes/ManageNoteStatusesDialog';
+import { ContactNote, NoteStatus, NOTE_COLORS, getColorClasses } from '@/components/notes/types';
+import { useToast } from '@/hooks/use-toast';
 
-interface NoteContact {
-  id: string;
-  name: string | null;
-  avatar_url: string | null;
-  channel_type: string;
-}
-
-interface ContactNote {
-  id: string;
-  contact_id: string | null;
-  tenant_id: string;
-  created_by: string;
-  content: string;
-  color: string;
-  reminder_at: string | null;
-  reminder_shown: boolean;
-  created_at: string;
-  contact?: NoteContact | null;
-}
+// Note form component
+import { NoteFormCard } from '@/components/notes/NoteFormCard';
+import { NotesGridView } from '@/components/notes/NotesGridView';
 
 const REMINDER_OPTIONS_KEYS = [
   { value: 'none', key: 'notes.reminder.none' },
@@ -56,24 +44,14 @@ const REMINDER_OPTIONS_KEYS = [
   { value: 'custom', key: 'notes.reminder.custom' },
 ];
 
-const NOTE_COLORS = [
-  { value: 'yellow', bg: 'bg-yellow-100', border: 'border-yellow-300', pin: 'text-yellow-600', shadow: 'shadow-yellow-200/50' },
-  { value: 'pink', bg: 'bg-pink-100', border: 'border-pink-300', pin: 'text-pink-600', shadow: 'shadow-pink-200/50' },
-  { value: 'blue', bg: 'bg-blue-100', border: 'border-blue-300', pin: 'text-blue-600', shadow: 'shadow-blue-200/50' },
-  { value: 'green', bg: 'bg-green-100', border: 'border-green-300', pin: 'text-green-600', shadow: 'shadow-green-200/50' },
-  { value: 'purple', bg: 'bg-purple-100', border: 'border-purple-300', pin: 'text-purple-600', shadow: 'shadow-purple-200/50' },
-  { value: 'orange', bg: 'bg-orange-100', border: 'border-orange-300', pin: 'text-orange-600', shadow: 'shadow-orange-200/50' },
-];
-
-const getColorClasses = (color: string) => {
-  return NOTE_COLORS.find(c => c.value === color) || NOTE_COLORS[0];
-};
-
 export default function Notes() {
   const { t } = useTranslation();
   const { user, currentTenant } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
   const [notes, setNotes] = useState<ContactNote[]>([]);
+  const [statuses, setStatuses] = useState<NoteStatus[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [conversations, setConversations] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -85,12 +63,16 @@ export default function Notes() {
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [customTime, setCustomTime] = useState('12:00');
   const [selectedContactId, setSelectedContactId] = useState<string>('none');
+  const [selectedStatusId, setSelectedStatusId] = useState<string>('none');
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
+  const [showStatusesDialog, setShowStatusesDialog] = useState(false);
 
   useEffect(() => {
     if (currentTenant && user) {
       fetchNotes();
+      fetchStatuses();
       fetchContacts();
       fetchConversations();
     }
@@ -115,6 +97,22 @@ export default function Notes() {
       setNotes(data as ContactNote[]);
     }
     setIsLoading(false);
+  };
+
+  const fetchStatuses = async () => {
+    if (!currentTenant) return;
+    
+    const { data, error } = await supabase
+      .from('note_statuses')
+      .select('*')
+      .eq('tenant_id', currentTenant.id)
+      .order('display_order');
+
+    if (error) {
+      console.error('Error fetching statuses:', error);
+    } else {
+      setStatuses(data as NoteStatus[]);
+    }
   };
 
   const fetchContacts = async () => {
@@ -144,7 +142,6 @@ export default function Notes() {
     if (error) {
       console.error('Error fetching conversations:', error);
     } else {
-      // Map contact_id -> conversation_id for quick lookup
       const convMap: Record<string, string> = {};
       data?.forEach(conv => {
         if (conv.contact_id) {
@@ -185,6 +182,7 @@ export default function Notes() {
         content: newNote.trim(),
         color: selectedColor,
         reminder_at: reminderAt,
+        status_id: selectedStatusId === 'none' ? null : selectedStatusId,
       });
 
     if (error) {
@@ -218,6 +216,7 @@ export default function Notes() {
         color: selectedColor,
         reminder_at: reminderAt,
         contact_id: selectedContactId === 'none' ? null : selectedContactId,
+        status_id: selectedStatusId === 'none' ? null : selectedStatusId,
       })
       .eq('id', editingNote.id);
 
@@ -244,11 +243,32 @@ export default function Notes() {
     }
   };
 
+  const handleMoveNote = async (noteId: string, newStatusId: string | null) => {
+    const { error } = await supabase
+      .from('contact_notes')
+      .update({ status_id: newStatusId })
+      .eq('id', noteId);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to move note',
+        variant: 'destructive',
+      });
+    } else {
+      // Optimistic update
+      setNotes(prev => prev.map(n => 
+        n.id === noteId ? { ...n, status_id: newStatusId } : n
+      ));
+    }
+  };
+
   const handleEditNote = (note: ContactNote) => {
     setEditingNote(note);
     setNewNote(note.content);
     setSelectedColor(note.color || 'yellow');
     setSelectedContactId(note.contact_id || 'none');
+    setSelectedStatusId(note.status_id || 'none');
     setReminderOption('none');
     setCustomDate(undefined);
     setCustomTime('12:00');
@@ -262,6 +282,7 @@ export default function Notes() {
     setCustomTime('12:00');
     setSelectedColor('yellow');
     setSelectedContactId('none');
+    setSelectedStatusId('none');
     setIsAdding(false);
     setEditingNote(null);
   };
@@ -276,7 +297,7 @@ export default function Notes() {
   return (
     <AppLayout>
       <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-4xl mx-auto">
+        <div className={cn(viewMode === 'kanban' ? 'max-w-full' : 'max-w-4xl mx-auto')}>
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -288,267 +309,123 @@ export default function Notes() {
                 <p className="text-sm text-muted-foreground">{t('notes.subtitle')}</p>
               </div>
             </div>
-            <Button onClick={() => { resetForm(); setIsAdding(true); }} className="gap-2">
-              <Plus className="h-4 w-4" />
-              {t('notes.newNote')}
-            </Button>
-          </div>
-
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList>
-              <TabsTrigger value="all">{t('notes.allNotes')}</TabsTrigger>
-              <TabsTrigger value="personal" className="gap-2">
-                <Coffee className="h-4 w-4" />
-                {t('notes.personal')}
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="gap-2">
-                <User className="h-4 w-4" />
-                {t('notes.chatNotes')}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Add/Edit Note Form */}
-          {(isAdding || editingNote) && (() => {
-            const formColorClasses = getColorClasses(selectedColor);
-            return (
-              <div className={cn(
-                "mb-6 p-6 rounded-lg border-2 border-dashed transition-colors",
-                formColorClasses.bg,
-                formColorClasses.border,
-                "dark:bg-opacity-30"
-              )}>
-                <h3 className="font-semibold mb-4">{editingNote ? t('notes.editNote') : t('notes.newNote')}</h3>
-              
-              <Textarea
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                placeholder={t('notes.whatOnMind')}
-                className="min-h-[100px] resize-none bg-transparent border-none focus-visible:ring-0 text-base mb-4"
-                autoFocus
-              />
-
-              <div className="flex items-center gap-2 mb-4">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedContactId} onValueChange={setSelectedContactId}>
-                  <SelectTrigger className="flex-1 bg-background/50">
-                    <SelectValue placeholder={t('notes.assignToContact')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('notes.personalNote')}</SelectItem>
-                    {contacts.map(contact => (
-                      <SelectItem key={contact.id} value={contact.id}>
-                        {contact.name || contact.external_id || 'Unknown'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Color picker */}
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm text-muted-foreground">{t('notes.color')}:</span>
-                <div className="flex gap-1">
-                  {NOTE_COLORS.map((color) => (
-                    <button
-                      key={color.value}
-                      onClick={() => setSelectedColor(color.value)}
-                      className={cn(
-                        'w-6 h-6 rounded-full border-2 transition-transform hover:scale-110',
-                        color.bg,
-                        color.border,
-                        selectedColor === color.value && 'ring-2 ring-offset-1 ring-foreground scale-110'
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Reminder */}
-              <div className="flex items-center gap-2 mb-4">
-                <Bell className="h-4 w-4 text-muted-foreground" />
-                <Select value={reminderOption} onValueChange={setReminderOption}>
-                  <SelectTrigger className="flex-1 bg-background/50">
-                    <SelectValue placeholder={t('notes.setReminder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REMINDER_OPTIONS_KEYS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {t(option.key)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Custom date/time picker */}
-              {reminderOption === 'custom' && (
-                <div className="flex flex-col gap-2 p-3 rounded-md bg-background/50 border border-border mb-4">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "justify-start text-left font-normal",
-                          !customDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {customDate ? format(customDate, "PPP") : t('notes.reminder.pickDate')}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={customDate}
-                        onSelect={setCustomDate}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="time"
-                      value={customTime}
-                      onChange={(e) => setCustomTime(e.target.value)}
-                      className="flex-1 bg-background"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="ghost" onClick={resetForm}>
-                  {t('common.cancel')}
+            <div className="flex items-center gap-2">
+              {/* View mode toggle */}
+              <div className="flex items-center border rounded-lg p-0.5">
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Grid
                 </Button>
                 <Button
-                  onClick={editingNote ? handleUpdateNote : handleAddNote}
-                  disabled={!newNote.trim() || isSaving}
+                  variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setViewMode('kanban')}
                 >
-                  {editingNote ? t('common.update') : t('notes.pinIt')}
+                  <Kanban className="h-4 w-4" />
+                  Board
                 </Button>
               </div>
-            </div>
-            );
-          })()}
 
-          {/* Notes Grid */}
+              {viewMode === 'kanban' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowStatusesDialog(true)}
+                  className="gap-1.5"
+                >
+                  <Settings2 className="h-4 w-4" />
+                  Columns
+                </Button>
+              )}
+
+              <Button onClick={() => { resetForm(); setIsAdding(true); }} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t('notes.newNote')}
+              </Button>
+            </div>
+          </div>
+
+          {/* Tabs - only show in grid view */}
+          {viewMode === 'grid' && (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+              <TabsList>
+                <TabsTrigger value="all">{t('notes.allNotes')}</TabsTrigger>
+                <TabsTrigger value="personal" className="gap-2">
+                  <Coffee className="h-4 w-4" />
+                  {t('notes.personal')}
+                </TabsTrigger>
+                <TabsTrigger value="chat" className="gap-2">
+                  <User className="h-4 w-4" />
+                  {t('notes.chatNotes')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          {/* Add/Edit Note Form */}
+          {(isAdding || editingNote) && (
+            <NoteFormCard
+              isEditing={!!editingNote}
+              newNote={newNote}
+              setNewNote={setNewNote}
+              selectedColor={selectedColor}
+              setSelectedColor={setSelectedColor}
+              selectedContactId={selectedContactId}
+              setSelectedContactId={setSelectedContactId}
+              selectedStatusId={selectedStatusId}
+              setSelectedStatusId={setSelectedStatusId}
+              reminderOption={reminderOption}
+              setReminderOption={setReminderOption}
+              customDate={customDate}
+              setCustomDate={setCustomDate}
+              customTime={customTime}
+              setCustomTime={setCustomTime}
+              contacts={contacts}
+              statuses={statuses}
+              isSaving={isSaving}
+              onSave={editingNote ? handleUpdateNote : handleAddNote}
+              onCancel={resetForm}
+            />
+          )}
+
+          {/* Content */}
           {isLoading ? (
             <div className="text-center py-12 text-muted-foreground">Loading notes...</div>
-          ) : filteredNotes.length === 0 ? (
-            <div className="text-center py-12">
-              <StickyNote className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">
-                {activeTab === 'personal' 
-                  ? "No personal notes yet. Add one for yourself!" 
-                  : activeTab === 'chat'
-                  ? "No chat notes yet. Add notes to conversations!"
-                  : "No notes yet. Click 'New Note' to get started!"}
-              </p>
-            </div>
+          ) : viewMode === 'kanban' ? (
+            <NotesKanbanBoard
+              notes={filteredNotes}
+              statuses={statuses}
+              onMoveNote={handleMoveNote}
+              onEditNote={handleEditNote}
+              onDeleteNote={handleDeleteNote}
+              onNavigateToChat={navigateToChat}
+              conversations={conversations}
+            />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredNotes.map((note) => {
-                const colorClasses = getColorClasses(note.color || 'yellow');
-                const isEditing = editingNote?.id === note.id;
-                
-                if (isEditing) return null; // Hide while editing in form
-                
-                return (
-                  <div
-                    key={note.id}
-                    className={cn(
-                      'relative p-4 rounded-lg border-2 shadow-md transition-all hover:-rotate-1 hover:scale-[1.02]',
-                      colorClasses.bg,
-                      colorClasses.border,
-                      colorClasses.shadow,
-                      'dark:bg-opacity-30'
-                    )}
-                    style={{
-                      transform: `rotate(${(Math.random() - 0.5) * 2}deg)`,
-                    }}
-                  >
-                    {/* Pin */}
-                    <div className={cn(
-                      'absolute -top-2 left-1/2 -translate-x-1/2',
-                      colorClasses.pin
-                    )}>
-                      <Pin className="h-5 w-5 fill-current drop-shadow-sm" style={{ transform: 'rotate(45deg)' }} />
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="absolute top-1 right-1 flex gap-1 opacity-0 hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleEditNote(note)}
-                      >
-                        <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleDeleteNote(note.id)}
-                      >
-                        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                      </Button>
-                    </div>
-
-                    {/* Contact badge - clickable to go to chat */}
-                    {note.contact && note.contact_id && (
-                      <button
-                        onClick={() => navigateToChat(note.contact_id!)}
-                        className="mb-2 flex items-center gap-1 text-xs text-foreground/70 hover:text-foreground hover:underline transition-colors"
-                      >
-                        <MessageSquare className="h-3 w-3" />
-                        <span>{note.contact.name || 'Unknown'}</span>
-                      </button>
-                    )}
-                    
-                    {!note.contact_id && (
-                      <div className="mb-2 flex items-center gap-1 text-xs text-foreground/70">
-                        <Coffee className="h-3 w-3" />
-                        <span>Personal</span>
-                      </div>
-                    )}
-
-                    {/* Content */}
-                    <p className="text-sm whitespace-pre-wrap pt-1 text-foreground/90">
-                      {note.content}
-                    </p>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-current/10">
-                      <span className="text-[10px] text-foreground/60">
-                        {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
-                      </span>
-                      {note.reminder_at && (
-                        <span className={cn(
-                          'flex items-center gap-1 text-[10px]',
-                          !note.reminder_shown ? 'text-orange-600 font-medium' : 'text-foreground/60'
-                        )}>
-                          <Clock className="h-3 w-3" />
-                          {note.reminder_shown 
-                            ? 'Reminded' 
-                            : formatDistanceToNow(new Date(note.reminder_at), { addSuffix: true })
-                          }
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <NotesGridView
+              notes={filteredNotes}
+              editingNoteId={editingNote?.id}
+              onEditNote={handleEditNote}
+              onDeleteNote={handleDeleteNote}
+              onNavigateToChat={navigateToChat}
+              activeTab={activeTab}
+            />
           )}
         </div>
       </div>
+
+      <ManageNoteStatusesDialog
+        open={showStatusesDialog}
+        onOpenChange={setShowStatusesDialog}
+        statuses={statuses}
+        onStatusesChanged={fetchStatuses}
+      />
     </AppLayout>
   );
 }
