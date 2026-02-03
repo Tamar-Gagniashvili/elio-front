@@ -410,6 +410,7 @@ export default function Notes() {
           ) : (
             <NotesGridView
               notes={filteredNotes}
+              statuses={statuses}
               editingNoteId={editingNote?.id}
               onEditNote={handleEditNote}
               onDeleteNote={handleDeleteNote}
