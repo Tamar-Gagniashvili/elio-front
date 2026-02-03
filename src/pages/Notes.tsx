@@ -351,22 +351,21 @@ export default function Notes() {
             </div>
           </div>
 
-          {/* Tabs - only show in grid view */}
-          {viewMode === 'grid' && (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-              <TabsList>
-                <TabsTrigger value="all">{t('notes.allNotes')}</TabsTrigger>
-                <TabsTrigger value="personal" className="gap-2">
-                  <Coffee className="h-4 w-4" />
-                  {t('notes.personal')}
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="gap-2">
-                  <User className="h-4 w-4" />
-                  {t('notes.chatNotes')}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
+          {/* Tabs - show in both views */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList>
+              <TabsTrigger value="all">{t('notes.allNotes')}</TabsTrigger>
+              <TabsTrigger value="personal" className="gap-2">
+                <Coffee className="h-4 w-4" />
+                {t('notes.personal')}
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="gap-2">
+                <User className="h-4 w-4" />
+                {t('notes.chatNotes')}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
 
           {/* Add/Edit Note Form */}
           {(isAdding || editingNote) && (
