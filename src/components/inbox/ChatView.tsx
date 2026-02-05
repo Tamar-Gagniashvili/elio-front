@@ -54,6 +54,8 @@ interface ChatViewProps {
   onToggleAIAssistant?: () => void;
   showContactDetails?: boolean;
   onToggleContactDetails?: () => void;
+  pendingMessage?: string | null;
+  onClearPendingMessage?: () => void;
 }
 
 export function ChatView({ 
@@ -73,6 +75,8 @@ export function ChatView({
   onToggleAIAssistant,
   showContactDetails,
   onToggleContactDetails,
+  pendingMessage,
+  onClearPendingMessage,
 }: ChatViewProps) {
   const { t } = useTranslation();
   const [newMessage, setNewMessage] = useState('');
@@ -93,6 +97,14 @@ export function ChatView({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Handle pending message from AI assistant
+  useEffect(() => {
+    if (pendingMessage) {
+      setNewMessage(pendingMessage);
+      onClearPendingMessage?.();
+    }
+  }, [pendingMessage, onClearPendingMessage]);
 
   const handleSend = async () => {
     if ((!newMessage.trim() && !pendingMedia) || isSending) return;
