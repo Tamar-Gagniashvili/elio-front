@@ -1,3 +1,4 @@
+// Inbox page with AI assistant
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
