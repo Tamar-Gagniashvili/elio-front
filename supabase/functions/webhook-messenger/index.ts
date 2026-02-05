@@ -239,17 +239,39 @@ async function verifyFacebookSignature(req: Request, bodyText: string, appSecret
   return providedHash === expectedHash
 }
 
+// Get next sales rep with online-first priority
 async function getNextSalesRep(supabase: any, tenantId: string) {
   const { data: salesReps } = await supabase.from('tenant_memberships').select('user_id').eq('tenant_id', tenantId).eq('role', 'sales').eq('is_active', true).order('created_at', { ascending: true })
   if (!salesReps || salesReps.length === 0) return null
+
+  const allSalesUserIds = salesReps.map((s: { user_id: string }) => s.user_id)
+
+  // Check which sales reps are online (with 5 minute threshold)
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  const { data: onlinePresence } = await supabase
+    .from('user_presence')
+    .select('user_id')
+    .eq('tenant_id', tenantId)
+    .eq('is_online', true)
+    .gte('last_seen_at', fiveMinutesAgo)
+    .in('user_id', allSalesUserIds)
+
+  const onlineSalesUserIds = onlinePresence?.map((p: { user_id: string }) => p.user_id) || []
+  console.log(`Online sales reps: ${onlineSalesUserIds.length}/${allSalesUserIds.length}`)
+
+  // Choose pool: online first, fallback to all
+  const targetPool = onlineSalesUserIds.length > 0 ? onlineSalesUserIds : allSalesUserIds
+  const poolType = onlineSalesUserIds.length > 0 ? 'online' : 'all'
+
   let { data: distribution } = await supabase.from('chat_distribution').select('*').eq('tenant_id', tenantId).single()
   if (!distribution) {
     const { data: newDist } = await supabase.from('chat_distribution').insert({ tenant_id: tenantId, assignment_index: 0 }).select().single()
     distribution = newDist || { assignment_index: 0 }
   }
-  const nextIndex = distribution.assignment_index % salesReps.length
-  const nextSalesRep = salesReps[nextIndex].user_id
+  const nextIndex = distribution.assignment_index % targetPool.length
+  const nextSalesRep = targetPool[nextIndex]
   await supabase.from('chat_distribution').update({ assignment_index: distribution.assignment_index + 1, last_assigned_user_id: nextSalesRep, updated_at: new Date().toISOString() }).eq('id', distribution.id)
+  console.log(`Assigned to ${poolType} sales rep at index ${nextIndex}:`, nextSalesRep)
   return nextSalesRep
 }
 

@@ -1,6 +1,7 @@
 import { ReactNode, useState, useEffect, createContext, useContext } from 'react';
 import { AppSidebar } from './AppSidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useTeamPresence } from '@/hooks/useTeamPresence';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -21,6 +22,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
     return stored === 'true';
   });
+
+  // Initialize presence tracking for online-first lead assignment
+  useTeamPresence();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
