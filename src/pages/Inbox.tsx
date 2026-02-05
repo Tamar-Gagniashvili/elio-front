@@ -8,11 +8,13 @@ import { useContactStatuses } from '@/hooks/useContactStatuses';
 import { AppLayout, useSidebarState } from '@/components/layout/AppLayout';
 import { UnifiedConversationList } from '@/components/inbox/UnifiedConversationList';
 import { ChatView, ContactDetails } from '@/components/inbox/ChatView';
+import { AIAssistantPanel } from '@/components/inbox/AIAssistantPanel';
 import { InboxSubNav, InboxFilter } from '@/components/inbox/InboxSubNav';
 import { NotificationBanner } from '@/components/notifications/NotificationBanner';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 
 function InboxContent() {
@@ -35,6 +37,8 @@ function InboxContent() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [reassignerProfiles, setReassignerProfiles] = useState<Record<string, Profile>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [pendingChatMessage, setPendingChatMessage] = useState<string | null>(null);
   
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -618,9 +622,30 @@ function InboxContent() {
                 reassignerName={reassignerName}
                 onDismissReason={handleDismissReason}
                 tenantId={currentTenant?.id}
+                showAIAssistant={showAIAssistant}
+                onToggleAIAssistant={() => setShowAIAssistant(prev => !prev)}
               />
             </div>
-            <div className="w-72 hidden lg:block">
+            
+            {/* AI Assistant Panel */}
+            {showAIAssistant && (
+              <div className="w-80 hidden md:block">
+                <AIAssistantPanel
+                  conversation={selectedConversation}
+                  messages={messages}
+                  onSendToChat={(message) => {
+                    // Set the message as input in the chat
+                    setPendingChatMessage(message);
+                  }}
+                  onClose={() => setShowAIAssistant(false)}
+                />
+              </div>
+            )}
+            
+            <div className={cn(
+              "w-72 hidden",
+              showAIAssistant ? "xl:block" : "lg:block"
+            )}>
               <ContactDetails 
                 conversation={selectedConversation}
                 messages={messages}

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X, Sparkles } from 'lucide-react';
 import { ChatMediaUpload } from './ChatMediaUpload';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import {
@@ -27,6 +27,7 @@ import { ContactNotes } from './ContactNotes';
 import { ContactStatusesDisplay } from './ContactStatusesDisplay';
 import { ReassignDialog } from './ReassignDialog';
 import { LinkedObjectsPanel } from './LinkedObjectsPanel';
+import { AIAssistantPanel } from './AIAssistantPanel';
 
 import { useConversationObjects } from '@/hooks/useConversationObjects';
 
@@ -49,6 +50,8 @@ interface ChatViewProps {
   reassignerName?: string;
   onDismissReason?: () => void;
   tenantId?: string;
+  showAIAssistant?: boolean;
+  onToggleAIAssistant?: () => void;
 }
 
 export function ChatView({ 
@@ -64,6 +67,8 @@ export function ChatView({
   reassignerName,
   onDismissReason,
   tenantId,
+  showAIAssistant,
+  onToggleAIAssistant,
 }: ChatViewProps) {
   const { t } = useTranslation();
   const [newMessage, setNewMessage] = useState('');
@@ -157,9 +162,20 @@ export function ChatView({
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+        <div className="flex items-center gap-1">
+          <Button
+            variant={showAIAssistant ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={onToggleAIAssistant}
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">AI</span>
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -195,8 +211,9 @@ export function ChatView({
                 {t('inbox.markOpen')}
               </DropdownMenuItem>
             )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Reassign Dialog */}
