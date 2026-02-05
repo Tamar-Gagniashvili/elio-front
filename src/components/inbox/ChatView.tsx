@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X, Sparkles } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X, Sparkles, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { ChatMediaUpload } from './ChatMediaUpload';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import {
@@ -52,6 +52,8 @@ interface ChatViewProps {
   tenantId?: string;
   showAIAssistant?: boolean;
   onToggleAIAssistant?: () => void;
+  showContactDetails?: boolean;
+  onToggleContactDetails?: () => void;
 }
 
 export function ChatView({ 
@@ -69,6 +71,8 @@ export function ChatView({
   tenantId,
   showAIAssistant,
   onToggleAIAssistant,
+  showContactDetails,
+  onToggleContactDetails,
 }: ChatViewProps) {
   const { t } = useTranslation();
   const [newMessage, setNewMessage] = useState('');
@@ -171,6 +175,20 @@ export function ChatView({
           >
             <Sparkles className="h-4 w-4" />
             <span className="hidden sm:inline">AI</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleContactDetails}
+            className="hidden lg:flex"
+            title={showContactDetails ? "Hide contact details" : "Show contact details"}
+          >
+            {showContactDetails ? (
+              <PanelRightClose className="h-4 w-4" />
+            ) : (
+              <PanelRightOpen className="h-4 w-4" />
+            )}
           </Button>
 
           <DropdownMenu>
@@ -362,6 +380,7 @@ export function ContactDetails({
   onSelectConversation,
   tenantId,
   onSendToChat,
+  onClose,
 }: { 
   conversation: Conversation;
   messages?: Message[];
@@ -370,6 +389,7 @@ export function ContactDetails({
   onSelectConversation?: (conversation: Conversation) => void;
   tenantId?: string;
   onSendToChat?: (message: string) => void;
+  onClose?: () => void;
 }) {
   const { t } = useTranslation();
   const contact = conversation.contact;
@@ -390,10 +410,15 @@ export function ContactDetails({
 
   return (
     <div className="h-full bg-card border-l flex flex-col overflow-y-auto">
-      <div className="p-4 border-b">
+      <div className="p-4 border-b flex items-center justify-between">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
           {t('inbox.contactDetails')}
         </h3>
+        {onClose && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <div className="p-4 flex flex-col items-center">
