@@ -15,6 +15,26 @@ export function useTeamPresence() {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
 
+  // Sync online status to database for backend access
+  const syncPresenceToDb = useCallback(async (isOnline: boolean) => {
+    if (!currentTenant?.id || !user?.id) return;
+
+    try {
+      await supabase
+        .from('user_presence')
+        .upsert({
+          user_id: user.id,
+          tenant_id: currentTenant.id,
+          is_online: isOnline,
+          last_seen_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,tenant_id'
+        });
+    } catch (error) {
+      console.error('Error syncing presence to DB:', error);
+    }
+  }, [currentTenant?.id, user?.id]);
+
   useEffect(() => {
     if (!currentTenant?.id || !user?.id) return;
 
@@ -67,15 +87,44 @@ export function useTeamPresence() {
             user_id: user.id,
             online_at: new Date().toISOString(),
           });
+          // Sync to database when going online
+          await syncPresenceToDb(true);
         }
       });
 
     setChannel(presenceChannel);
 
-    return () => {
-      presenceChannel.unsubscribe();
+    // Handle page visibility changes and unload
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden') {
+        await syncPresenceToDb(false);
+      } else if (document.visibilityState === 'visible') {
+        await syncPresenceToDb(true);
+      }
     };
-  }, [currentTenant?.id, user?.id]);
+
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable offline sync on page close
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/user_presence?user_id=eq.${user.id}&tenant_id=eq.${currentTenant.id}`;
+      const body = JSON.stringify({
+        is_online: false,
+        last_seen_at: new Date().toISOString()
+      });
+      
+      navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      // Mark offline before unsubscribing
+      syncPresenceToDb(false);
+      presenceChannel.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentTenant?.id, user?.id, syncPresenceToDb]);
 
   const isOnline = useCallback((userId: string) => {
     return onlineUsers.has(userId);

@@ -393,8 +393,11 @@ async function verifyTelegramSignature(req: Request, channel: any): Promise<bool
   return secretToken === storedToken
 }
 
-// Get next sales rep using round-robin (fallback)
+// Get next sales rep with online-first priority
+// 1. Try to assign to online sales reps first (round-robin among online)
+// 2. If no one is online, fall back to all sales reps (round-robin)
 async function getNextSalesRep(supabase: any, tenantId: string) {
+  // Get all active sales reps
   const { data: salesReps, error: salesError } = await supabase
     .from('tenant_memberships')
     .select('user_id')
@@ -408,6 +411,30 @@ async function getNextSalesRep(supabase: any, tenantId: string) {
     return null
   }
 
+  const allSalesUserIds = salesReps.map((s: { user_id: string }) => s.user_id)
+
+  // Check which sales reps are online (with 5 minute threshold for stale presence)
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  
+  const { data: onlinePresence } = await supabase
+    .from('user_presence')
+    .select('user_id')
+    .eq('tenant_id', tenantId)
+    .eq('is_online', true)
+    .gte('last_seen_at', fiveMinutesAgo)
+    .in('user_id', allSalesUserIds)
+
+  const onlineSalesUserIds = onlinePresence?.map((p: { user_id: string }) => p.user_id) || []
+  
+  console.log(`Online sales reps: ${onlineSalesUserIds.length}/${allSalesUserIds.length}`)
+
+  // Choose which pool to use: online first, fallback to all
+  const targetPool = onlineSalesUserIds.length > 0 ? onlineSalesUserIds : allSalesUserIds
+  const poolType = onlineSalesUserIds.length > 0 ? 'online' : 'all'
+
+  console.log(`Using ${poolType} pool with ${targetPool.length} users`)
+
+  // Get or create distribution record
   let { data: distribution } = await supabase
     .from('chat_distribution')
     .select('*')
@@ -427,14 +454,16 @@ async function getNextSalesRep(supabase: any, tenantId: string) {
 
     if (distError) {
       console.error('Error creating distribution:', distError)
-      return salesReps[0].user_id
+      return targetPool[0]
     }
     distribution = newDist
   }
 
-  const nextIndex = distribution.assignment_index % salesReps.length
-  const nextSalesRep = salesReps[nextIndex].user_id
+  // Round-robin within the chosen pool
+  const nextIndex = distribution.assignment_index % targetPool.length
+  const nextSalesRep = targetPool[nextIndex]
 
+  // Update distribution
   await supabase
     .from('chat_distribution')
     .update({
@@ -444,7 +473,7 @@ async function getNextSalesRep(supabase: any, tenantId: string) {
     })
     .eq('id', distribution.id)
 
-  console.log(`Assigned to sales rep at index ${nextIndex}:`, nextSalesRep)
+  console.log(`Assigned to ${poolType} sales rep at index ${nextIndex}:`, nextSalesRep)
   return nextSalesRep
 }
 
