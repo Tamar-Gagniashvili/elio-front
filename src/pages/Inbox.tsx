@@ -628,6 +628,8 @@ function InboxContent() {
                 onToggleAIAssistant={() => setShowAIAssistant(prev => !prev)}
                 showContactDetails={showContactDetails}
                 onToggleContactDetails={() => setShowContactDetails(prev => !prev)}
+                pendingMessage={pendingChatMessage}
+                onClearPendingMessage={() => setPendingChatMessage(null)}
               />
             </div>
             
