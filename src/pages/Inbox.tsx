@@ -39,6 +39,7 @@ function InboxContent() {
   const [reassignerProfiles, setReassignerProfiles] = useState<Record<string, Profile>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showContactDetails, setShowContactDetails] = useState(true);
   const [pendingChatMessage, setPendingChatMessage] = useState<string | null>(null);
   
   const { toast } = useToast();
@@ -625,6 +626,8 @@ function InboxContent() {
                 tenantId={currentTenant?.id}
                 showAIAssistant={showAIAssistant}
                 onToggleAIAssistant={() => setShowAIAssistant(prev => !prev)}
+                showContactDetails={showContactDetails}
+                onToggleContactDetails={() => setShowContactDetails(prev => !prev)}
               />
             </div>
             
@@ -643,20 +646,23 @@ function InboxContent() {
               </div>
             )}
             
-            <div className={cn(
-              "w-72 hidden",
-              showAIAssistant ? "xl:block" : "lg:block"
-            )}>
-              <ContactDetails 
-                conversation={selectedConversation}
-                messages={messages}
-                linkedContacts={linkedContacts}
-                selectedGroup={selectedGroup}
-                onSelectConversation={setSelectedConversation}
-                tenantId={currentTenant?.id}
-                onSendToChat={(message) => handleSendMessage(message)}
-              />
-            </div>
+            {showContactDetails && (
+              <div className={cn(
+                "w-72 hidden",
+                showAIAssistant ? "xl:block" : "lg:block"
+              )}>
+                <ContactDetails 
+                  conversation={selectedConversation}
+                  messages={messages}
+                  linkedContacts={linkedContacts}
+                  selectedGroup={selectedGroup}
+                  onSelectConversation={setSelectedConversation}
+                  tenantId={currentTenant?.id}
+                  onSendToChat={(message) => handleSendMessage(message)}
+                  onClose={() => setShowContactDetails(false)}
+                />
+              </div>
+            )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-muted/30">
