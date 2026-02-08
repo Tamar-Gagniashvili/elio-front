@@ -114,11 +114,12 @@ export default function Auth() {
     }
   };
 
-  // Test accounts for quick switching
+  // Test accounts for quick switching - UPDATE PASSWORDS AS NEEDED
   const testAccounts = [
-    { label: 'Super Admin', email: 'superadmin@relink.ge', password: 'superadmin123' },
-    { label: 'Tenant 1 Owner', email: 'tenant1@gmail.com', password: 'tenant1' },
-    { label: 'Tenant 2 Owner', email: 'tenant2@gmail.com', password: 'tenant2' },
+    { label: 'Super Admin (Tamar)', email: 'tamar@insights.ge', password: '' },
+    { label: 'Tenant1 Owner', email: 'tenant1@gmail.com', password: '' },
+    { label: 'Tenant2 Owner', email: 'tenant2@gmail.com', password: '' },
+    { label: 'Sales1 (Tenant1)', email: 'sales1@gmail.com', password: '' },
   ];
 
   return (
