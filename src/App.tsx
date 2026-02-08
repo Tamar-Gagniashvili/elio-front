@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ReminderNotificationProvider } from "@/components/ReminderNotificationProvider";
+import { ProtectedFeatureRoute } from "@/components/ProtectedFeatureRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
@@ -33,14 +34,42 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/inbox" element={<Inbox />} />
-              <Route path="/contacts" element={<Contacts />} />
-              <Route path="/notes" element={<Notes />} />
-              <Route path="/statuses" element={<Statuses />} />
-              <Route path="/rules" element={<Rules />} />
-              <Route path="/channels" element={<Channels />} />
+              <Route path="/inbox" element={
+                <ProtectedFeatureRoute feature="inbox">
+                  <Inbox />
+                </ProtectedFeatureRoute>
+              } />
+              <Route path="/contacts" element={
+                <ProtectedFeatureRoute feature="contacts">
+                  <Contacts />
+                </ProtectedFeatureRoute>
+              } />
+              <Route path="/notes" element={
+                <ProtectedFeatureRoute feature="notes">
+                  <Notes />
+                </ProtectedFeatureRoute>
+              } />
+              <Route path="/statuses" element={
+                <ProtectedFeatureRoute feature="statuses">
+                  <Statuses />
+                </ProtectedFeatureRoute>
+              } />
+              <Route path="/rules" element={
+                <ProtectedFeatureRoute feature="rules">
+                  <Rules />
+                </ProtectedFeatureRoute>
+              } />
+              <Route path="/channels" element={
+                <ProtectedFeatureRoute feature="channels">
+                  <Channels />
+                </ProtectedFeatureRoute>
+              } />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/objects" element={<Objects />} />
+              <Route path="/objects" element={
+                <ProtectedFeatureRoute feature="objects">
+                  <Objects />
+                </ProtectedFeatureRoute>
+              } />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
