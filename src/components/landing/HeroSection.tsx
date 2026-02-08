@@ -1,8 +1,18 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, MessageCircle, Users, Bell, TrendingUp, CheckCircle, Send } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import appScreenshot from '@/assets/landing/app-screenshot.png';
+import channelsMockup from '@/assets/landing/channels-mockup.png';
+import inboxMockup from '@/assets/landing/inbox-mockup.png';
+
+// Demo screens data
+const demoScreens = [
+  { src: inboxMockup, alt: 'ReLink Inbox - Unified Messaging' },
+  { src: appScreenshot, alt: 'ReLink Dashboard - Overview' },
+  { src: channelsMockup, alt: 'ReLink Channels - Multi-platform' },
+];
 
 // Floating card component
 function FloatingCard({ 
@@ -41,6 +51,16 @@ function FloatingCard({
 }
 
 export default function HeroSection() {
+  const [currentScreen, setCurrentScreen] = useState(0);
+
+  // Auto-cycle through screens
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentScreen((prev) => (prev + 1) % demoScreens.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   const scrollToContact = () => {
     document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -250,21 +270,36 @@ export default function HeroSection() {
                     </div>
                   </div>
                   
-                  {/* Screenshot with scroll animation */}
-                  <div className="overflow-hidden rounded-b-lg h-[340px] relative">
-                    <motion.img 
-                      src={appScreenshot} 
-                      alt="ReLink Inbox Interface" 
-                      className="w-full"
-                      initial={{ y: 0 }}
-                      animate={{ y: [0, -200, -200, 0, 0] }}
-                      transition={{
-                        duration: 12,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        times: [0, 0.35, 0.5, 0.85, 1]
-                      }}
-                    />
+                  {/* Screenshot slideshow */}
+                  <div className="overflow-hidden rounded-b-lg h-[340px] relative bg-background">
+                    <AnimatePresence mode="wait">
+                      <motion.img 
+                        key={currentScreen}
+                        src={demoScreens[currentScreen].src} 
+                        alt={demoScreens[currentScreen].alt}
+                        className="w-full h-full object-cover object-top absolute inset-0"
+                        initial={{ opacity: 0, scale: 1.02 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.98 }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                      />
+                    </AnimatePresence>
+                    
+                    {/* Slide indicators */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                      {demoScreens.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentScreen(index)}
+                          className={`h-1.5 rounded-full transition-all duration-300 ${
+                            index === currentScreen 
+                              ? 'w-6 bg-primary' 
+                              : 'w-1.5 bg-foreground/30 hover:bg-foreground/50'
+                          }`}
+                          aria-label={`Go to slide ${index + 1}`}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
                 
