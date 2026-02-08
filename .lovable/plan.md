@@ -1,163 +1,191 @@
 
-# Simple Landing Page Implementation Plan
+
+# Feature Permissions Management for Tenants
 
 ## Overview
-Create a clean, minimal landing page for ReLink with three main sections: **Hero**, **Features**, and **Contact**. The page will be displayed to non-authenticated visitors at the root URL (`/`), while authenticated users will continue to be redirected to their dashboard.
 
-## Architecture
+This plan implements a comprehensive feature permission system that allows the Super Admin to control which modules/features each tenant can access. This creates a flexible SaaS model where different tenants can have different feature sets based on their subscription or needs.
 
-### Routing Changes
-Update `src/pages/Index.tsx` to render the landing page when the user is not logged in, instead of redirecting to `/auth`.
+## Features to Control
 
-### New Files Structure
-```text
-src/
-  pages/
-    Landing.tsx                    # Main landing page container
-  components/
-    landing/
-      LandingHeader.tsx            # Navigation with logo, login button
-      HeroSection.tsx              # Main hero with headline and CTAs
-      FeaturesSection.tsx          # 4 feature cards in a grid
-      ContactSection.tsx           # Contact email display
-      LandingFooter.tsx            # Simple footer with copyright
+Based on the current navigation structure, these features will be controllable per tenant:
+
+| Feature Key | Display Name | Description |
+|-------------|--------------|-------------|
+| `inbox` | Inbox | Conversation management and chat |
+| `contacts` | Contacts | Lead/contact management |
+| `objects` | Inventory | Custom object types and records |
+| `notes` | Notes | Team notes with Kanban board |
+| `statuses` | Statuses | Lead status management |
+| `rules` | Rules | Automation rules engine |
+| `channels` | Channels | Channel configuration |
+
+**Note:** Settings will always be available as it's essential for basic operations.
+
+## Implementation Steps
+
+### 1. Database Schema Update
+
+Add a new `enabled_features` column to the `tenants` table:
+
+```sql
+ALTER TABLE public.tenants 
+ADD COLUMN enabled_features text[] DEFAULT ARRAY['inbox', 'contacts', 'channels', 'settings']::text[];
 ```
 
+This stores feature keys as an array with sensible defaults for new tenants.
+
+### 2. Type Definitions
+
+Update `src/lib/types.ts`:
+
+- Add `TenantFeature` type with all controllable features
+- Add `ALL_FEATURES` constant array
+- Add `FEATURE_CONFIG` with display labels and icons
+- Update `Tenant` interface to include `enabled_features`
+
+### 3. Super Admin Dashboard Updates
+
+#### A. TenantDetailsDialog Enhancement
+
+Add a new "Features" tab to the tenant details dialog:
+- Display all available features with checkboxes
+- Show feature descriptions
+- Allow toggling features on/off
+- Save changes to the database
+
+#### B. CreateTenantDialog Enhancement
+
+Add a "Features" section:
+- Let Super Admin select which features to enable when creating a tenant
+- Default to core features (inbox, contacts, channels)
+
+### 4. Sidebar Navigation Filtering
+
+Update `src/components/layout/AppSidebar.tsx`:
+
+- Access `currentTenant.enabled_features` from auth context
+- Filter `navItems` to only show enabled features
+- Settings always visible regardless of feature settings
+
+### 5. Route Protection
+
+Update each protected page to check feature access:
+
+- If user navigates to a disabled feature route, redirect to first available feature
+- Show appropriate message or redirect
+
+### 6. Feature Access Hook (Optional Enhancement)
+
+Create `src/hooks/useFeatureAccess.tsx`:
+- Centralized logic for checking feature permissions
+- `hasFeature(featureKey)` function
+- `getAvailableFeatures()` function
+
 ---
 
-## Section Details
+## Technical Details
 
-### 1. LandingHeader
-- ReLink infinity logo on the left
-- "Login" button on the right linking to `/auth`
-- Clean, minimal design with white/transparent background
-- Sticky on scroll with subtle backdrop blur
+### Database Migration
 
-### 2. HeroSection
-- Large headline: **"Unify Your Sales Conversations"**
-- Subheadline explaining the value proposition
-- Two CTAs:
-  - "Get Started" (primary button, links to `/auth`)
-  - "Contact Us" (secondary/outline button, scrolls to contact section)
-- Gradient background accent matching the brand teal color
+```sql
+-- Add enabled_features column with defaults
+ALTER TABLE public.tenants 
+ADD COLUMN enabled_features text[] DEFAULT ARRAY['inbox', 'contacts', 'channels']::text[];
 
-### 3. FeaturesSection
-- Section title: **"Everything You Need to Sell"**
-- 4 feature cards in a responsive grid:
-  1. **Multi-Channel Inbox** - Connect WhatsApp, Telegram, Instagram, Messenger
-  2. **Business Objects** - Link inventory/products to conversations
-  3. **Team Collaboration** - Routing rules, assignments, handoffs
-  4. **Notes & Reminders** - Personal notes for every conversation
-- Each card has: Icon (Lucide), title, short description
-- Clean white cards with subtle shadows
+-- Update existing tenants to have all features enabled
+UPDATE public.tenants 
+SET enabled_features = ARRAY['inbox', 'contacts', 'objects', 'notes', 'statuses', 'rules', 'channels']
+WHERE enabled_features IS NULL OR enabled_features = '{}';
+```
 
-### 4. ContactSection
-- Heading: **"Get in Touch"**
-- Subheading: "Have questions? We'd love to hear from you."
-- Display contact email prominently (e.g., `contact@relink.io`)
-- Clean, centered layout with a subtle background
+### Type Updates
 
-### 5. LandingFooter
-- Copyright text: "2025 ReLink. All rights reserved."
-- Simple, minimal design
+```typescript
+// In src/lib/types.ts
+export type TenantFeature = 
+  | 'inbox' 
+  | 'contacts' 
+  | 'objects' 
+  | 'notes' 
+  | 'statuses' 
+  | 'rules' 
+  | 'channels';
 
----
+export const ALL_FEATURES: TenantFeature[] = [
+  'inbox', 
+  'contacts', 
+  'objects', 
+  'notes', 
+  'statuses', 
+  'rules', 
+  'channels'
+];
 
-## Technical Implementation
+export const FEATURE_CONFIG: Record<TenantFeature, { 
+  label: string; 
+  description: string; 
+  icon: string 
+}> = {
+  inbox: { 
+    label: 'Inbox', 
+    description: 'Conversation management', 
+    icon: 'Inbox' 
+  },
+  contacts: { 
+    label: 'Contacts', 
+    description: 'Lead management', 
+    icon: 'Users' 
+  },
+  // ... etc
+};
 
-### Index.tsx Changes
-Modify the routing logic to show the Landing page for non-authenticated users:
-
-```tsx
-// If not logged in, show landing page instead of redirecting
-if (!user && !loading) {
-  return <Landing />;
+export interface Tenant {
+  // ... existing fields
+  enabled_features?: TenantFeature[];
 }
 ```
 
-### Translations (English only for now)
-Add new keys to `src/i18n/locales/en.json`:
+### Sidebar Filtering Logic
 
-```json
-{
-  "landing": {
-    "hero": {
-      "title": "Unify Your Sales Conversations",
-      "subtitle": "Manage WhatsApp, Telegram, Instagram and more in one powerful inbox. Close deals faster with context at your fingertips.",
-      "getStarted": "Get Started",
-      "contactUs": "Contact Us"
-    },
-    "features": {
-      "title": "Everything You Need to Sell",
-      "multichannel": {
-        "title": "Multi-Channel Inbox",
-        "description": "Connect WhatsApp, Telegram, Instagram, Messenger and more. All conversations in one place."
-      },
-      "inventory": {
-        "title": "Business Objects",
-        "description": "Link your inventory, products, or properties directly to conversations for instant context."
-      },
-      "collaboration": {
-        "title": "Team Collaboration",
-        "description": "Smart routing rules, team assignments, and handoffs to close deals faster."
-      },
-      "notes": {
-        "title": "Notes & Reminders",
-        "description": "Never forget a follow-up. Personal notes and reminders for every conversation."
-      }
-    },
-    "contact": {
-      "title": "Get in Touch",
-      "subtitle": "Have questions? We'd love to hear from you.",
-      "emailUs": "Email us at"
-    },
-    "footer": {
-      "copyright": "2025 ReLink. All rights reserved.",
-      "login": "Login"
-    }
-  }
-}
+```typescript
+// In AppSidebar.tsx
+const enabledFeatures = currentTenant?.enabled_features || ['inbox', 'contacts', 'channels'];
+
+const filteredNavItems = navItems.filter(item => {
+  // Settings always visible
+  if (item.href === '/settings') return true;
+  
+  // Check if feature is enabled
+  const featureKey = item.href.replace('/', '');
+  return enabledFeatures.includes(featureKey as TenantFeature);
+});
 ```
 
-### Styling
-- Use existing Tailwind CSS design system and CSS variables
-- Primary teal gradient for CTAs (using `gradient-primary` utility)
-- White cards with `shadow-sm` and `rounded-lg`
-- Plus Jakarta Sans font (already configured)
-- Smooth scroll behavior for "Contact Us" button
-- Responsive design: stack on mobile, grid on desktop
+---
 
-### Icons Used (Lucide)
-- `MessageSquare` - Multi-channel inbox
-- `Package` - Business objects/inventory
-- `Users` - Team collaboration
-- `StickyNote` - Notes & reminders
-- `Mail` - Contact email
+## Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/lib/types.ts` | Modify | Add TenantFeature type, ALL_FEATURES, FEATURE_CONFIG |
+| `src/components/admin/TenantDetailsDialog.tsx` | Modify | Add Features tab with toggles |
+| `src/components/admin/CreateTenantDialog.tsx` | Modify | Add Features section |
+| `src/components/layout/AppSidebar.tsx` | Modify | Filter nav items by enabled features |
+| `src/hooks/useFeatureAccess.tsx` | Create | Centralized feature access logic |
+| Database migration | Create | Add enabled_features column |
 
 ---
 
-## Implementation Order
+## User Experience
 
-1. Create `src/components/landing/` directory
-2. Create `LandingHeader.tsx` - Navigation with logo and login
-3. Create `HeroSection.tsx` - Hero with headline and CTAs
-4. Create `FeaturesSection.tsx` - Feature cards grid
-5. Create `ContactSection.tsx` - Contact email display
-6. Create `LandingFooter.tsx` - Simple footer
-7. Create `src/pages/Landing.tsx` - Main container composing all sections
-8. Update `src/pages/Index.tsx` - Show Landing for unauthenticated users
-9. Update `src/i18n/locales/en.json` - Add landing translations
+### For Super Admin
+1. When creating a tenant → select which features to enable
+2. When editing a tenant → toggle features on/off in dedicated "Features" tab
+3. Clear visual representation of enabled vs disabled features
 
----
+### For Tenant Users
+1. Sidebar only shows enabled features
+2. Attempting to navigate to disabled feature → redirect to available feature
+3. Seamless experience with no awareness of disabled features
 
-## Responsive Breakpoints
-- **Mobile (< 640px)**: Single column, stacked layout
-- **Tablet (640px - 1024px)**: 2-column feature grid
-- **Desktop (> 1024px)**: 4-column feature grid, side-by-side hero layout
-
-## Dependencies
-No new dependencies needed - using existing:
-- React Router for navigation
-- Tailwind CSS for styling
-- Lucide React for icons
-- i18next for translations (English only for now)
