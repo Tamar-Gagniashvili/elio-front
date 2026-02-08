@@ -3,6 +3,68 @@ export type ConversationStatus = 'open' | 'assigned' | 'resolved' | 'archived';
 export type MessageSenderType = 'contact' | 'agent' | 'system';
 export type AppRole = 'super_admin' | 'owner' | 'admin' | 'sales';
 
+// Feature permissions for tenants
+export type TenantFeature = 
+  | 'inbox' 
+  | 'contacts' 
+  | 'objects' 
+  | 'notes' 
+  | 'statuses' 
+  | 'rules' 
+  | 'channels';
+
+export const ALL_FEATURES: TenantFeature[] = [
+  'inbox', 
+  'contacts', 
+  'objects', 
+  'notes', 
+  'statuses', 
+  'rules', 
+  'channels'
+];
+
+export const FEATURE_CONFIG: Record<TenantFeature, { 
+  label: string; 
+  description: string; 
+  icon: string 
+}> = {
+  inbox: { 
+    label: 'Inbox', 
+    description: 'Conversation management and chat', 
+    icon: 'Inbox' 
+  },
+  contacts: { 
+    label: 'Contacts', 
+    description: 'Lead and contact management', 
+    icon: 'Users' 
+  },
+  objects: { 
+    label: 'Inventory', 
+    description: 'Custom object types and records', 
+    icon: 'Package' 
+  },
+  notes: { 
+    label: 'Notes', 
+    description: 'Team notes with Kanban board', 
+    icon: 'StickyNote' 
+  },
+  statuses: { 
+    label: 'Statuses', 
+    description: 'Lead status management', 
+    icon: 'Tag' 
+  },
+  rules: { 
+    label: 'Rules', 
+    description: 'Automation rules engine', 
+    icon: 'Zap' 
+  },
+  channels: { 
+    label: 'Channels', 
+    description: 'Channel configuration', 
+    icon: 'Plug' 
+  },
+};
+
 export interface Tenant {
   id: string;
   name: string;
@@ -10,6 +72,7 @@ export interface Tenant {
   logo_url?: string;
   pricing_monthly?: number;
   enabled_channels?: ChannelType[];
+  enabled_features?: TenantFeature[];
   is_active?: boolean;
   created_at: string;
   updated_at: string;

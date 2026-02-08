@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { TenantFeature } from '@/lib/types';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -34,14 +36,22 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-const navItems = [
-  { href: '/inbox', labelKey: 'nav.inbox', icon: Inbox },
-  { href: '/contacts', labelKey: 'nav.contacts', icon: Users },
-  { href: '/objects', labelKey: 'nav.inventory', icon: Package },
-  { href: '/notes', labelKey: 'nav.notes', icon: StickyNote },
-  { href: '/statuses', labelKey: 'nav.statuses', icon: Tag },
-  { href: '/rules', labelKey: 'nav.rules', icon: Zap, adminOnly: true },
-  { href: '/channels', labelKey: 'nav.channels', icon: Plug },
+interface NavItem {
+  href: string;
+  labelKey: string;
+  icon: any;
+  featureKey?: TenantFeature;
+  adminOnly?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { href: '/inbox', labelKey: 'nav.inbox', icon: Inbox, featureKey: 'inbox' },
+  { href: '/contacts', labelKey: 'nav.contacts', icon: Users, featureKey: 'contacts' },
+  { href: '/objects', labelKey: 'nav.inventory', icon: Package, featureKey: 'objects' },
+  { href: '/notes', labelKey: 'nav.notes', icon: StickyNote, featureKey: 'notes' },
+  { href: '/statuses', labelKey: 'nav.statuses', icon: Tag, featureKey: 'statuses' },
+  { href: '/rules', labelKey: 'nav.rules', icon: Zap, featureKey: 'rules', adminOnly: true },
+  { href: '/channels', labelKey: 'nav.channels', icon: Plug, featureKey: 'channels' },
   { href: '/settings', labelKey: 'nav.settings', icon: Settings },
 ];
 
@@ -54,8 +64,23 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const location = useLocation();
   const { t } = useTranslation();
   const { profile, currentTenant, currentMembership, memberships, signOut, setCurrentTenant } = useAuth();
+  const { hasFeature } = useFeatureAccess();
 
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
+
+  // Filter nav items by enabled features and admin-only check
+  const filteredNavItems = navItems.filter((item) => {
+    // Settings is always visible
+    if (item.href === '/settings') return true;
+    
+    // Check admin-only restriction
+    if (item.adminOnly && !isAdmin) return false;
+    
+    // Check feature permission
+    if (item.featureKey && !hasFeature(item.featureKey)) return false;
+    
+    return true;
+  });
 
   return (
     <aside 
@@ -142,9 +167,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-2 space-y-1">
-        {navItems
-          .filter((item) => !item.adminOnly || isAdmin)
-          .map((item) => {
+        {filteredNavItems.map((item) => {
             const isActive = location.pathname === item.href;
             const Icon = item.icon;
             const label = t(item.labelKey);
