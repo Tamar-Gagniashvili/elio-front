@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
+// Extend ServiceWorkerRegistration to include pushManager
+declare global {
+  interface ServiceWorkerRegistration {
+    pushManager: PushManager;
+  }
+}
+
 // VAPID public key - this should match your VAPID_PUBLIC_KEY secret
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
