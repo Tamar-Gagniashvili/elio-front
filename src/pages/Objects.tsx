@@ -113,7 +113,7 @@ export default function Objects() {
   return (
     <AppLayout>
       <div className="flex flex-col h-full">
-        <div className="border-b px-6 py-4">
+        <div className="border-b px-4 py-3">
           <h1 className="text-2xl font-bold">{t('objects.title')}</h1>
           <p className="text-muted-foreground text-sm">
             {t('objects.subtitle')}
@@ -121,7 +121,7 @@ export default function Objects() {
         </div>
 
         <Tabs defaultValue={isAdmin ? "types" : "inventory"} className="flex-1 flex flex-col">
-          <div className="border-b px-6">
+          <div className="border-b px-4">
             <TabsList className="h-12">
               {isAdmin && (
                 <TabsTrigger value="types" className="data-[state=active]:bg-background">
