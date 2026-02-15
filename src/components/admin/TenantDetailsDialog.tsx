@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Tenant, TenantMembership, Profile, ChannelType, ALL_CHANNELS, CHANNEL_CONFIG, AppRole, TenantFeature, ALL_FEATURES, FEATURE_CONFIG } from '@/lib/types';
+import { Tenant, TenantMembership, Profile, ChannelType, ALL_CHANNELS, CHANNEL_CONFIG, AppRole } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, UserPlus, Save, Inbox, Users, Package, StickyNote, Tag, Zap, Plug } from 'lucide-react';
+import { Loader2, Plus, UserPlus, Save } from 'lucide-react';
 
 interface TenantDetailsDialogProps {
   tenant: Tenant | null;
@@ -34,7 +33,6 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
   const [name, setName] = useState('');
   const [pricingMonthly, setPricingMonthly] = useState('0');
   const [enabledChannels, setEnabledChannels] = useState<ChannelType[]>([]);
-  const [enabledFeatures, setEnabledFeatures] = useState<TenantFeature[]>([]);
   
   // New member form
   const [showAddMember, setShowAddMember] = useState(false);
@@ -49,7 +47,6 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
       setName(tenant.name);
       setPricingMonthly(String(tenant.pricing_monthly || 0));
       setEnabledChannels((tenant.enabled_channels as ChannelType[]) || ['web_chat']);
-      setEnabledFeatures((tenant.enabled_features as TenantFeature[]) || ['inbox', 'contacts', 'channels']);
       fetchMembers();
     }
   }, [tenant]);
@@ -99,21 +96,6 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
     );
   };
 
-  const handleFeatureToggle = (feature: TenantFeature) => {
-    setEnabledFeatures(prev => 
-      prev.includes(feature) 
-        ? prev.filter(f => f !== feature)
-        : [...prev, feature]
-    );
-  };
-
-  const getFeatureIcon = (iconName: string) => {
-    const icons: Record<string, any> = {
-      Inbox, Users, Package, StickyNote, Tag, Zap, Plug
-    };
-    return icons[iconName] || Inbox;
-  };
-
   const handleSave = async () => {
     if (!tenant) return;
     
@@ -124,7 +106,6 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
         name,
         pricing_monthly: parseFloat(pricingMonthly) || 0,
         enabled_channels: enabledChannels,
-        enabled_features: enabledFeatures,
       })
       .eq('id', tenant.id);
 
@@ -195,9 +176,8 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="features">Features</TabsTrigger>
             <TabsTrigger value="team">Team Members</TabsTrigger>
           </TabsList>
 
@@ -255,58 +235,6 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
                   <>
                     <Save className="mr-2 h-4 w-4" />
                     Save Changes
-                  </>
-                )}
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="features" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Control which features this tenant can access. Settings is always available.
-              </p>
-              
-              <div className="space-y-3">
-                {ALL_FEATURES.map((feature) => {
-                  const config = FEATURE_CONFIG[feature];
-                  const IconComponent = getFeatureIcon(config.icon);
-                  const isEnabled = enabledFeatures.includes(feature);
-                  
-                  return (
-                    <div 
-                      key={feature} 
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-md ${isEnabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                          <IconComponent className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{config.label}</p>
-                          <p className="text-sm text-muted-foreground">{config.description}</p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={isEnabled}
-                        onCheckedChange={() => handleFeatureToggle(feature)}
-                        disabled={isSaving}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              <Button onClick={handleSave} disabled={isSaving} className="w-full">
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Features
                   </>
                 )}
               </Button>

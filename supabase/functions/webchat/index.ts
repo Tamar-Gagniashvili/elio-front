@@ -299,7 +299,7 @@ async function evaluateRoutingRules(
   return { assignedTo: finalAssignedTo }
 }
 
-// Get next sales rep with online-first priority
+// Get next sales rep using round-robin (fallback when no rules match)
 async function getNextSalesRep(supabase: any, tenantId: string) {
   const { data: salesReps, error: salesError } = await supabase
     .from('tenant_memberships')
@@ -313,29 +313,6 @@ async function getNextSalesRep(supabase: any, tenantId: string) {
     console.log('No sales reps found for tenant:', tenantId)
     return null
   }
-
-  const allSalesUserIds = salesReps.map((s: { user_id: string }) => s.user_id)
-
-  // Check which sales reps are online (with 5 minute threshold for stale presence)
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-  
-  const { data: onlinePresence } = await supabase
-    .from('user_presence')
-    .select('user_id')
-    .eq('tenant_id', tenantId)
-    .eq('is_online', true)
-    .gte('last_seen_at', fiveMinutesAgo)
-    .in('user_id', allSalesUserIds)
-
-  const onlineSalesUserIds = onlinePresence?.map((p: { user_id: string }) => p.user_id) || []
-  
-  console.log(`Online sales reps: ${onlineSalesUserIds.length}/${allSalesUserIds.length}`)
-
-  // Choose which pool to use: online first, fallback to all
-  const targetPool = onlineSalesUserIds.length > 0 ? onlineSalesUserIds : allSalesUserIds
-  const poolType = onlineSalesUserIds.length > 0 ? 'online' : 'all'
-
-  console.log(`Using ${poolType} pool with ${targetPool.length} users`)
 
   let { data: distribution } = await supabase
     .from('chat_distribution')
@@ -356,14 +333,13 @@ async function getNextSalesRep(supabase: any, tenantId: string) {
 
     if (distError) {
       console.error('Error creating distribution:', distError)
-      return targetPool[0]
+      return salesReps[0].user_id
     }
     distribution = newDist
   }
 
-  // Round-robin within the chosen pool
-  const nextIndex = distribution.assignment_index % targetPool.length
-  const nextSalesRep = targetPool[nextIndex]
+  const nextIndex = distribution.assignment_index % salesReps.length
+  const nextSalesRep = salesReps[nextIndex].user_id
 
   await supabase
     .from('chat_distribution')
@@ -374,7 +350,6 @@ async function getNextSalesRep(supabase: any, tenantId: string) {
     })
     .eq('id', distribution.id)
 
-  console.log(`Assigned to ${poolType} sales rep at index ${nextIndex}:`, nextSalesRep)
   return nextSalesRep
 }
 

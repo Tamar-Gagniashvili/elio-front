@@ -97,31 +97,6 @@ export default function Auth() {
     );
   }
 
-  // Quick login for testing
-  const handleQuickLogin = async (testEmail: string, testPassword: string) => {
-    setIsLoading(true);
-    const { error } = await signIn(testEmail, testPassword);
-    setIsLoading(false);
-
-    if (error) {
-      toast({
-        title: 'Login failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      navigate('/');
-    }
-  };
-
-  // Test accounts for quick switching - UPDATE PASSWORDS AS NEEDED
-  const testAccounts = [
-    { label: 'Super Admin (Tamar)', email: 'tamar@insights.ge', password: '' },
-    { label: 'Tenant1 Owner', email: 'tenant1@gmail.com', password: '' },
-    { label: 'Tenant2 Owner', email: 'tenant2@gmail.com', password: '' },
-    { label: 'Sales1 (Tenant1)', email: 'sales1@gmail.com', password: '' },
-  ];
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
@@ -182,26 +157,6 @@ export default function Auth() {
                 )}
               </Button>
             </form>
-
-            {/* Quick Login for Testing */}
-            <div className="mt-6 pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-3 text-center">Quick Login (Testing)</p>
-              <div className="space-y-2">
-                {testAccounts.map((account) => (
-                  <Button
-                    key={account.email}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    disabled={isLoading}
-                    onClick={() => handleQuickLogin(account.email, account.password)}
-                  >
-                    {account.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

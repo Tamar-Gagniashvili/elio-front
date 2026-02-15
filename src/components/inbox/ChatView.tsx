@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Conversation, Message, Contact } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { useAuth } from '@/hooks/useAuth';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
@@ -12,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X, Sparkles, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X } from 'lucide-react';
 import { ChatMediaUpload } from './ChatMediaUpload';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import {
@@ -28,7 +27,6 @@ import { ContactNotes } from './ContactNotes';
 import { ContactStatusesDisplay } from './ContactStatusesDisplay';
 import { ReassignDialog } from './ReassignDialog';
 import { LinkedObjectsPanel } from './LinkedObjectsPanel';
-import { AIAssistantPanel } from './AIAssistantPanel';
 
 import { useConversationObjects } from '@/hooks/useConversationObjects';
 
@@ -51,12 +49,6 @@ interface ChatViewProps {
   reassignerName?: string;
   onDismissReason?: () => void;
   tenantId?: string;
-  showAIAssistant?: boolean;
-  onToggleAIAssistant?: () => void;
-  showContactDetails?: boolean;
-  onToggleContactDetails?: () => void;
-  pendingMessage?: string | null;
-  onClearPendingMessage?: () => void;
 }
 
 export function ChatView({ 
@@ -72,12 +64,6 @@ export function ChatView({
   reassignerName,
   onDismissReason,
   tenantId,
-  showAIAssistant,
-  onToggleAIAssistant,
-  showContactDetails,
-  onToggleContactDetails,
-  pendingMessage,
-  onClearPendingMessage,
 }: ChatViewProps) {
   const { t } = useTranslation();
   const [newMessage, setNewMessage] = useState('');
@@ -88,10 +74,8 @@ export function ChatView({
   const [pendingMedia, setPendingMedia] = useState<MediaUpload | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, profile, currentMembership } = useAuth();
-  const { hasFeature } = useFeatureAccess();
   
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
-  const canAccessStatuses = hasFeature('statuses');
 
   // Get channel types from the group
   const channelTypes = selectedGroup?.contacts.map(c => c.channel_type) || 
@@ -100,14 +84,6 @@ export function ChatView({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Handle pending message from AI assistant
-  useEffect(() => {
-    if (pendingMessage) {
-      setNewMessage(pendingMessage);
-      onClearPendingMessage?.();
-    }
-  }, [pendingMessage, onClearPendingMessage]);
 
   const handleSend = async () => {
     if ((!newMessage.trim() && !pendingMedia) || isSending) return;
@@ -181,34 +157,9 @@ export function ChatView({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          <Button
-            variant={showAIAssistant ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={onToggleAIAssistant}
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">AI</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleContactDetails}
-            className="hidden lg:flex"
-            title={showContactDetails ? "Hide contact details" : "Show contact details"}
-          >
-            {showContactDetails ? (
-              <PanelRightClose className="h-4 w-4" />
-            ) : (
-              <PanelRightOpen className="h-4 w-4" />
-            )}
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -226,12 +177,10 @@ export function ChatView({
                   <Link2 className="h-4 w-4 mr-2" />
                   {t('inbox.linkContact')}
                 </DropdownMenuItem>
-                {canAccessStatuses && (
-                  <DropdownMenuItem onClick={() => setIsStatusDialogOpen(true)}>
-                    <Tag className="h-4 w-4 mr-2" />
-                    {t('inbox.manageStatus')}
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem onClick={() => setIsStatusDialogOpen(true)}>
+                  <Tag className="h-4 w-4 mr-2" />
+                  {t('inbox.manageStatus')}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
             )}
@@ -246,9 +195,8 @@ export function ChatView({
                 {t('inbox.markOpen')}
               </DropdownMenuItem>
             )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Reassign Dialog */}
@@ -397,7 +345,6 @@ export function ContactDetails({
   onSelectConversation,
   tenantId,
   onSendToChat,
-  onClose,
 }: { 
   conversation: Conversation;
   messages?: Message[];
@@ -406,10 +353,8 @@ export function ContactDetails({
   onSelectConversation?: (conversation: Conversation) => void;
   tenantId?: string;
   onSendToChat?: (message: string) => void;
-  onClose?: () => void;
 }) {
   const { t } = useTranslation();
-  const { hasFeature } = useFeatureAccess();
   const contact = conversation.contact;
   
   // Get display name from group or contact
@@ -418,33 +363,20 @@ export function ContactDetails({
   // Get all channels from the group
   const channels = selectedGroup?.contacts || (contact ? [contact] : []);
 
-  // Check feature access
-  const canAccessObjects = hasFeature('objects');
-  const canAccessNotes = hasFeature('notes');
-  const canAccessStatuses = hasFeature('statuses');
-
-  // Linked objects hook - only fetch if feature is enabled
+  // Linked objects hook
   const {
     linkedObjects,
     loading: objectsLoading,
     linkObject,
     unlinkObject,
-  } = useConversationObjects(
-    canAccessObjects ? conversation.id : '', 
-    canAccessObjects ? (tenantId || null) : null
-  );
+  } = useConversationObjects(conversation.id, tenantId || null);
 
   return (
     <div className="h-full bg-card border-l flex flex-col overflow-y-auto">
-      <div className="p-4 border-b flex items-center justify-between">
+      <div className="p-4 border-b">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
           {t('inbox.contactDetails')}
         </h3>
-        {onClose && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        )}
       </div>
 
       <div className="p-4 flex flex-col items-center">
@@ -517,8 +449,8 @@ export function ContactDetails({
         </div>
       </div>
 
-      {/* Lead Statuses Section - only if statuses feature is enabled */}
-      {canAccessStatuses && contact && tenantId && (
+      {/* Lead Statuses Section */}
+      {contact && tenantId && (
         <ContactStatusesDisplay contactId={contact.id} tenantId={tenantId} />
       )}
 
@@ -608,8 +540,8 @@ export function ContactDetails({
         </div>
       )}
 
-      {/* Linked Objects Section - only if objects feature is enabled */}
-      {canAccessObjects && tenantId && (
+      {/* Linked Objects Section */}
+      {tenantId && (
         <LinkedObjectsPanel
           linkedObjects={linkedObjects}
           loading={objectsLoading}
@@ -622,8 +554,8 @@ export function ContactDetails({
       )}
 
 
-      {/* Contact Notes Section - only if notes feature is enabled */}
-      {canAccessNotes && contact && tenantId && (
+      {/* Contact Notes Section */}
+      {contact && tenantId && (
         <ContactNotes contactId={contact.id} tenantId={tenantId} />
       )}
     </div>

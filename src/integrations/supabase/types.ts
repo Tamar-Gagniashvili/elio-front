@@ -178,7 +178,6 @@ export type Database = {
           id: string
           reminder_at: string | null
           reminder_shown: boolean
-          status_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -191,7 +190,6 @@ export type Database = {
           id?: string
           reminder_at?: string | null
           reminder_shown?: boolean
-          status_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -204,7 +202,6 @@ export type Database = {
           id?: string
           reminder_at?: string | null
           reminder_shown?: boolean
-          status_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -214,13 +211,6 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_notes_status_id_fkey"
-            columns: ["status_id"]
-            isOneToOne: false
-            referencedRelation: "note_statuses"
             referencedColumns: ["id"]
           },
           {
@@ -540,44 +530,6 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      note_statuses: {
-        Row: {
-          color: string
-          created_at: string
-          created_by: string | null
-          display_order: number
-          id: string
-          name: string
-          tenant_id: string
-        }
-        Insert: {
-          color?: string
-          created_at?: string
-          created_by?: string | null
-          display_order?: number
-          id?: string
-          name: string
-          tenant_id: string
-        }
-        Update: {
-          color?: string
-          created_at?: string
-          created_by?: string | null
-          display_order?: number
-          id?: string
-          name?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "note_statuses_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -1020,7 +972,6 @@ export type Database = {
         Row: {
           created_at: string
           enabled_channels: string[] | null
-          enabled_features: string[] | null
           id: string
           is_active: boolean | null
           logo_url: string | null
@@ -1032,7 +983,6 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled_channels?: string[] | null
-          enabled_features?: string[] | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
@@ -1044,7 +994,6 @@ export type Database = {
         Update: {
           created_at?: string
           enabled_channels?: string[] | null
-          enabled_features?: string[] | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
@@ -1054,41 +1003,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      user_presence: {
-        Row: {
-          created_at: string
-          id: string
-          is_online: boolean
-          last_seen_at: string
-          tenant_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_online?: boolean
-          last_seen_at?: string
-          tenant_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_online?: boolean
-          last_seen_at?: string
-          tenant_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_presence_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       user_roles: {
         Row: {

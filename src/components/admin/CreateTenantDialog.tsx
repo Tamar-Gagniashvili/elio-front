@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChannelType, ALL_CHANNELS, CHANNEL_CONFIG, TenantFeature, ALL_FEATURES, FEATURE_CONFIG } from '@/lib/types';
+import { ChannelType, ALL_CHANNELS, CHANNEL_CONFIG } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Inbox, Users, Package, StickyNote, Tag, Zap, Plug } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface CreateTenantDialogProps {
   open: boolean;
@@ -24,7 +23,6 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
   const [tenantSlug, setTenantSlug] = useState('');
   const [pricingMonthly, setPricingMonthly] = useState('0');
   const [enabledChannels, setEnabledChannels] = useState<ChannelType[]>(['web_chat']);
-  const [enabledFeatures, setEnabledFeatures] = useState<TenantFeature[]>(['inbox', 'contacts', 'channels']);
   
   // Admin credentials
   const [adminEmail, setAdminEmail] = useState('');
@@ -37,21 +35,6 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
         ? prev.filter(c => c !== channel)
         : [...prev, channel]
     );
-  };
-
-  const handleFeatureToggle = (feature: TenantFeature) => {
-    setEnabledFeatures(prev => 
-      prev.includes(feature) 
-        ? prev.filter(f => f !== feature)
-        : [...prev, feature]
-    );
-  };
-
-  const getFeatureIcon = (iconName: string) => {
-    const icons: Record<string, any> = {
-      Inbox, Users, Package, StickyNote, Tag, Zap, Plug
-    };
-    return icons[iconName] || Inbox;
   };
 
   const generateSlug = (name: string) => {
@@ -81,7 +64,6 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
           slug: tenantSlug,
           pricing_monthly: parseFloat(pricingMonthly) || 0,
           enabled_channels: enabledChannels,
-          enabled_features: enabledFeatures,
           is_active: true,
         })
         .select()
@@ -116,7 +98,6 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
       setTenantSlug('');
       setPricingMonthly('0');
       setEnabledChannels(['web_chat']);
-      setEnabledFeatures(['inbox', 'contacts', 'channels']);
       setAdminEmail('');
       setAdminPassword('');
       setAdminName('');
@@ -208,43 +189,6 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
                   </Label>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Enabled Features */}
-          <div className="space-y-4">
-            <h3 className="font-semibold">Enabled Features</h3>
-            <p className="text-sm text-muted-foreground">
-              Select which modules this tenant can access. Settings is always available.
-            </p>
-            <div className="space-y-2">
-              {ALL_FEATURES.map((feature) => {
-                const config = FEATURE_CONFIG[feature];
-                const IconComponent = getFeatureIcon(config.icon);
-                const isEnabled = enabledFeatures.includes(feature);
-                
-                return (
-                  <div 
-                    key={feature} 
-                    className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-1.5 rounded-md ${isEnabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                        <IconComponent className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{config.label}</p>
-                        <p className="text-xs text-muted-foreground">{config.description}</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={isEnabled}
-                      onCheckedChange={() => handleFeatureToggle(feature)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                );
-              })}
             </div>
           </div>
 
