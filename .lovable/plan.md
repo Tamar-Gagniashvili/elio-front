@@ -1,38 +1,44 @@
 
 
-# Design Refresh: Satoshi Font + Deep Navy/Royal Blue Palette
+# Subtle Soft Touch — Warm & Approachable Refinement
 
-## Overview
-Update the entire application's visual identity with the **Satoshi** font and a **deep navy/royal blue** color palette inspired by the image you shared.
+## Vision
+Keep the muted, professional navy identity but shift the neutral grays slightly **warm** and introduce a **very subtle rose/blush** undertone in a few accent areas. The result should feel calm, polished, and slightly softer — not pink, not girly, just approachable.
 
-## Changes
+## What Changes
 
-### 1. Add Satoshi Font
-- Add the Satoshi font from a CDN (Fontshare by Indian Type Foundry) to `index.html`
-- Update `tailwind.config.ts` to set Satoshi as the default sans-serif font
+### Color Adjustments (in `src/index.css`)
 
-### 2. Update Color Palette
-Replace the current teal/cyan primary colors with deep navy/royal blue across both light and dark modes in `src/index.css`:
+**Light Mode:**
+- **Background**: Shift from cool gray (`220 20% 97%`) to a slightly warm off-white (`240 10% 97%`) — barely noticeable but removes the "cold office" feel
+- **Card/Popover**: Stays white
+- **Accent**: Change from neutral gray (`220 20% 95%`) to a very soft warm lavender-gray (`260 15% 95%`) — adds the subtle "soft" touch without being purple
+- **Accent Foreground**: Warm slightly to match (`250 20% 35%`)
+- **Muted foreground**: Warm slightly (`240 8% 46%`)
+- **Border/Input**: Warm slightly (`240 10% 90%`) — softer edges
+- **Chat bubble (agent)**: Slight warm tint (`240 15% 94%`)
 
-| Token | Current (Teal) | New (Navy/Blue) |
-|-------|----------------|-----------------|
-| Primary | `173 80% 40%` (teal) | `224 76% 48%` (~#1E40AF deep blue) |
-| Primary Glow | `173 80% 50%` | `217 91% 60%` (~#3B82F6 bright blue) |
-| Accent | `173 60% 94%` (light teal) | `224 76% 96%` (~#EEF2FF soft indigo) |
-| Accent Foreground | `173 80% 25%` | `224 76% 30%` |
-| Ring | `173 80% 40%` | `224 76% 48%` |
-| Sidebar Primary | `173 80% 50%` | `217 91% 60%` |
-| Sidebar Background | `222 47% 11%` | `224 71% 8%` (~#0F172A deep navy) |
+**Dark Mode:**
+- **Background**: Warm very slightly (`230 35% 7%`)
+- **Card**: Slightly warmer dark (`235 18% 11%`)
+- **Accent**: Soft warm dark tone (`255 12% 17%`)
+- **Border/Input**: Warmer dark borders (`240 12% 20%`)
 
-Dark mode values will be adjusted correspondingly to maintain contrast and readability.
+**Primary colors stay the same** — the muted navy blue remains the brand anchor. Only the neutral surfaces and accents get warmed up.
 
-### 3. Files Modified
-- **`index.html`** -- Add Satoshi font link from Fontshare CDN
-- **`tailwind.config.ts`** -- Change font family from Plus Jakarta Sans to Satoshi
-- **`src/index.css`** -- Update all primary, accent, ring, and sidebar color variables in both light and dark themes
+### Summary of Feel
+- Cool navy blue buttons and interactive elements (professional, trustworthy)
+- Warm, soft neutral surfaces (approachable, comfortable)
+- A hint of lavender in accents (subtle softness without being feminine)
+- No pink, no pastels, no rounded "bubbly" changes
 
-### Technical Notes
-- Satoshi is loaded from `https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap`
-- All existing component code references CSS variables, so the color change propagates automatically -- no component files need updating
-- The channel-specific colors (WhatsApp green, Telegram blue, etc.) remain unchanged
+### Files Modified
+- **`src/index.css`** — Adjust ~12 CSS variable values (background, accent, border, muted tones) in both light and dark themes
+
+### What Stays the Same
+- Satoshi font
+- Primary navy blue brand color
+- Sidebar dark theme
+- Channel colors
+- All component code (no structural changes)
 
