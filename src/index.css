@@ -16,22 +16,22 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Brand colors - Muted navy blue */
-    --primary: 224 50% 42%;
+    /* Brand colors - Soft muted purple */
+    --primary: 255 30% 48%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 220 55% 55%;
+    --primary-glow: 260 35% 58%;
 
     /* Secondary */
-    --secondary: 240 10% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 260 12% 96%;
+    --secondary-foreground: 255 20% 15%;
 
     /* Muted */
-    --muted: 240 10% 96%;
-    --muted-foreground: 240 8% 46%;
+    --muted: 260 10% 96%;
+    --muted-foreground: 255 8% 46%;
 
     /* Accent */
-    --accent: 260 15% 95%;
-    --accent-foreground: 250 20% 35%;
+    --accent: 265 15% 94%;
+    --accent-foreground: 260 18% 38%;
 
     /* Destructive */
     --destructive: 0 84% 60%;
@@ -59,25 +59,25 @@
     /* Borders and inputs */
     --border: 240 10% 90%;
     --input: 240 10% 90%;
-    --ring: 224 40% 50%;
+    --ring: 255 30% 50%;
 
     --radius: 0.75rem;
 
     /* Sidebar */
-    --sidebar-background: 220 20% 12%;
-    --sidebar-foreground: 220 10% 90%;
-    --sidebar-primary: 220 45% 55%;
+    --sidebar-background: 255 15% 13%;
+    --sidebar-foreground: 260 10% 90%;
+    --sidebar-primary: 260 30% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 18%;
-    --sidebar-accent-foreground: 220 10% 90%;
-    --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 220 45% 55%;
+    --sidebar-accent: 258 12% 18%;
+    --sidebar-accent-foreground: 260 10% 90%;
+    --sidebar-border: 255 12% 20%;
+    --sidebar-ring: 260 30% 55%;
 
     /* Chat specific */
-    --chat-bubble-agent: 240 15% 94%;
-    --chat-bubble-contact: 220 14% 96%;
-    --chat-bubble-agent-text: 220 25% 25%;
-    --chat-bubble-contact-text: 222 30% 15%;
+    --chat-bubble-agent: 260 15% 94%;
+    --chat-bubble-contact: 262 12% 96%;
+    --chat-bubble-agent-text: 255 20% 25%;
+    --chat-bubble-contact-text: 255 25% 15%;
   }
 
   .dark {
@@ -89,18 +89,18 @@
     --popover: 235 18% 11%;
     --popover-foreground: 220 10% 90%;
 
-    --primary: 220 45% 55%;
-    --primary-foreground: 220 20% 6%;
-    --primary-glow: 220 50% 65%;
+    --primary: 260 30% 55%;
+    --primary-foreground: 260 15% 6%;
+    --primary-glow: 260 35% 65%;
 
-    --secondary: 220 15% 16%;
-    --secondary-foreground: 220 10% 90%;
+    --secondary: 258 12% 16%;
+    --secondary-foreground: 260 10% 90%;
 
-    --muted: 220 15% 16%;
-    --muted-foreground: 220 8% 55%;
+    --muted: 258 12% 16%;
+    --muted-foreground: 255 8% 55%;
 
-    --accent: 255 12% 17%;
-    --accent-foreground: 250 25% 70%;
+    --accent: 262 12% 17%;
+    --accent-foreground: 260 25% 70%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -111,23 +111,23 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 240 12% 20%;
-    --input: 240 12% 20%;
-    --ring: 220 45% 55%;
+    --border: 258 10% 20%;
+    --input: 258 10% 20%;
+    --ring: 260 30% 55%;
 
-    --sidebar-background: 220 20% 7%;
-    --sidebar-foreground: 220 10% 90%;
-    --sidebar-primary: 220 45% 55%;
+    --sidebar-background: 258 15% 8%;
+    --sidebar-foreground: 260 10% 90%;
+    --sidebar-primary: 260 30% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 14%;
-    --sidebar-accent-foreground: 220 10% 90%;
-    --sidebar-border: 220 15% 14%;
-    --sidebar-ring: 220 45% 55%;
+    --sidebar-accent: 258 12% 14%;
+    --sidebar-accent-foreground: 260 10% 90%;
+    --sidebar-border: 255 12% 14%;
+    --sidebar-ring: 260 30% 55%;
 
-    --chat-bubble-agent: 220 15% 16%;
-    --chat-bubble-contact: 220 15% 14%;
-    --chat-bubble-agent-text: 220 20% 80%;
-    --chat-bubble-contact-text: 220 10% 90%;
+    --chat-bubble-agent: 258 12% 16%;
+    --chat-bubble-contact: 260 10% 14%;
+    --chat-bubble-agent-text: 260 15% 80%;
+    --chat-bubble-contact-text: 260 10% 90%;
   }
 }
 
