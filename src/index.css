@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* Core backgrounds */
-    --background: 220 20% 97%;
+    --background: 240 10% 97%;
     --foreground: 222 47% 11%;
 
     /* Surface colors */
@@ -22,16 +22,16 @@
     --primary-glow: 220 55% 55%;
 
     /* Secondary */
-    --secondary: 220 14% 96%;
+    --secondary: 240 10% 96%;
     --secondary-foreground: 222 47% 11%;
 
     /* Muted */
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 8% 46%;
 
     /* Accent */
-    --accent: 220 20% 95%;
-    --accent-foreground: 220 30% 30%;
+    --accent: 260 15% 95%;
+    --accent-foreground: 250 20% 35%;
 
     /* Destructive */
     --destructive: 0 84% 60%;
@@ -57,8 +57,8 @@
     --channel-email: 210 80% 50%;
 
     /* Borders and inputs */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 240 10% 90%;
+    --input: 240 10% 90%;
     --ring: 224 40% 50%;
 
     --radius: 0.75rem;
@@ -74,19 +74,19 @@
     --sidebar-ring: 220 45% 55%;
 
     /* Chat specific */
-    --chat-bubble-agent: 220 20% 94%;
+    --chat-bubble-agent: 240 15% 94%;
     --chat-bubble-contact: 220 14% 96%;
     --chat-bubble-agent-text: 220 25% 25%;
     --chat-bubble-contact-text: 222 30% 15%;
   }
 
   .dark {
-    --background: 224 47% 6%;
+    --background: 230 35% 7%;
     --foreground: 220 14% 96%;
 
-    --card: 220 20% 10%;
+    --card: 235 18% 11%;
     --card-foreground: 220 10% 90%;
-    --popover: 220 20% 10%;
+    --popover: 235 18% 11%;
     --popover-foreground: 220 10% 90%;
 
     --primary: 220 45% 55%;
@@ -99,8 +99,8 @@
     --muted: 220 15% 16%;
     --muted-foreground: 220 8% 55%;
 
-    --accent: 220 15% 16%;
-    --accent-foreground: 220 30% 70%;
+    --accent: 255 12% 17%;
+    --accent-foreground: 250 25% 70%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -111,8 +111,8 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
+    --border: 240 12% 20%;
+    --input: 240 12% 20%;
     --ring: 220 45% 55%;
 
     --sidebar-background: 220 20% 7%;
