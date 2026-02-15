@@ -2,51 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ChatFlow - Modern Omnichannel Inbox Design System */
+/* ReLink - Calm & Inviting Omnichannel Design System */
 
 @layer base {
   :root {
-    /* Core backgrounds */
-    --background: 240 10% 97%;
-    --foreground: 222 47% 11%;
+    /* Core backgrounds - warm off-white */
+    --background: 30 20% 97%;
+    --foreground: 200 25% 12%;
 
     /* Surface colors */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 200 25% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 200 25% 12%;
 
-    /* Brand colors - Soft muted purple */
-    --primary: 255 30% 48%;
+    /* Brand colors - Soft teal */
+    --primary: 172 40% 38%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 260 35% 58%;
+    --primary-glow: 170 45% 48%;
 
     /* Secondary */
-    --secondary: 260 12% 96%;
-    --secondary-foreground: 255 20% 15%;
+    --secondary: 25 12% 95%;
+    --secondary-foreground: 200 20% 15%;
 
     /* Muted */
-    --muted: 260 10% 96%;
-    --muted-foreground: 255 8% 46%;
+    --muted: 25 10% 95%;
+    --muted-foreground: 200 8% 46%;
 
-    /* Accent */
-    --accent: 265 15% 94%;
-    --accent-foreground: 260 18% 38%;
+    /* Accent - soft peach */
+    --accent: 15 30% 94%;
+    --accent-foreground: 12 25% 38%;
 
     /* Destructive */
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
     /* Success */
-    --success: 142 76% 36%;
+    --success: 152 60% 38%;
     --success-foreground: 0 0% 100%;
 
     /* Warning */
-    --warning: 38 92% 50%;
+    --warning: 38 85% 52%;
     --warning-foreground: 0 0% 100%;
 
     /* Channel colors */
-    --channel-web: 224 50% 42%;
+    --channel-web: 172 40% 38%;
     --channel-telegram: 200 100% 50%;
     --channel-whatsapp: 142 70% 45%;
     --channel-messenger: 221 90% 55%;
@@ -57,77 +57,77 @@
     --channel-email: 210 80% 50%;
 
     /* Borders and inputs */
-    --border: 240 10% 90%;
-    --input: 240 10% 90%;
-    --ring: 255 30% 50%;
+    --border: 25 12% 90%;
+    --input: 25 12% 90%;
+    --ring: 172 35% 42%;
 
     --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar-background: 255 15% 13%;
-    --sidebar-foreground: 260 10% 90%;
-    --sidebar-primary: 260 30% 55%;
+    /* Sidebar - deep teal-charcoal */
+    --sidebar-background: 185 18% 12%;
+    --sidebar-foreground: 180 10% 90%;
+    --sidebar-primary: 172 40% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 258 12% 18%;
-    --sidebar-accent-foreground: 260 10% 90%;
-    --sidebar-border: 255 12% 20%;
-    --sidebar-ring: 260 30% 55%;
+    --sidebar-accent: 185 14% 18%;
+    --sidebar-accent-foreground: 180 10% 90%;
+    --sidebar-border: 185 12% 20%;
+    --sidebar-ring: 172 40% 48%;
 
     /* Chat specific */
-    --chat-bubble-agent: 260 15% 94%;
-    --chat-bubble-contact: 262 12% 96%;
-    --chat-bubble-agent-text: 255 20% 25%;
-    --chat-bubble-contact-text: 255 25% 15%;
+    --chat-bubble-agent: 170 12% 93%;
+    --chat-bubble-contact: 25 15% 95%;
+    --chat-bubble-agent-text: 190 20% 22%;
+    --chat-bubble-contact-text: 200 20% 15%;
   }
 
   .dark {
-    --background: 230 35% 7%;
-    --foreground: 220 14% 96%;
+    --background: 190 25% 7%;
+    --foreground: 180 10% 95%;
 
-    --card: 235 18% 11%;
-    --card-foreground: 220 10% 90%;
-    --popover: 235 18% 11%;
-    --popover-foreground: 220 10% 90%;
+    --card: 188 18% 11%;
+    --card-foreground: 180 10% 90%;
+    --popover: 188 18% 11%;
+    --popover-foreground: 180 10% 90%;
 
-    --primary: 260 30% 55%;
-    --primary-foreground: 260 15% 6%;
-    --primary-glow: 260 35% 65%;
+    --primary: 172 38% 48%;
+    --primary-foreground: 190 20% 6%;
+    --primary-glow: 170 42% 58%;
 
-    --secondary: 258 12% 16%;
-    --secondary-foreground: 260 10% 90%;
+    --secondary: 188 12% 16%;
+    --secondary-foreground: 180 10% 90%;
 
-    --muted: 258 12% 16%;
-    --muted-foreground: 255 8% 55%;
+    --muted: 188 12% 16%;
+    --muted-foreground: 185 8% 55%;
 
-    --accent: 262 12% 17%;
-    --accent-foreground: 260 25% 70%;
+    --accent: 15 15% 17%;
+    --accent-foreground: 12 25% 70%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    --success: 152 60% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 85% 52%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 258 10% 20%;
-    --input: 258 10% 20%;
-    --ring: 260 30% 55%;
+    --border: 188 10% 20%;
+    --input: 188 10% 20%;
+    --ring: 172 35% 48%;
 
-    --sidebar-background: 258 15% 8%;
-    --sidebar-foreground: 260 10% 90%;
-    --sidebar-primary: 260 30% 55%;
+    --sidebar-background: 188 18% 8%;
+    --sidebar-foreground: 180 10% 90%;
+    --sidebar-primary: 172 38% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 258 12% 14%;
-    --sidebar-accent-foreground: 260 10% 90%;
-    --sidebar-border: 255 12% 14%;
-    --sidebar-ring: 260 30% 55%;
+    --sidebar-accent: 188 14% 14%;
+    --sidebar-accent-foreground: 180 10% 90%;
+    --sidebar-border: 185 12% 14%;
+    --sidebar-ring: 172 38% 48%;
 
-    --chat-bubble-agent: 258 12% 16%;
-    --chat-bubble-contact: 260 10% 14%;
-    --chat-bubble-agent-text: 260 15% 80%;
-    --chat-bubble-contact-text: 260 10% 90%;
+    --chat-bubble-agent: 185 12% 16%;
+    --chat-bubble-contact: 188 10% 14%;
+    --chat-bubble-agent-text: 175 15% 80%;
+    --chat-bubble-contact-text: 180 10% 90%;
   }
 }
 
@@ -173,7 +173,7 @@
   }
 
   .gradient-sidebar {
-    background: linear-gradient(180deg, hsl(var(--sidebar-background)), hsl(222 47% 8%));
+    background: linear-gradient(180deg, hsl(var(--sidebar-background)), hsl(190 20% 8%));
   }
 
   /* Animation utilities */
