@@ -360,7 +360,7 @@ export default function Statuses() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-4 max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
