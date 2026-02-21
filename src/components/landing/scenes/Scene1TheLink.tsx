@@ -16,27 +16,23 @@ export default function Scene1TheLink() {
   const chainRightX = useTransform(scrollYProgress, [0.3, 0.8], [0, 80]);
   const chainLeftRotate = useTransform(scrollYProgress, [0.3, 0.8], [0, -15]);
   const chainRightRotate = useTransform(scrollYProgress, [0.3, 0.8], [0, 15]);
-  const bgLightness = useTransform(scrollYProgress, [0, 1], [8, 97]);
   const taglineOpacity = useTransform(scrollYProgress, [0, 0.15], [0, 1]);
   const taglineY = useTransform(scrollYProgress, [0, 0.15], [30, 0]);
   const subtitleOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 1]);
   const subtitleY = useTransform(scrollYProgress, [0.05, 0.25], [20, 0]);
 
   return (
-    <motion.section
+    <section
       ref={ref}
       className="relative h-[200vh] w-full"
-      style={{
-        background: useTransform(bgLightness, (v) => `hsl(222 47% ${v}%)`),
-      }}
+      style={{ background: '#0a0a0a' }}
     >
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
         {/* Ambient glow */}
-        <motion.div
-          className="absolute w-[500px] h-[500px] rounded-full"
+        <div
+          className="absolute w-[600px] h-[600px] rounded-full"
           style={{
-            background: 'radial-gradient(circle, hsl(173 80% 40% / 0.15) 0%, transparent 70%)',
-            opacity: useTransform(scrollYProgress, [0, 0.5], [1, 0]),
+            background: 'radial-gradient(circle, hsla(153 100% 80% / 0.06) 0%, transparent 70%)',
           }}
         />
 
@@ -55,7 +51,7 @@ export default function Scene1TheLink() {
                 clipPath: 'polygon(0 0, 55% 0, 55% 100%, 0 100%)',
               }}
             >
-              <img src={relinkLogo} alt="" className="w-40 h-40 md:w-56 md:h-56 object-contain rounded-3xl" />
+              <img src={relinkLogo} alt="" className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl" />
             </motion.div>
             {/* Right chain (dark) */}
             <motion.div
@@ -66,13 +62,13 @@ export default function Scene1TheLink() {
                 clipPath: 'polygon(45% 0, 100% 0, 100% 100%, 45% 100%)',
               }}
             >
-              <img src={relinkLogo} alt="" className="w-40 h-40 md:w-56 md:h-56 object-contain rounded-3xl" />
+              <img src={relinkLogo} alt="" className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl" />
             </motion.div>
             {/* Full logo (visible before split) */}
             <motion.img
               src={relinkLogo}
               alt="ReLink"
-              className="w-40 h-40 md:w-56 md:h-56 object-contain rounded-3xl"
+              className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl"
               style={{
                 opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]),
               }}
@@ -81,20 +77,20 @@ export default function Scene1TheLink() {
 
           {/* Brand name */}
           <motion.h1
-            className="mt-8 text-5xl md:text-7xl font-bold tracking-tight"
+            className="mt-8 text-6xl md:text-8xl font-black tracking-tighter uppercase"
             style={{
-              color: useTransform(bgLightness, (v) => v > 50 ? 'hsl(222 47% 11%)' : 'hsl(220 14% 96%)'),
+              color: '#f0f0f0',
               opacity: taglineOpacity,
               y: taglineY,
             }}
           >
-            Re<span style={{ color: 'hsl(173 80% 40%)' }}>Link</span>
+            Re<span style={{ color: '#99FFCC' }}>Link</span>
           </motion.h1>
 
           <motion.p
-            className="mt-4 text-lg md:text-xl max-w-md text-center"
+            className="mt-4 text-lg md:text-xl max-w-md text-center font-light tracking-wide"
             style={{
-              color: useTransform(bgLightness, (v) => v > 50 ? 'hsl(220 9% 46%)' : 'hsl(220 9% 70%)'),
+              color: '#666',
               opacity: subtitleOpacity,
               y: subtitleY,
             }}
@@ -108,14 +104,15 @@ export default function Scene1TheLink() {
           className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
           style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
         >
-          <span className="text-xs tracking-widest uppercase" style={{ color: 'hsl(220 9% 60%)' }}>Scroll</span>
+          <span className="text-[10px] tracking-[0.3em] uppercase font-medium" style={{ color: '#555' }}>Scroll</span>
           <motion.div
-            className="w-px h-8 bg-gradient-to-b from-[hsl(173_80%_40%)] to-transparent"
+            className="w-px h-10"
+            style={{ background: 'linear-gradient(to bottom, #99FFCC, transparent)' }}
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
         </motion.div>
       </div>
-    </motion.section>
+    </section>
   );
 }
