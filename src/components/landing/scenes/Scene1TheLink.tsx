@@ -99,6 +99,17 @@ export default function Scene1TheLink() {
           </motion.p>
         </motion.div>
 
+        {/* Brand name visible immediately */}
+        <motion.h1
+          className="absolute top-[18%] left-1/2 -translate-x-1/2 text-6xl md:text-8xl font-black tracking-tighter uppercase z-0"
+          style={{
+            color: '#f0f0f0',
+            opacity: useTransform(scrollYProgress, [0, 0.15], [1, 0]),
+          }}
+        >
+          Re<span style={{ color: '#99FFCC' }}>Link</span>
+        </motion.h1>
+
         {/* Scroll indicator */}
         <motion.div
           className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
