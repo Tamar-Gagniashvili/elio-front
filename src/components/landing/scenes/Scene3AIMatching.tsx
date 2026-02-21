@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Brain, Zap, ArrowRight, MessageSquare, Package } from 'lucide-react';
+import cosmonautAi from '@/assets/landing/cosmonaut-ai.png';
 
 export default function Scene3AIMatching() {
   const ref = useRef<HTMLDivElement>(null);
@@ -16,11 +17,21 @@ export default function Scene3AIMatching() {
   const rightRotate = useTransform(scrollYProgress, [0.15, 0.6], [-5, 0]);
   const statsOpacity = useTransform(scrollYProgress, [0.4, 0.55], [0, 1]);
   const statsY = useTransform(scrollYProgress, [0.4, 0.55], [30, 0]);
+  const bgImgOpacity = useTransform(scrollYProgress, [0.1, 0.3], [0, 0.15]);
+  const bgImgScale = useTransform(scrollYProgress, [0.1, 0.6], [0.9, 1.05]);
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1000px' }}>
       <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: '#0a0a0a' }}>
-        <motion.div className="container max-w-screen-xl" style={{ opacity }}>
+        {/* Background cosmonaut */}
+        <motion.img
+          src={cosmonautAi}
+          alt=""
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] object-contain pointer-events-none"
+          style={{ opacity: bgImgOpacity, scale: bgImgScale }}
+        />
+
+        <motion.div className="container max-w-screen-xl relative z-10" style={{ opacity }}>
           {/* Title */}
           <motion.div className="text-center mb-16" style={{ opacity: titleOpacity, y: titleY }}>
             <span className="text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
@@ -69,7 +80,7 @@ export default function Scene3AIMatching() {
                 ))}
               </motion.div>
 
-              {/* Center: Connecting line + brain */}
+              {/* Center: Brain */}
               <div className="flex flex-col items-center gap-2 px-4">
                 <motion.div
                   className="h-px w-24"
@@ -136,20 +147,13 @@ export default function Scene3AIMatching() {
             </div>
 
             {/* Stats row */}
-            <motion.div
-              className="grid grid-cols-3 gap-6 mt-12"
-              style={{ opacity: statsOpacity, y: statsY }}
-            >
+            <motion.div className="grid grid-cols-3 gap-6 mt-12" style={{ opacity: statsOpacity, y: statsY }}>
               {[
                 { icon: Zap, label: 'Avg. Response', value: '< 2 min' },
                 { icon: Brain, label: 'Match Accuracy', value: '94%' },
                 { icon: ArrowRight, label: 'Deals Closed Faster', value: '3.2×' },
               ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="text-center p-5 rounded-2xl"
-                  style={{ background: '#141414', border: '1px solid #222' }}
-                >
+                <div key={stat.label} className="text-center p-5 rounded-2xl" style={{ background: '#141414', border: '1px solid #222' }}>
                   <stat.icon className="h-6 w-6 mx-auto mb-2" style={{ color: '#99FFCC' }} />
                   <p className="text-2xl font-black" style={{ color: '#f0f0f0' }}>{stat.value}</p>
                   <p className="text-[10px] mt-1 tracking-wider uppercase" style={{ color: '#666' }}>{stat.label}</p>

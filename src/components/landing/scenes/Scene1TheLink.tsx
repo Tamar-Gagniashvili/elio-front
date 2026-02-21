@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import relinkLogo from '@/assets/relink-logo-3d.png';
+import cosmonautHero from '@/assets/landing/cosmonaut-hero.png';
 
 export default function Scene1TheLink() {
   const ref = useRef<HTMLDivElement>(null);
@@ -16,10 +17,12 @@ export default function Scene1TheLink() {
   const chainRightX = useTransform(scrollYProgress, [0.3, 0.8], [0, 80]);
   const chainLeftRotate = useTransform(scrollYProgress, [0.3, 0.8], [0, -15]);
   const chainRightRotate = useTransform(scrollYProgress, [0.3, 0.8], [0, 15]);
-  const taglineOpacity = useTransform(scrollYProgress, [0, 0.15], [0, 1]);
-  const taglineY = useTransform(scrollYProgress, [0, 0.15], [30, 0]);
-  const subtitleOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 1]);
-  const subtitleY = useTransform(scrollYProgress, [0.05, 0.25], [20, 0]);
+  const taglineOpacity = useTransform(scrollYProgress, [0.1, 0.25], [0, 1]);
+  const taglineY = useTransform(scrollYProgress, [0.1, 0.25], [30, 0]);
+  const subtitleOpacity = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
+  const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
+  const heroImgOpacity = useTransform(scrollYProgress, [0, 0.2], [0.15, 0.3]);
+  const heroImgScale = useTransform(scrollYProgress, [0, 0.5], [1.1, 1.3]);
 
   return (
     <section
@@ -27,7 +30,15 @@ export default function Scene1TheLink() {
       className="relative h-[200vh] w-full"
       style={{ background: '#0a0a0a' }}
     >
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
+      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
+        {/* Background cosmonaut image */}
+        <motion.img
+          src={cosmonautHero}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: heroImgOpacity, scale: heroImgScale }}
+        />
+
         {/* Ambient glow */}
         <div
           className="absolute w-[600px] h-[600px] rounded-full"
@@ -36,13 +47,24 @@ export default function Scene1TheLink() {
           }}
         />
 
-        {/* Logo container with split chains effect */}
+        {/* Title at top */}
+        <motion.h1
+          className="relative z-20 text-6xl md:text-8xl font-black tracking-tighter uppercase mb-8"
+          style={{
+            color: '#f0f0f0',
+            opacity: useTransform(scrollYProgress, [0, 0.15], [1, 0]),
+          }}
+        >
+          Re<span style={{ color: '#99FFCC' }}>Link</span>
+        </motion.h1>
+
+        {/* Logo below title with split chains effect */}
         <motion.div
           className="relative z-10 flex flex-col items-center"
           style={{ scale: logoScale, y: logoY, opacity: logoOpacity }}
         >
           <div className="relative">
-            {/* Left chain (green) */}
+            {/* Left chain */}
             <motion.div
               className="absolute inset-0"
               style={{
@@ -53,7 +75,7 @@ export default function Scene1TheLink() {
             >
               <img src={relinkLogo} alt="" className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl" />
             </motion.div>
-            {/* Right chain (dark) */}
+            {/* Right chain */}
             <motion.div
               className="absolute inset-0"
               style={{
@@ -75,44 +97,33 @@ export default function Scene1TheLink() {
             />
           </div>
 
-          {/* Brand name */}
-          <motion.h1
-            className="mt-8 text-6xl md:text-8xl font-black tracking-tighter uppercase"
+          {/* Tagline on scroll */}
+          <motion.p
+            className="mt-8 text-lg md:text-xl max-w-md text-center font-light tracking-wide"
             style={{
-              color: '#f0f0f0',
+              color: '#999',
               opacity: taglineOpacity,
               y: taglineY,
             }}
           >
-            Re<span style={{ color: '#99FFCC' }}>Link</span>
-          </motion.h1>
+            Where Conversations Become Connections.
+          </motion.p>
 
           <motion.p
-            className="mt-4 text-lg md:text-xl max-w-md text-center font-light tracking-wide"
+            className="mt-3 text-sm max-w-sm text-center"
             style={{
-              color: '#666',
+              color: '#555',
               opacity: subtitleOpacity,
               y: subtitleY,
             }}
           >
-            Where Conversations Become Connections.
+            The omnichannel system that links it all.
           </motion.p>
         </motion.div>
 
-        {/* Brand name visible immediately */}
-        <motion.h1
-          className="absolute top-[18%] left-1/2 -translate-x-1/2 text-6xl md:text-8xl font-black tracking-tighter uppercase z-0"
-          style={{
-            color: '#f0f0f0',
-            opacity: useTransform(scrollYProgress, [0, 0.15], [1, 0]),
-          }}
-        >
-          Re<span style={{ color: '#99FFCC' }}>Link</span>
-        </motion.h1>
-
         {/* Scroll indicator */}
         <motion.div
-          className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20"
           style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
         >
           <span className="text-[10px] tracking-[0.3em] uppercase font-medium" style={{ color: '#555' }}>Scroll</span>

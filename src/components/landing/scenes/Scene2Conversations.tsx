@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { MessageCircle, Send, Instagram, Facebook, Package, User, Star } from 'lucide-react';
+import cosmonautConnect from '@/assets/landing/cosmonaut-connect.png';
 
 const chatMessages = [
   { sender: 'contact', text: 'Hi, I saw your listing for the 3BR apartment', time: '2:14 PM' },
@@ -30,10 +31,19 @@ export default function Scene2Conversations() {
   const titleY = useTransform(scrollYProgress, [0.05, 0.2], [40, 0]);
   const aiOpacity = useTransform(scrollYProgress, [0.45, 0.6], [0, 1]);
   const aiY = useTransform(scrollYProgress, [0.45, 0.6], [20, 0]);
+  const bgImgOpacity = useTransform(scrollYProgress, [0.1, 0.3], [0, 0.12]);
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1200px' }}>
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10" style={{ background: '#0a0a0a' }}>
+        {/* Background cosmonaut */}
+        <motion.img
+          src={cosmonautConnect}
+          alt=""
+          className="absolute right-0 bottom-0 w-[500px] h-[500px] object-contain pointer-events-none"
+          style={{ opacity: bgImgOpacity }}
+        />
+
         <motion.div className="container max-w-screen-xl relative" style={{ opacity: sectionOpacity }}>
           {/* Section title */}
           <motion.div className="text-center mb-12" style={{ opacity: titleOpacity, y: titleY }}>
@@ -94,20 +104,15 @@ export default function Scene2Conversations() {
                       }}
                     >
                       <p>{msg.text}</p>
-                      <p className="text-[10px] mt-1" style={{ opacity: 0.5 }}>
-                        {msg.time}
-                      </p>
+                      <p className="text-[10px] mt-1" style={{ opacity: 0.5 }}>{msg.time}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </motion.div>
 
-            {/* Object cards (emerging from depth) */}
-            <motion.div
-              className="space-y-3"
-              style={{ opacity: objectsOpacity, x: objectsX }}
-            >
+            {/* Object cards */}
+            <motion.div className="space-y-3" style={{ opacity: objectsOpacity, x: objectsX }}>
               {objectCards.map((obj, i) => (
                 <motion.div
                   key={obj.title}
@@ -129,17 +134,14 @@ export default function Scene2Conversations() {
                         <p className="text-xs" style={{ color: '#666' }}>{obj.price}</p>
                       </div>
                     </div>
-                    <span
-                      className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
-                      style={{ background: `${obj.color}15`, color: obj.color }}
-                    >
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider" style={{ background: `${obj.color}15`, color: obj.color }}>
                       {obj.status}
                     </span>
                   </div>
                 </motion.div>
               ))}
 
-              {/* AI suggestion overlay */}
+              {/* AI suggestion */}
               <motion.div
                 className="rounded-xl p-4 mt-2"
                 style={{
