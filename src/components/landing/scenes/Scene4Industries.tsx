@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Home, Truck, Car, ShoppingBag } from 'lucide-react';
+import cosmonautIndustries from '@/assets/landing/cosmonaut-industries.png';
 
 const industries = [
   {
@@ -43,11 +44,20 @@ export default function Scene4Industries() {
   const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0]);
   const titleOpacity = useTransform(scrollYProgress, [0.05, 0.18], [0, 1]);
   const titleY = useTransform(scrollYProgress, [0.05, 0.18], [40, 0]);
+  const bgImgOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 0.1]);
 
   return (
     <section ref={ref} className="relative h-[200vh]">
       <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: '#0a0a0a' }}>
-        <motion.div className="container max-w-screen-xl" style={{ opacity }}>
+        {/* Background cosmonaut */}
+        <motion.img
+          src={cosmonautIndustries}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: bgImgOpacity }}
+        />
+
+        <motion.div className="container max-w-screen-xl relative z-10" style={{ opacity }}>
           <motion.div className="text-center mb-14" style={{ opacity: titleOpacity, y: titleY }}>
             <span className="text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
               Any Industry
@@ -65,9 +75,9 @@ export default function Scene4Industries() {
             {industries.map((ind, i) => (
               <motion.div
                 key={ind.title}
-                className="group rounded-2xl p-6 transition-all duration-300"
+                className="group rounded-2xl p-6 transition-all duration-300 backdrop-blur-sm"
                 style={{
-                  background: '#141414',
+                  background: 'rgba(20, 20, 20, 0.85)',
                   border: '1px solid #222',
                   opacity: useTransform(scrollYProgress, [0.15 + i * 0.04, 0.28 + i * 0.04], [0, 1]),
                   y: useTransform(scrollYProgress, [0.15 + i * 0.04, 0.28 + i * 0.04], [50, 0]),
