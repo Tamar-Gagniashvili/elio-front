@@ -9,9 +9,9 @@ const chatMessages = [
 ];
 
 const objectCards = [
-  { title: '3BR Apartment — Vake', price: '$185,000', status: 'Available', color: 'hsl(142 76% 36%)' },
-  { title: '2BR Studio — Saburtalo', price: '$95,000', status: 'Reserved', color: 'hsl(38 92% 50%)' },
-  { title: 'Office Space — Old Tbilisi', price: '$320,000', status: 'Available', color: 'hsl(142 76% 36%)' },
+  { title: '3BR Apartment — Vake', price: '$185,000', status: 'Available', color: '#99FFCC' },
+  { title: '2BR Studio — Saburtalo', price: '$95,000', status: 'Reserved', color: '#FFD666' },
+  { title: 'Office Space — Old Tbilisi', price: '$320,000', status: 'Available', color: '#99FFCC' },
 ];
 
 export default function Scene2Conversations() {
@@ -33,17 +33,18 @@ export default function Scene2Conversations() {
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1200px' }}>
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 bg-background z-10">
+      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10" style={{ background: '#0a0a0a' }}>
         <motion.div className="container max-w-screen-xl relative" style={{ opacity: sectionOpacity }}>
           {/* Section title */}
           <motion.div className="text-center mb-12" style={{ opacity: titleOpacity, y: titleY }}>
-            <span className="text-sm font-semibold tracking-widest uppercase" style={{ color: 'hsl(173 80% 40%)' }}>
+            <span className="text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
               Unified Inbox
             </span>
-            <h2 className="mt-2 text-3xl md:text-5xl font-bold text-foreground">
-              Conversations Become <span className="text-primary">Data</span>
+            <h2 className="mt-3 text-4xl md:text-6xl font-black tracking-tight" style={{ color: '#f0f0f0' }}>
+              CONVERSATIONS{' '}
+              <span style={{ color: '#99FFCC' }}>BECOME DATA.</span>
             </h2>
-            <p className="mt-3 text-muted-foreground text-lg max-w-lg mx-auto">
+            <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: '#666' }}>
               Every message feeds into a structured system. Context is never lost.
             </p>
           </motion.div>
@@ -51,29 +52,31 @@ export default function Scene2Conversations() {
           <div className="grid lg:grid-cols-2 gap-8 items-start max-w-5xl mx-auto">
             {/* Chat window */}
             <motion.div
-              className="rounded-2xl border border-border/50 bg-card shadow-xl overflow-hidden"
+              className="rounded-2xl overflow-hidden"
               style={{
                 x: chatX,
                 rotateY: chatRotateY,
                 transformStyle: 'preserve-3d',
+                background: '#141414',
+                border: '1px solid #222',
               }}
             >
               {/* Chat header */}
-              <div className="flex items-center gap-3 p-4 border-b border-border/50 bg-muted/30">
-                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid #222' }}>
+                <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ background: '#1a1a1a', border: '1px solid #333' }}>
+                  <User className="h-5 w-5" style={{ color: '#99FFCC' }} />
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground text-sm">Giorgi Beridze</p>
+                  <p className="font-semibold text-sm" style={{ color: '#e0e0e0' }}>Giorgi Beridze</p>
                   <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-channel-whatsapp" />
-                    <span className="text-xs text-muted-foreground">WhatsApp</span>
+                    <div className="h-2 w-2 rounded-full" style={{ background: '#25D366' }} />
+                    <span className="text-xs" style={{ color: '#666' }}>WhatsApp</span>
                   </div>
                 </div>
                 <div className="ml-auto flex gap-1">
                   {[MessageCircle, Send, Instagram, Facebook].map((Icon, i) => (
-                    <div key={i} className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                      <Icon className="h-3 w-3 text-muted-foreground" />
+                    <div key={i} className="h-6 w-6 rounded-full flex items-center justify-center" style={{ background: '#1a1a1a' }}>
+                      <Icon className="h-3 w-3" style={{ color: '#555' }} />
                     </div>
                   ))}
                 </div>
@@ -83,14 +86,15 @@ export default function Scene2Conversations() {
                 {chatMessages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.sender === 'agent' ? 'justify-end' : 'justify-start'}`}>
                     <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                        msg.sender === 'agent'
-                          ? 'bg-primary text-primary-foreground rounded-br-md'
-                          : 'bg-muted text-foreground rounded-bl-md'
-                      }`}
+                      className="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm"
+                      style={{
+                        background: msg.sender === 'agent' ? '#99FFCC' : '#1e1e1e',
+                        color: msg.sender === 'agent' ? '#0a0a0a' : '#d0d0d0',
+                        borderRadius: msg.sender === 'agent' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                      }}
                     >
                       <p>{msg.text}</p>
-                      <p className={`text-[10px] mt-1 ${msg.sender === 'agent' ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                      <p className="text-[10px] mt-1" style={{ opacity: 0.5 }}>
                         {msg.time}
                       </p>
                     </div>
@@ -107,25 +111,27 @@ export default function Scene2Conversations() {
               {objectCards.map((obj, i) => (
                 <motion.div
                   key={obj.title}
-                  className="rounded-xl border border-border/50 bg-card p-4 shadow-lg"
+                  className="rounded-xl p-4"
                   style={{
+                    background: '#141414',
+                    border: '1px solid #222',
                     y: useTransform(scrollYProgress, [0.25 + i * 0.05, 0.45 + i * 0.05], [30, 0]),
                     opacity: useTransform(scrollYProgress, [0.25 + i * 0.05, 0.4 + i * 0.05], [0, 1]),
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Package className="h-5 w-5 text-primary" />
+                      <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: '#1a1a1a', border: '1px solid #333' }}>
+                        <Package className="h-5 w-5" style={{ color: '#99FFCC' }} />
                       </div>
                       <div>
-                        <p className="font-semibold text-foreground text-sm">{obj.title}</p>
-                        <p className="text-muted-foreground text-xs">{obj.price}</p>
+                        <p className="font-semibold text-sm" style={{ color: '#e0e0e0' }}>{obj.title}</p>
+                        <p className="text-xs" style={{ color: '#666' }}>{obj.price}</p>
                       </div>
                     </div>
                     <span
-                      className="text-xs font-medium px-2.5 py-1 rounded-full"
-                      style={{ background: `${obj.color}20`, color: obj.color }}
+                      className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                      style={{ background: `${obj.color}15`, color: obj.color }}
                     >
                       {obj.status}
                     </span>
@@ -135,17 +141,22 @@ export default function Scene2Conversations() {
 
               {/* AI suggestion overlay */}
               <motion.div
-                className="rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-4 mt-2"
-                style={{ opacity: aiOpacity, y: aiY }}
+                className="rounded-xl p-4 mt-2"
+                style={{
+                  background: 'linear-gradient(135deg, #99FFCC10, #99FFCC05)',
+                  border: '1px dashed #99FFCC40',
+                  opacity: aiOpacity,
+                  y: aiY,
+                }}
               >
                 <div className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Star className="h-4 w-4 text-primary" />
+                  <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#99FFCC20' }}>
+                    <Star className="h-4 w-4" style={{ color: '#99FFCC' }} />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-primary">AI Suggestion</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Based on the conversation, link "3BR Apartment — Vake" to this chat. The customer expressed interest in this property.
+                    <p className="text-sm font-bold" style={{ color: '#99FFCC' }}>AI Suggestion</p>
+                    <p className="text-xs mt-1" style={{ color: '#888' }}>
+                      Based on the conversation, link "3BR Apartment — Vake" to this chat.
                     </p>
                   </div>
                 </div>

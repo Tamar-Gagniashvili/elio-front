@@ -8,28 +8,28 @@ const industries = [
     title: 'Real Estate',
     description: 'Link properties to conversations. Track viewings, reservations, and buyer intent.',
     objects: ['Apartments', 'Commercial', 'Land'],
-    accent: 'hsl(173 80% 40%)',
+    accent: '#99FFCC',
   },
   {
     icon: Truck,
     title: 'Logistics',
     description: 'Attach shipments and orders. Real-time tracking within your inbox.',
     objects: ['Shipments', 'Orders', 'Routes'],
-    accent: 'hsl(221 90% 55%)',
+    accent: '#66BBFF',
   },
   {
     icon: Car,
     title: 'Automotive',
     description: 'Connect vehicles to leads. Manage test drives, offers, and inventory.',
     objects: ['Vehicles', 'Test Drives', 'Offers'],
-    accent: 'hsl(38 92% 50%)',
+    accent: '#FFD666',
   },
   {
     icon: ShoppingBag,
     title: 'Retail',
     description: 'Link products and orders. Turn conversations into sales effortlessly.',
     objects: ['Products', 'Orders', 'Returns'],
-    accent: 'hsl(330 80% 55%)',
+    accent: '#FF88AA',
   },
 ];
 
@@ -46,16 +46,17 @@ export default function Scene4Industries() {
 
   return (
     <section ref={ref} className="relative h-[200vh]">
-      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden bg-background z-10">
+      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: '#0a0a0a' }}>
         <motion.div className="container max-w-screen-xl" style={{ opacity }}>
           <motion.div className="text-center mb-14" style={{ opacity: titleOpacity, y: titleY }}>
-            <span className="text-sm font-semibold tracking-widest uppercase text-primary">
+            <span className="text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
               Any Industry
             </span>
-            <h2 className="mt-2 text-3xl md:text-5xl font-bold text-foreground">
-              The System That <span className="text-primary">Links</span> It All
+            <h2 className="mt-3 text-4xl md:text-6xl font-black tracking-tight" style={{ color: '#f0f0f0' }}>
+              THE SYSTEM THAT{' '}
+              <span style={{ color: '#99FFCC' }}>LINKS</span> IT ALL.
             </h2>
-            <p className="mt-3 text-muted-foreground text-lg max-w-lg mx-auto">
+            <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: '#666' }}>
               ReLink adapts to your business. Define your own objects, statuses, and workflows.
             </p>
           </motion.div>
@@ -64,8 +65,10 @@ export default function Scene4Industries() {
             {industries.map((ind, i) => (
               <motion.div
                 key={ind.title}
-                className="group rounded-2xl border border-border/50 bg-card p-6 shadow-lg hover:shadow-xl transition-shadow"
+                className="group rounded-2xl p-6 transition-all duration-300"
                 style={{
+                  background: '#141414',
+                  border: '1px solid #222',
                   opacity: useTransform(scrollYProgress, [0.15 + i * 0.04, 0.28 + i * 0.04], [0, 1]),
                   y: useTransform(scrollYProgress, [0.15 + i * 0.04, 0.28 + i * 0.04], [50, 0]),
                   rotateY: useTransform(scrollYProgress, [0.15 + i * 0.04, 0.35 + i * 0.04], [i < 2 ? 8 : -8, 0]),
@@ -74,17 +77,18 @@ export default function Scene4Industries() {
               >
                 <div
                   className="h-12 w-12 rounded-xl flex items-center justify-center mb-4"
-                  style={{ background: `${ind.accent}18` }}
+                  style={{ background: `${ind.accent}15`, border: `1px solid ${ind.accent}30` }}
                 >
                   <ind.icon className="h-6 w-6" style={{ color: ind.accent }} />
                 </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">{ind.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{ind.description}</p>
+                <h3 className="text-lg font-bold mb-2" style={{ color: '#e0e0e0' }}>{ind.title}</h3>
+                <p className="text-sm mb-4 leading-relaxed" style={{ color: '#777' }}>{ind.description}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {ind.objects.map((obj) => (
                     <span
                       key={obj}
-                      className="text-[10px] font-medium px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                      className="text-[10px] font-medium px-2 py-1 rounded-full"
+                      style={{ background: '#1e1e1e', color: '#888', border: '1px solid #2a2a2a' }}
                     >
                       {obj}
                     </span>

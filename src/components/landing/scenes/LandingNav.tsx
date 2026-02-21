@@ -5,7 +5,7 @@ import relinkLogo from '@/assets/relink-logo-3d.png';
 
 export default function LandingNav() {
   const { scrollYProgress } = useScroll();
-  const bgOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 1]);
+  const bgOpacity = useTransform(scrollYProgress, [0, 0.03], [0, 1]);
 
   return (
     <motion.header
@@ -16,17 +16,17 @@ export default function LandingNav() {
         className="absolute inset-0 border-b"
         style={{
           opacity: bgOpacity,
-          background: 'hsl(var(--background) / 0.85)',
-          backdropFilter: 'blur(12px)',
-          borderColor: 'hsl(var(--border) / 0.4)',
+          background: 'hsla(0 0% 6% / 0.9)',
+          backdropFilter: 'blur(16px)',
+          borderColor: 'hsla(0 0% 100% / 0.06)',
         }}
       />
       <div className="container max-w-screen-xl relative flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={relinkLogo} alt="ReLink" className="h-8 w-8 object-contain" />
-          <span className="text-lg font-bold text-foreground">ReLink</span>
+        <Link to="/" className="flex items-center gap-2.5">
+          <img src={relinkLogo} alt="ReLink" className="h-8 w-8 object-contain rounded-lg" />
+          <span className="text-lg font-bold" style={{ color: '#f0f0f0' }}>ReLink</span>
         </Link>
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="bg-[#99FFCC] text-[#0a0a0a] hover:bg-[#77eebb] font-semibold rounded-full px-5">
           <Link to="/auth">Login</Link>
         </Button>
       </div>
