@@ -60,23 +60,35 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
     materialA.uniforms.opacity.value = showStanding ? 0 : 1;
     materialB.uniforms.opacity.value = showStanding ? 1 : 0;
 
-    // After swap, fade out the whole cosmonaut as it leaves the 3D scene
-    const fadeStart = 0.15;
-    const fadeEnd = 0.35;
-    const sceneFade = 1 - THREE.MathUtils.clamp((scrollProgress - fadeStart) / (fadeEnd - fadeStart), 0, 1);
+    const floatY = Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
 
-    if (scrollProgress > fadeStart) {
-      materialA.uniforms.opacity.value *= sceneFade;
-      materialB.uniforms.opacity.value *= sceneFade;
+    // After standing, shrink and reposition to become the flying buddy
+    const shrinkStart = 0.12;
+    const shrinkEnd = 0.25;
+    const shrinkT = THREE.MathUtils.clamp((scrollProgress - shrinkStart) / (shrinkEnd - shrinkStart), 0, 1);
+    const eased = shrinkT * shrinkT * (3 - 2 * shrinkT); // smoothstep
+
+    // Scale from full size (1) down to buddy size (0.35)
+    const scale = 1 - eased * 0.65;
+
+    // Position: move from hero position toward top-right corner as buddy
+    const baseX = 2.2;
+    const baseY = -1;
+    const buddyX = 4.5;
+    const buddyY = 2.5;
+    const posX = baseX + (buddyX - baseX) * eased;
+    const posY = baseY + (buddyY - baseY) * eased + floatY;
+
+    if (meshARef.current) {
+      meshARef.current.position.set(posX, posY + floatY, 3);
+      meshARef.current.scale.setScalar(scale);
+    }
+    if (meshBRef.current) {
+      meshBRef.current.position.set(posX, posY + floatY, 3);
+      meshBRef.current.scale.setScalar(scale);
     }
 
-    const floatY = Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
-    const pos: [number, number, number] = [2.2, -1 + floatY, 3];
-
-    if (meshARef.current) meshARef.current.position.set(...pos);
-    if (meshBRef.current) meshBRef.current.position.set(...pos);
-
-    // Snap hand anchor
+    // Snap hand anchor (only relevant before shrink)
     const anchor = showStanding ? POSE_ANCHORS[1] : POSE_ANCHORS[0];
     onHandAnchorUpdate?.(anchor);
   });
