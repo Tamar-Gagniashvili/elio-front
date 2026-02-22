@@ -48,7 +48,17 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
   }), [textures]);
 
   useFrame((state) => {
-    const floatY = Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
+    const t = state.clock.elapsedTime;
+    const floatY = Math.sin(t * 0.35) * 0.05;
+
+    // Entrance animation: slide in from off-screen right over 2.5 seconds
+    const entranceDuration = 2.5;
+    const entranceT = THREE.MathUtils.clamp(t / entranceDuration, 0, 1);
+    // Smooth ease-out cubic
+    const entranceEased = 1 - Math.pow(1 - entranceT, 3);
+    const entranceOffsetX = (1 - entranceEased) * 8; // starts 8 units to the right
+    const entranceOffsetY = (1 - entranceEased) * -2; // starts lower
+    const entranceOpacity = entranceEased;
 
     // Slide to the right on scroll
     const flyStart = 0.10;
@@ -56,10 +66,13 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
     const flyT = THREE.MathUtils.clamp((scrollProgress - flyStart) / (flyEnd - flyStart), 0, 1);
     const flyEased = flyT * flyT * (3 - 2 * flyT);
 
-    const posX = 2.2 + flyEased * 12;
-    const posY = -1 + floatY + flyEased * 1.5;
+    const posX = 2.2 + entranceOffsetX + flyEased * 12;
+    const posY = -1 + entranceOffsetY + floatY + flyEased * 1.5;
 
-    if (meshRef.current) meshRef.current.position.set(posX, posY, 3);
+    if (meshRef.current) {
+      meshRef.current.position.set(posX, posY, 3);
+      material.uniforms.opacity.value = entranceOpacity;
+    }
 
     onHandAnchorUpdate?.(POSE_ANCHORS[0]);
   });
