@@ -1,8 +1,8 @@
-import { useRef, useMemo } from 'react';
-import { motion, useScroll, useTransform, useInView } from 'framer-motion';
+import { useRef, useMemo, Suspense } from 'react';
+import { motion, useScroll, useTransform, useInView, useMotionValueEvent } from 'framer-motion';
 import relinkLogo from '@/assets/relink-logo-3d.png';
-import cosmonautHero from '@/assets/landing/cosmonaut-hero.png';
-import heroBg from '@/assets/landing/hero-bg.png';
+import HeroScene3D from './HeroScene3D';
+import { useState } from 'react';
 
 /* ── Deterministic random for SSR-safe positions ── */
 function seededRandom(seed: number) {
@@ -109,6 +109,7 @@ export default function Scene1TheLink() {
   const ref = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(titleRef, { once: true });
+  const [scrollProg, setScrollProg] = useState(0);
 
   const nodes = useMemo(() => generateNodes(), []);
   const edges = useMemo(() => generateEdges(nodes), [nodes]);
@@ -117,6 +118,9 @@ export default function Scene1TheLink() {
     target: ref,
     offset: ['start start', 'end start'],
   });
+
+  // Track scroll progress for the 3D scene
+  useMotionValueEvent(scrollYProgress, 'change', (v) => setScrollProg(v));
 
   const logoScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.6]);
   const logoY = useTransform(scrollYProgress, [0, 0.8], [0, -120]);
@@ -129,10 +133,6 @@ export default function Scene1TheLink() {
   const taglineY = useTransform(scrollYProgress, [0.1, 0.25], [30, 0]);
   const subtitleOpacity = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
   const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, -100]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 1.15]);
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 2.5]);
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, -150]);
 
   const titleText = 'RELINK';
 
@@ -140,16 +140,10 @@ export default function Scene1TheLink() {
     <section ref={ref} className="relative h-[200vh] w-full" style={{ background: '#000' }}>
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
 
-        {/* ── HERO BACKGROUND IMAGE ── */}
-        <motion.div
-          className="absolute inset-0"
-          style={{ scale: bgScale, y: bgY }}
-          whileHover={{ opacity: 0 }}
-          transition={{ duration: 0.7 }}
-        >
-          <img src={heroBg} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)' }} />
-        </motion.div>
+        {/* ── 3D HERO SCENE ── */}
+        <Suspense fallback={<div className="absolute inset-0 bg-black" />}>
+          <HeroScene3D scrollProgress={scrollProg} className="absolute inset-0 z-0" />
+        </Suspense>
 
         {/* ── ANIMATED NODE NETWORK (SVG) ── */}
         <svg className="absolute inset-0 w-full h-full z-[1]" viewBox="0 0 100 100" preserveAspectRatio="none">
