@@ -170,8 +170,12 @@ function NodeSparks({ position, color, count = 8 }: { position: [number, number,
   );
 }
 
-/* ── Balloon bouquet held by cosmonaut (now accepts dynamic anchor) ── */
-function BalloonBouquet({ handAnchor }: { handAnchor: [number, number, number] }) {
+/* ── Balloon bouquet — scatters away on scroll ── */
+const SCATTER_DIRS: [number, number, number][] = [
+  [-8, 6, -3], [5, 8, -2], [9, 4, -4], [-6, -5, -3], [7, 9, -2], [-9, 7, -3],
+];
+
+function BalloonBouquet({ handAnchor, scrollProgress }: { handAnchor: [number, number, number]; scrollProgress: number }) {
   const groupRef = useRef<THREE.Group>(null);
   const iconRefs = useRef<(THREE.Group | null)[]>([]);
   const [iconPositions, setIconPositions] = useState<[number, number, number][]>(
@@ -187,15 +191,36 @@ function BalloonBouquet({ handAnchor }: { handAnchor: [number, number, number] }
     if (groupRef.current) {
       groupRef.current.rotation.z = Math.sin(t * 0.3) * 0.025;
     }
+
+    // Scatter progress: icons fly away between 5% and 15% scroll
+    const scatterStart = 0.05;
+    const scatterEnd = 0.15;
+    const scatter = THREE.MathUtils.clamp((scrollProgress - scatterStart) / (scatterEnd - scatterStart), 0, 1);
+    // Ease out for natural flight
+    const scatterEased = 1 - Math.pow(1 - scatter, 3);
+
     const newPositions: [number, number, number][] = [];
     iconRefs.current.forEach((ref, i) => {
       if (ref) {
         const offset = i * 1.1;
-        const bx = handAnchor[0] + SOCIAL_ICONS[i].offset[0] + Math.sin(t * 0.4 + offset) * 0.06;
-        const by = handAnchor[1] + SOCIAL_ICONS[i].offset[1] + Math.sin(t * 0.6 + offset) * 0.08;
-        const bz = handAnchor[2] + SOCIAL_ICONS[i].offset[2] + Math.cos(t * 0.35 + offset) * 0.04;
+        // Base position
+        let bx = handAnchor[0] + SOCIAL_ICONS[i].offset[0] + Math.sin(t * 0.4 + offset) * 0.06;
+        let by = handAnchor[1] + SOCIAL_ICONS[i].offset[1] + Math.sin(t * 0.6 + offset) * 0.08;
+        let bz = handAnchor[2] + SOCIAL_ICONS[i].offset[2] + Math.cos(t * 0.35 + offset) * 0.04;
+
+        // Apply scatter
+        const dir = SCATTER_DIRS[i % SCATTER_DIRS.length];
+        bx += dir[0] * scatterEased;
+        by += dir[1] * scatterEased;
+        bz += dir[2] * scatterEased;
+
         ref.position.set(bx, by, bz);
-        ref.rotation.z = Math.sin(t * 0.5 + offset) * 0.04;
+        ref.rotation.z = Math.sin(t * 0.5 + offset) * 0.04 + scatterEased * (i % 2 === 0 ? 1 : -1) * 0.5;
+
+        // Fade out opacity via scale
+        const iconScale = 1 - scatterEased * 0.8;
+        ref.scale.setScalar(Math.max(iconScale, 0));
+
         newPositions[i] = [bx, by, bz];
       }
     });
@@ -334,7 +359,7 @@ function SceneContents({ scrollProgress }: { scrollProgress: number }) {
       <AnimatedCosmonaut scrollProgress={scrollProgress} onHandAnchorUpdate={handleAnchorUpdate} />
       <EnergyRing />
       <EnergyRing2 />
-      <BalloonBouquet handAnchor={handAnchor} />
+      <BalloonBouquet handAnchor={handAnchor} scrollProgress={scrollProgress} />
 
       <SpaceParticles count={400} />
       <Stars radius={20} depth={40} count={2500} factor={3} saturation={0.1} fade speed={0.3} />
