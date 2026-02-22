@@ -17,13 +17,13 @@ export default function Scene2Conversations() {
     offset: ['start end', 'end start'],
   });
 
-  const sectionOpacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0]);
-  const chatX = useTransform(scrollYProgress, [0.05, 0.3], [80, 0]);
-  const chatOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 1]);
-  const titleOpacity = useTransform(scrollYProgress, [0.05, 0.2], [0, 1]);
-  const titleY = useTransform(scrollYProgress, [0.05, 0.2], [40, 0]);
-  const aiOpacity = useTransform(scrollYProgress, [0.3, 0.45], [0, 1]);
-  const aiY = useTransform(scrollYProgress, [0.3, 0.45], [20, 0]);
+  const sectionOpacity = useTransform(scrollYProgress, [0, 0.1, 0.85, 1], [0, 1, 1, 0]);
+  const chatX = useTransform(scrollYProgress, [0.03, 0.25], [80, 0]);
+  const chatOpacity = useTransform(scrollYProgress, [0.03, 0.2], [0, 1]);
+  const titleOpacity = useTransform(scrollYProgress, [0.02, 0.15], [0, 1]);
+  const titleY = useTransform(scrollYProgress, [0.02, 0.15], [40, 0]);
+  const aiOpacity = useTransform(scrollYProgress, [0.25, 0.4], [0, 1]);
+  const aiY = useTransform(scrollYProgress, [0.25, 0.4], [20, 0]);
 
   // Cosmonaut enters from left
   const cosmonautX = useTransform(scrollYProgress, [0.05, 0.4], [-300, 0]);
