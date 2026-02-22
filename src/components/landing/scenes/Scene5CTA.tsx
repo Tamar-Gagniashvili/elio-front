@@ -20,30 +20,11 @@ export default function Scene5CTA() {
   return (
     <section ref={ref} className="relative py-32 md:py-40 overflow-hidden" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1f15 0%, #080808 50%, #000000 100%)' }}>
       <Starfield />
-      {/* Ambient glow */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full"
-        style={{ background: 'radial-gradient(circle, hsla(153 100% 80% / 0.04) 0%, transparent 60%)' }}
-      />
 
       <motion.div
         className="container max-w-screen-md text-center relative z-10"
         style={{ opacity, y, scale }}
       >
-        {/* Animated chain link logo */}
-        <motion.div
-          className="mx-auto mb-10 relative"
-          onHoverStart={() => setIsHovered(true)}
-          onHoverEnd={() => setIsHovered(false)}
-        >
-          <motion.img
-            src={relinkLogo}
-            alt="ReLink"
-            className="h-20 w-20 mx-auto object-contain rounded-2xl"
-            animate={{ rotate: isHovered ? 10 : 0, scale: isHovered ? 1.1 : 1 }}
-            transition={{ type: 'spring', stiffness: 300 }}
-          />
-        </motion.div>
 
         <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none" style={{ color: '#f0f0f0' }}>
           READY TO{' '}
