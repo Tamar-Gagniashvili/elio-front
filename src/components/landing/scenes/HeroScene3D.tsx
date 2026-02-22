@@ -74,8 +74,8 @@ function MoonSphere() {
   });
 
   return (
-    <mesh ref={meshRef} position={[4, 2.5, -8]}>
-      <sphereGeometry args={[3, 64, 64]} />
+    <mesh ref={meshRef} position={[3, -3.5, -4]} rotation={[0.1, 0, 0]}>
+      <sphereGeometry args={[5, 64, 64]} />
       <meshStandardMaterial
         map={texture}
         roughness={1}
@@ -99,9 +99,9 @@ function Cosmonaut() {
   });
 
   return (
-    <mesh ref={meshRef} position={[1.8, -1.2, 0]}>
+    <mesh ref={meshRef} position={[1.8, -1.2, 0]} scale={[-1, 1, 1]}>
       <planeGeometry args={[5, 5]} />
-      <meshBasicMaterial map={texture} transparent />
+      <meshBasicMaterial map={texture} transparent side={THREE.DoubleSide} />
     </mesh>
   );
 }
