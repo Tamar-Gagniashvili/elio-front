@@ -157,36 +157,6 @@ export default function Scene1TheLink() {
 
         {/* ── TEXT CONTENT — LEFT SIDE ── */}
         <div ref={titleRef} className="relative z-20 flex flex-col items-start pl-8 md:pl-16 lg:pl-24 max-w-2xl">
-          {/* Logo */}
-          <motion.div
-            className="mb-6"
-            style={{ scale: logoScale, opacity: logoOpacity }}
-          >
-            <div className="relative">
-              <motion.div
-                className="absolute inset-0"
-                style={{ x: chainLeftX, rotate: chainLeftRotate, clipPath: 'polygon(0 0, 55% 0, 55% 100%, 0 100%)' }}
-              >
-                <img src={relinkLogo} alt="" className="w-16 h-16 md:w-24 md:h-24 object-contain rounded-2xl" />
-              </motion.div>
-              <motion.div
-                className="absolute inset-0"
-                style={{ x: chainRightX, rotate: chainRightRotate, clipPath: 'polygon(45% 0, 100% 0, 100% 100%, 45% 100%)' }}
-              >
-                <img src={relinkLogo} alt="" className="w-16 h-16 md:w-24 md:h-24 object-contain rounded-2xl" />
-              </motion.div>
-              <motion.img
-                src={relinkLogo}
-                alt="ReLink"
-                className="w-16 h-16 md:w-24 md:h-24 object-contain rounded-2xl"
-                style={{ opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]) }}
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.15, duration: 0.8, ease: [0.22, 1, 0.36, 1] as const }}
-              />
-            </div>
-          </motion.div>
-
           {/* Letter-by-letter animated title */}
           <div className="flex overflow-hidden mb-4" style={{ perspective: '600px' }}>
             {titleText.split('').map((letter, i) => (
