@@ -24,7 +24,7 @@ export default function Scene5CTA() {
   const cosmonautRotate = useTransform(scrollYProgress, [0.1, 0.5], [-20, 5]);
 
   return (
-    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden" style={{ background: 'transparent' }}>
+    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden">
 
       <motion.div
         className="container max-w-screen-xl relative z-10"
