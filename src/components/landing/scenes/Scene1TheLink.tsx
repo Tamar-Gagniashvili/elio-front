@@ -183,45 +183,6 @@ export default function Scene1TheLink() {
           ))}
         </svg>
 
-        {/* ── FLOATING NODES (HTML for labels) ── */}
-        <div className="absolute inset-0 z-[2]">
-          {nodes.map((node) => (
-            <motion.div
-              key={node.id}
-              className="absolute flex items-center gap-1.5"
-              style={{
-                left: `${node.x}%`,
-                top: `${node.y}%`,
-                transform: 'translate(-50%, -50%)',
-              }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.8 + node.delay, duration: 0.6, ease: 'backOut' }}
-            >
-              {/* Node dot */}
-              <motion.div
-                className="rounded-full"
-                style={{
-                  width: node.size * 2,
-                  height: node.size * 2,
-                  background: node.color,
-                  boxShadow: `0 0 ${node.size * 4}px ${node.color}`,
-                }}
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.7, 1, 0.7],
-                }}
-                transition={{
-                  duration: node.duration,
-                  repeat: Infinity,
-                  delay: node.delay,
-                  ease: 'easeInOut',
-                }}
-              />
-            </motion.div>
-          ))}
-        </div>
-
         {/* ── AMBIENT GLOW LAYERS ── */}
         <div className="absolute inset-0 z-[3] pointer-events-none">
           <motion.div
