@@ -51,13 +51,18 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
     const t = state.clock.elapsedTime;
     const floatY = Math.sin(t * 0.35) * 0.05;
 
+    // Responsive base position: move cosmonaut more centered on smaller viewports
+    const vw = state.gl.domElement.clientWidth;
+    const baseX = vw < 768 ? 0.5 : 2.2;
+    const baseY = vw < 768 ? -1.5 : -1;
+    const planeSize = vw < 768 ? 3.5 : 4.5;
+
     // Entrance animation: slide in from off-screen right over 2.5 seconds
     const entranceDuration = 2.5;
     const entranceT = THREE.MathUtils.clamp(t / entranceDuration, 0, 1);
-    // Smooth ease-out cubic
     const entranceEased = 1 - Math.pow(1 - entranceT, 3);
-    const entranceOffsetX = (1 - entranceEased) * 8; // starts 8 units to the right
-    const entranceOffsetY = (1 - entranceEased) * -2; // starts lower
+    const entranceOffsetX = (1 - entranceEased) * 8;
+    const entranceOffsetY = (1 - entranceEased) * -2;
     const entranceOpacity = entranceEased;
 
     // Slide to the right on scroll
@@ -66,8 +71,18 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
     const flyT = THREE.MathUtils.clamp((scrollProgress - flyStart) / (flyEnd - flyStart), 0, 1);
     const flyEased = flyT * flyT * (3 - 2 * flyT);
 
-    const posX = 2.2 + entranceOffsetX + flyEased * 12;
-    const posY = -1 + entranceOffsetY + floatY + flyEased * 1.5;
+    const posX = baseX + entranceOffsetX + flyEased * 12;
+    const posY = baseY + entranceOffsetY + floatY + flyEased * 1.5;
+
+    if (meshRef.current) {
+      meshRef.current.position.set(posX, posY, 3);
+      material.uniforms.opacity.value = entranceOpacity;
+      // Update plane size for mobile
+      const geo = meshRef.current.geometry as THREE.PlaneGeometry;
+      if (geo.parameters.width !== planeSize) {
+        meshRef.current.geometry = new THREE.PlaneGeometry(planeSize, planeSize);
+      }
+    }
 
     if (meshRef.current) {
       meshRef.current.position.set(posX, posY, 3);
