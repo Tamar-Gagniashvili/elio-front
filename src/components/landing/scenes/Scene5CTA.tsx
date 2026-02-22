@@ -17,18 +17,36 @@ export default function Scene5CTA() {
   const scale = useTransform(scrollYProgress, [0, 0.4], [0.95, 1]);
 
   return (
-    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden" style={{ background: '#0a0a0a' }}>
+    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden" style={{ background: '#050510' }}>
       {/* Ambient glow */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full"
-        style={{ background: 'radial-gradient(circle, hsla(153 100% 80% / 0.04) 0%, transparent 60%)' }}
+        style={{ background: 'radial-gradient(circle, rgba(153,255,204,0.04) 0%, transparent 60%)' }}
       />
+
+      {/* Star particles */}
+      <div className="absolute inset-0 overflow-hidden">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: Math.random() > 0.7 ? 2 : 1,
+              height: Math.random() > 0.7 ? 2 : 1,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              background: Math.random() > 0.7 ? '#99FFCC' : 'rgba(255,255,255,0.5)',
+              opacity: 0.3 + Math.random() * 0.5,
+            }}
+          />
+        ))}
+      </div>
 
       <motion.div
         className="container max-w-screen-md text-center relative z-10"
         style={{ opacity, y, scale }}
       >
-        {/* Animated chain link logo */}
+        {/* Animated logo */}
         <motion.div
           className="mx-auto mb-10 relative"
           onHoverStart={() => setIsHovered(true)}
@@ -40,6 +58,7 @@ export default function Scene5CTA() {
             className="h-20 w-20 mx-auto object-contain rounded-2xl"
             animate={{ rotate: isHovered ? 10 : 0, scale: isHovered ? 1.1 : 1 }}
             transition={{ type: 'spring', stiffness: 300 }}
+            style={{ filter: 'drop-shadow(0 0 20px rgba(153,255,204,0.2))' }}
           />
         </motion.div>
 
@@ -48,7 +67,7 @@ export default function Scene5CTA() {
           <span style={{ color: '#99FFCC' }}>LINK</span>{' '}
           IT ALL?
         </h2>
-        <p className="mt-5 text-lg md:text-xl max-w-md mx-auto font-light" style={{ color: '#666' }}>
+        <p className="mt-5 text-lg md:text-xl max-w-md mx-auto font-light" style={{ color: 'rgba(255,255,255,0.35)' }}>
           Start managing conversations, objects, and teams in one unified platform.
         </p>
 
@@ -56,7 +75,7 @@ export default function Scene5CTA() {
           <Link
             to="/auth"
             className="inline-flex items-center gap-2 h-14 px-10 text-lg font-bold rounded-full transition-all duration-200 hover:scale-105"
-            style={{ background: '#99FFCC', color: '#0a0a0a' }}
+            style={{ background: '#99FFCC', color: '#050510' }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
@@ -66,14 +85,14 @@ export default function Scene5CTA() {
           <a
             href="mailto:contact@relink.io"
             className="inline-flex items-center gap-2 h-14 px-10 text-lg font-semibold rounded-full transition-colors duration-200"
-            style={{ border: '1px solid #333', color: '#ccc' }}
+            style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}
           >
             <Mail className="h-5 w-5" />
             Contact Us
           </a>
         </div>
 
-        <div className="mt-10 flex items-center justify-center gap-6 text-sm" style={{ color: '#555' }}>
+        <div className="mt-10 flex items-center justify-center gap-6 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full" style={{ background: '#99FFCC' }} />
             <span>No credit card required</span>
@@ -86,17 +105,17 @@ export default function Scene5CTA() {
       </motion.div>
 
       {/* Footer */}
-      <div className="container max-w-screen-xl mt-24 pt-8" style={{ borderTop: '1px solid #1e1e1e' }}>
+      <div className="container max-w-screen-xl mt-24 pt-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src={relinkLogo} alt="ReLink" className="h-6 w-6 object-contain rounded-md" />
             <span className="font-bold" style={{ color: '#e0e0e0' }}>ReLink</span>
           </div>
-          <div className="flex items-center gap-6 text-sm" style={{ color: '#555' }}>
+          <div className="flex items-center gap-6 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
             <Link to="/auth" className="hover:text-[#99FFCC] transition-colors">Login</Link>
             <a href="mailto:contact@relink.io" className="hover:text-[#99FFCC] transition-colors">Contact</a>
           </div>
-          <p className="text-sm" style={{ color: '#444' }}>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>
             © {new Date().getFullYear()} ReLink. All rights reserved.
           </p>
         </div>
