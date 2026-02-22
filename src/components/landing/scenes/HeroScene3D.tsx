@@ -4,8 +4,7 @@ import { Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import AnimatedCosmonaut, { POSE_ANCHORS } from './AnimatedCosmonaut';
 
-/* ── Default anchor = first pose's hand position ── */
-const DEFAULT_HAND_ANCHOR: [number, number, number] = POSE_ANCHORS[0];
+const DEFAULT_ANCHOR = POSE_ANCHORS[0];
 
 const SOCIAL_ICONS = [
   {
@@ -63,51 +62,6 @@ function CameraRig({ scrollProgress }: { scrollProgress: number }) {
   return null;
 }
 
-/* ── Custom shader material to make black bg transparent ── */
-const chromaKeyVertexShader = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-const chromaKeyFragmentShader = `
-  uniform sampler2D map;
-  varying vec2 vUv;
-  void main() {
-    vec4 texColor = texture2D(map, vUv);
-    float brightness = (texColor.r + texColor.g + texColor.b) / 3.0;
-    float alpha = smoothstep(0.05, 0.15, brightness);
-    gl_FragColor = vec4(texColor.rgb, alpha);
-  }
-`;
-
-/* ── Cosmonaut ── */
-function Cosmonaut() {
-  const texture = useLoader(THREE.TextureLoader, cosmonautImg);
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  const shaderMaterial = useMemo(() => new THREE.ShaderMaterial({
-    uniforms: { map: { value: texture } },
-    vertexShader: chromaKeyVertexShader,
-    fragmentShader: chromaKeyFragmentShader,
-    transparent: true,
-    depthWrite: false,
-  }), [texture]);
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.position.y = -1 + Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
-    }
-  });
-
-  return (
-    <mesh ref={meshRef} position={[2.2, -1, 3]} material={shaderMaterial} renderOrder={10}>
-      <planeGeometry args={[4.5, 4.5]} />
-    </mesh>
-  );
-}
-
 /* ── Glowing neon string (from icon to hand) with animated glow ── */
 const neonStringVertexShader = `
   varying vec2 vUv;
@@ -118,7 +72,6 @@ const neonStringVertexShader = `
 `;
 
 function makeNeonStringFragmentShader(color: string) {
-  // Parse hex to RGB
   const r = parseInt(color.slice(1, 3), 16) / 255;
   const g = parseInt(color.slice(3, 5), 16) / 255;
   const b = parseInt(color.slice(5, 7), 16) / 255;
@@ -144,7 +97,6 @@ function NeonString({ from, to, color }: { from: [number, number, number]; to: [
       const x = from[0] + (to[0] - from[0]) * t;
       const y = from[1] + (to[1] - from[1]) * t;
       const z = from[2] + (to[2] - from[2]) * t;
-      // Slight catenary sag
       const sag = Math.sin(t * Math.PI) * -0.08;
       pts.push(new THREE.Vector3(x + sag * 0.2, y + sag, z));
     }
@@ -165,10 +117,7 @@ function NeonString({ from, to, color }: { from: [number, number, number]; to: [
     }
   });
 
-  const lineObj = useMemo(() => {
-    const line = new THREE.Line(geometry, material);
-    return line;
-  }, [geometry, material]);
+  const lineObj = useMemo(() => new THREE.Line(geometry, material), [geometry, material]);
 
   return <primitive ref={lineRef} object={lineObj} />;
 }
@@ -199,19 +148,13 @@ function NodeSparks({ position, color, count = 8 }: { position: [number, number,
       const t = state.clock.elapsedTime;
       for (let i = 0; i < count; i++) {
         const phase = (t * 0.8 + i * 0.7) % 2.0;
-        const life = phase / 2.0; // 0→1
+        const life = phase / 2.0;
         const sparkX = velocities[i * 3] * life * 0.5;
         const sparkY = velocities[i * 3 + 1] * life * 0.4;
         const sparkZ = velocities[i * 3 + 2] * life * 0.3;
-        posAttr.setXYZ(
-          i,
-          sparkX + Math.sin(t * 1.5 + i) * 0.03,
-          sparkY + Math.cos(t * 1.2 + i) * 0.03,
-          sparkZ
-        );
+        posAttr.setXYZ(i, sparkX + Math.sin(t * 1.5 + i) * 0.03, sparkY + Math.cos(t * 1.2 + i) * 0.03, sparkZ);
       }
       posAttr.needsUpdate = true;
-      // Pulsing opacity
       const mat = pointsRef.current.material as THREE.PointsMaterial;
       mat.opacity = 0.5 + Math.sin(t * 3) * 0.3;
     }
@@ -227,15 +170,15 @@ function NodeSparks({ position, color, count = 8 }: { position: [number, number,
   );
 }
 
-/* ── Balloon bouquet held by cosmonaut ── */
-function BalloonBouquet() {
+/* ── Balloon bouquet held by cosmonaut (now accepts dynamic anchor) ── */
+function BalloonBouquet({ handAnchor }: { handAnchor: [number, number, number] }) {
   const groupRef = useRef<THREE.Group>(null);
   const iconRefs = useRef<(THREE.Group | null)[]>([]);
   const [iconPositions, setIconPositions] = useState<[number, number, number][]>(
     SOCIAL_ICONS.map(icon => [
-      HAND_ANCHOR[0] + icon.offset[0],
-      HAND_ANCHOR[1] + icon.offset[1],
-      HAND_ANCHOR[2] + icon.offset[2],
+      handAnchor[0] + icon.offset[0],
+      handAnchor[1] + icon.offset[1],
+      handAnchor[2] + icon.offset[2],
     ])
   );
 
@@ -248,9 +191,9 @@ function BalloonBouquet() {
     iconRefs.current.forEach((ref, i) => {
       if (ref) {
         const offset = i * 1.1;
-        const bx = HAND_ANCHOR[0] + SOCIAL_ICONS[i].offset[0] + Math.sin(t * 0.4 + offset) * 0.06;
-        const by = HAND_ANCHOR[1] + SOCIAL_ICONS[i].offset[1] + Math.sin(t * 0.6 + offset) * 0.08;
-        const bz = HAND_ANCHOR[2] + SOCIAL_ICONS[i].offset[2] + Math.cos(t * 0.35 + offset) * 0.04;
+        const bx = handAnchor[0] + SOCIAL_ICONS[i].offset[0] + Math.sin(t * 0.4 + offset) * 0.06;
+        const by = handAnchor[1] + SOCIAL_ICONS[i].offset[1] + Math.sin(t * 0.6 + offset) * 0.08;
+        const bz = handAnchor[2] + SOCIAL_ICONS[i].offset[2] + Math.cos(t * 0.35 + offset) * 0.04;
         ref.position.set(bx, by, bz);
         ref.rotation.z = Math.sin(t * 0.5 + offset) * 0.04;
         newPositions[i] = [bx, by, bz];
@@ -263,21 +206,19 @@ function BalloonBouquet() {
 
   return (
     <group ref={groupRef}>
-      {/* Neon strings */}
       {SOCIAL_ICONS.map((icon, i) => (
         <NeonString
           key={`string-${icon.name}`}
-          from={iconPositions[i] || [HAND_ANCHOR[0] + icon.offset[0], HAND_ANCHOR[1] + icon.offset[1], HAND_ANCHOR[2] + icon.offset[2]]}
-          to={HAND_ANCHOR}
+          from={iconPositions[i] || [handAnchor[0] + icon.offset[0], handAnchor[1] + icon.offset[1], handAnchor[2] + icon.offset[2]]}
+          to={handAnchor}
           color={icon.color}
         />
       ))}
-      {/* Balloon icons with sparks */}
       {SOCIAL_ICONS.map((icon, i) => {
         const pos: [number, number, number] = [
-          HAND_ANCHOR[0] + icon.offset[0],
-          HAND_ANCHOR[1] + icon.offset[1],
-          HAND_ANCHOR[2] + icon.offset[2],
+          handAnchor[0] + icon.offset[0],
+          handAnchor[1] + icon.offset[1],
+          handAnchor[2] + icon.offset[2],
         ];
         return (
           <group key={icon.name}>
@@ -304,7 +245,6 @@ function BalloonBouquet() {
                 />
               </Html>
             </group>
-            {/* Sparks around the node */}
             <NodeSparks
               position={iconPositions[i] || pos}
               color={icon.color}
@@ -320,14 +260,12 @@ function BalloonBouquet() {
 /* ── Glowing energy rings ── */
 function EnergyRing() {
   const ringRef = useRef<THREE.Mesh>(null);
-
   useFrame((state) => {
     if (ringRef.current) {
       ringRef.current.rotation.z = state.clock.elapsedTime * 0.12;
       ringRef.current.rotation.x = Math.PI * 0.4 + Math.sin(state.clock.elapsedTime * 0.2) * 0.05;
     }
   });
-
   return (
     <mesh ref={ringRef} position={[2.2, 1.2, 1.5]} rotation={[Math.PI * 0.4, 0, 0]}>
       <torusGeometry args={[2.5, 0.012, 16, 120]} />
@@ -338,14 +276,12 @@ function EnergyRing() {
 
 function EnergyRing2() {
   const ringRef = useRef<THREE.Mesh>(null);
-
   useFrame((state) => {
     if (ringRef.current) {
       ringRef.current.rotation.z = -state.clock.elapsedTime * 0.08;
       ringRef.current.rotation.x = Math.PI * 0.5 + Math.sin(state.clock.elapsedTime * 0.15) * 0.06;
     }
   });
-
   return (
     <mesh ref={ringRef} position={[2.2, 1.2, 1.5]} rotation={[Math.PI * 0.5, 0, 0]}>
       <torusGeometry args={[3, 0.006, 16, 120]} />
@@ -357,7 +293,6 @@ function EnergyRing2() {
 /* ── Space particles ── */
 function SpaceParticles({ count = 300 }: { count?: number }) {
   const points = useRef<THREE.Points>(null);
-
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -367,13 +302,9 @@ function SpaceParticles({ count = 300 }: { count?: number }) {
     }
     return pos;
   }, [count]);
-
   useFrame((_, delta) => {
-    if (points.current) {
-      points.current.rotation.y += delta * 0.005;
-    }
+    if (points.current) points.current.rotation.y += delta * 0.005;
   });
-
   return (
     <points ref={points}>
       <bufferGeometry>
@@ -381,6 +312,33 @@ function SpaceParticles({ count = 300 }: { count?: number }) {
       </bufferGeometry>
       <pointsMaterial color="#99FFCC" size={0.02} transparent opacity={0.4} sizeAttenuation depthWrite={false} />
     </points>
+  );
+}
+
+/* ── Scene contents (inside Canvas) ── */
+function SceneContents({ scrollProgress }: { scrollProgress: number }) {
+  const [handAnchor, setHandAnchor] = useState<[number, number, number]>(DEFAULT_ANCHOR);
+
+  const handleAnchorUpdate = useCallback((anchor: [number, number, number]) => {
+    setHandAnchor(anchor);
+  }, []);
+
+  return (
+    <>
+      <CameraRig scrollProgress={scrollProgress} />
+      <ambientLight intensity={0.15} />
+      <directionalLight position={[-5, 5, 8]} intensity={1.5} color="#ffffff" />
+      <directionalLight position={[3, 2, 5]} intensity={0.3} color="#99FFCC" />
+      <pointLight position={[2, 0, 3]} intensity={0.6} color="#99FFCC" distance={12} />
+
+      <AnimatedCosmonaut scrollProgress={scrollProgress} onHandAnchorUpdate={handleAnchorUpdate} />
+      <EnergyRing />
+      <EnergyRing2 />
+      <BalloonBouquet handAnchor={handAnchor} />
+
+      <SpaceParticles count={400} />
+      <Stars radius={20} depth={40} count={2500} factor={3} saturation={0.1} fade speed={0.3} />
+    </>
   );
 }
 
@@ -399,20 +357,7 @@ export default function HeroScene3D({ scrollProgress, className }: HeroScene3DPr
         style={{ background: 'transparent' }}
         dpr={[1, 1.5]}
       >
-        <CameraRig scrollProgress={scrollProgress} />
-        
-        <ambientLight intensity={0.15} />
-        <directionalLight position={[-5, 5, 8]} intensity={1.5} color="#ffffff" />
-        <directionalLight position={[3, 2, 5]} intensity={0.3} color="#99FFCC" />
-        <pointLight position={[2, 0, 3]} intensity={0.6} color="#99FFCC" distance={12} />
-
-        <Cosmonaut />
-        <EnergyRing />
-        <EnergyRing2 />
-        <BalloonBouquet />
-
-        <SpaceParticles count={400} />
-        <Stars radius={20} depth={40} count={2500} factor={3} saturation={0.1} fade speed={0.3} />
+        <SceneContents scrollProgress={scrollProgress} />
       </Canvas>
     </div>
   );
