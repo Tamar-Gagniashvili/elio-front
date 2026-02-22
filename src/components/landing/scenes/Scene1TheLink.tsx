@@ -135,8 +135,8 @@ export default function Scene1TheLink() {
   const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
 
   // Text grows huge then collapses to zero
-  const textScale = useTransform(scrollYProgress, [0, 0.25, 0.35, 0.45], [1, 3.5, 3.5, 0]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.2, 0.38, 0.45], [1, 1, 1, 0]);
+  const textScale = useTransform(scrollYProgress, [0, 0.2, 0.4, 0.5], [1, 1, 8, 15]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.35, 0.45, 0.5], [1, 1, 0.8, 0]);
 
   const titleText = 'RELINK';
 
