@@ -16,7 +16,7 @@ export default function LandingNav() {
         className="absolute inset-0 border-b"
         style={{
           opacity: bgOpacity,
-          background: 'hsla(240 50% 4% / 0.85)',
+          background: 'hsla(0 0% 6% / 0.9)',
           backdropFilter: 'blur(16px)',
           borderColor: 'hsla(0 0% 100% / 0.06)',
         }}
@@ -26,7 +26,7 @@ export default function LandingNav() {
           <img src={relinkLogo} alt="ReLink" className="h-8 w-8 object-contain rounded-lg" />
           <span className="text-lg font-bold" style={{ color: '#f0f0f0' }}>ReLink</span>
         </Link>
-        <Button asChild size="sm" className="bg-[#99FFCC] text-[#050510] hover:bg-[#77eebb] font-semibold rounded-full px-5">
+        <Button asChild size="sm" className="bg-[#99FFCC] text-[#0a0a0a] hover:bg-[#77eebb] font-semibold rounded-full px-5">
           <Link to="/auth">Login</Link>
         </Button>
       </div>

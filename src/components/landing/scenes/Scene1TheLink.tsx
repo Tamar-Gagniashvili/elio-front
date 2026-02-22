@@ -1,9 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import globeHero from '@/assets/landing/globe-hero.png';
 import relinkLogo from '@/assets/relink-logo-3d.png';
+import cosmonautHero from '@/assets/landing/cosmonaut-hero.png';
 
 export default function Scene1TheLink() {
   const ref = useRef<HTMLDivElement>(null);
@@ -12,105 +10,121 @@ export default function Scene1TheLink() {
     offset: ['start start', 'end start'],
   });
 
-  const globeScale = useTransform(scrollYProgress, [0, 0.6], [1, 1.4]);
-  const globeOpacity = useTransform(scrollYProgress, [0.5, 0.8], [1, 0]);
-  const globeY = useTransform(scrollYProgress, [0, 0.6], [0, -60]);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.05, 0.5, 0.7], [0, 1, 1, 0]);
-  const subtitleOpacity = useTransform(scrollYProgress, [0.05, 0.15, 0.5, 0.7], [0, 1, 1, 0]);
-  const subtitleY = useTransform(scrollYProgress, [0.05, 0.15], [30, 0]);
-  const ctaOpacity = useTransform(scrollYProgress, [0.1, 0.2, 0.5, 0.7], [0, 1, 1, 0]);
-  const scrollIndicator = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
+  const logoScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.6]);
+  const logoY = useTransform(scrollYProgress, [0, 0.8], [0, -120]);
+  const logoOpacity = useTransform(scrollYProgress, [0.6, 1], [1, 0]);
+  const chainLeftX = useTransform(scrollYProgress, [0.3, 0.8], [0, -80]);
+  const chainRightX = useTransform(scrollYProgress, [0.3, 0.8], [0, 80]);
+  const chainLeftRotate = useTransform(scrollYProgress, [0.3, 0.8], [0, -15]);
+  const chainRightRotate = useTransform(scrollYProgress, [0.3, 0.8], [0, 15]);
+  const taglineOpacity = useTransform(scrollYProgress, [0.1, 0.25], [0, 1]);
+  const taglineY = useTransform(scrollYProgress, [0.1, 0.25], [30, 0]);
+  const subtitleOpacity = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
+  const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
+  const heroImgOpacity = useTransform(scrollYProgress, [0, 0.2], [0.15, 0.3]);
+  const heroImgScale = useTransform(scrollYProgress, [0, 0.5], [1.1, 1.3]);
 
   return (
     <section
       ref={ref}
       className="relative h-[200vh] w-full"
-      style={{ background: '#050510' }}
+      style={{ background: '#0a0a0a' }}
     >
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
-        {/* Star particles */}
-        <div className="absolute inset-0 overflow-hidden">
-          {Array.from({ length: 60 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: Math.random() > 0.8 ? 3 : Math.random() > 0.5 ? 2 : 1,
-                height: Math.random() > 0.8 ? 3 : Math.random() > 0.5 ? 2 : 1,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                background: Math.random() > 0.7 ? '#99FFCC' : 'rgba(255,255,255,0.6)',
-                opacity: 0.3 + Math.random() * 0.7,
-                animation: `twinkle ${2 + Math.random() * 4}s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 3}s`,
-              }}
-            />
-          ))}
-        </div>
+        {/* Background cosmonaut image */}
+        <motion.img
+          src={cosmonautHero}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: heroImgOpacity, scale: heroImgScale }}
+        />
 
-        {/* Globe */}
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ scale: globeScale, opacity: globeOpacity, y: globeY }}
-        >
-          <img
-            src={globeHero}
-            alt="Earth from space"
-            className="w-full h-full object-cover"
-          />
-        </motion.div>
-
-        {/* Gradient overlay for text readability */}
+        {/* Ambient glow */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute w-[600px] h-[600px] rounded-full"
           style={{
-            background: 'radial-gradient(ellipse at center 40%, transparent 30%, rgba(5,5,16,0.6) 70%, rgba(5,5,16,0.95) 100%)',
+            background: 'radial-gradient(circle, hsla(153 100% 80% / 0.06) 0%, transparent 70%)',
           }}
         />
 
-        {/* Content */}
-        <div className="relative z-10 text-center px-4">
-          <motion.div className="flex items-center justify-center gap-3 mb-6" style={{ opacity: titleOpacity }}>
-            <img src={relinkLogo} alt="" className="h-12 w-12 md:h-16 md:w-16 object-contain rounded-2xl" />
-          </motion.div>
+        {/* Title at top */}
+        <motion.h1
+          className="relative z-20 text-6xl md:text-8xl font-black tracking-tighter uppercase mb-8"
+          style={{
+            color: '#f0f0f0',
+            opacity: useTransform(scrollYProgress, [0, 0.15], [1, 0]),
+          }}
+        >
+          Re<span style={{ color: '#99FFCC' }}>Link</span>
+        </motion.h1>
 
-          <motion.h1
-            className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter uppercase leading-none"
-            style={{ color: '#f0f0f0', opacity: titleOpacity }}
-          >
-            Re<span style={{ color: '#99FFCC' }}>Link</span>
-          </motion.h1>
+        {/* Logo below title with split chains effect */}
+        <motion.div
+          className="relative z-10 flex flex-col items-center"
+          style={{ scale: logoScale, y: logoY, opacity: logoOpacity }}
+        >
+          <div className="relative">
+            {/* Left chain */}
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                x: chainLeftX,
+                rotate: chainLeftRotate,
+                clipPath: 'polygon(0 0, 55% 0, 55% 100%, 0 100%)',
+              }}
+            >
+              <img src={relinkLogo} alt="" className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl" />
+            </motion.div>
+            {/* Right chain */}
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                x: chainRightX,
+                rotate: chainRightRotate,
+                clipPath: 'polygon(45% 0, 100% 0, 100% 100%, 45% 100%)',
+              }}
+            >
+              <img src={relinkLogo} alt="" className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl" />
+            </motion.div>
+            {/* Full logo (visible before split) */}
+            <motion.img
+              src={relinkLogo}
+              alt="ReLink"
+              className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl"
+              style={{
+                opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]),
+              }}
+            />
+          </div>
 
+          {/* Tagline on scroll */}
           <motion.p
-            className="mt-6 text-lg md:text-2xl max-w-2xl mx-auto font-light tracking-wide"
-            style={{ color: 'rgba(255,255,255,0.6)', opacity: subtitleOpacity, y: subtitleY }}
+            className="mt-8 text-lg md:text-xl max-w-md text-center font-light tracking-wide"
+            style={{
+              color: '#999',
+              opacity: taglineOpacity,
+              y: taglineY,
+            }}
           >
             Where Conversations Become Connections.
           </motion.p>
 
           <motion.p
-            className="mt-3 text-sm md:text-base max-w-lg mx-auto"
-            style={{ color: 'rgba(255,255,255,0.35)', opacity: subtitleOpacity, y: subtitleY }}
+            className="mt-3 text-sm max-w-sm text-center"
+            style={{
+              color: '#555',
+              opacity: subtitleOpacity,
+              y: subtitleY,
+            }}
           >
-            The omnichannel system that links messages, objects, and teams across the globe.
+            The omnichannel system that links it all.
           </motion.p>
-
-          <motion.div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4" style={{ opacity: ctaOpacity }}>
-            <Link
-              to="/auth"
-              className="inline-flex items-center gap-2 h-14 px-10 text-lg font-bold rounded-full transition-all duration-200 hover:scale-105"
-              style={{ background: '#99FFCC', color: '#0a0a0a' }}
-            >
-              Get Started Free
-              <ArrowRight className="h-5 w-5" />
-            </Link>
-          </motion.div>
-        </div>
+        </motion.div>
 
         {/* Scroll indicator */}
         <motion.div
           className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20"
-          style={{ opacity: scrollIndicator }}
+          style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
         >
           <span className="text-[10px] tracking-[0.3em] uppercase font-medium" style={{ color: '#555' }}>Scroll</span>
           <motion.div
@@ -121,14 +135,6 @@ export default function Scene1TheLink() {
           />
         </motion.div>
       </div>
-
-      {/* Twinkle animation */}
-      <style>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 1; }
-        }
-      `}</style>
     </section>
   );
 }

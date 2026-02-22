@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Home, Truck, Car, ShoppingBag } from 'lucide-react';
+import cosmonautIndustries from '@/assets/landing/cosmonaut-industries.png';
 
 const industries = [
   {
@@ -43,10 +44,19 @@ export default function Scene4Industries() {
   const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0]);
   const titleOpacity = useTransform(scrollYProgress, [0.05, 0.18], [0, 1]);
   const titleY = useTransform(scrollYProgress, [0.05, 0.18], [40, 0]);
+  const bgImgOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 0.1]);
 
   return (
     <section ref={ref} className="relative h-[200vh]">
-      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: '#050510' }}>
+      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: '#0a0a0a' }}>
+        {/* Background cosmonaut */}
+        <motion.img
+          src={cosmonautIndustries}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: bgImgOpacity }}
+        />
+
         <motion.div className="container max-w-screen-xl relative z-10" style={{ opacity }}>
           <motion.div className="text-center mb-14" style={{ opacity: titleOpacity, y: titleY }}>
             <span className="text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
@@ -56,7 +66,7 @@ export default function Scene4Industries() {
               THE SYSTEM THAT{' '}
               <span style={{ color: '#99FFCC' }}>LINKS</span> IT ALL.
             </h2>
-            <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: '#666' }}>
               ReLink adapts to your business. Define your own objects, statuses, and workflows.
             </p>
           </motion.div>
@@ -65,11 +75,10 @@ export default function Scene4Industries() {
             {industries.map((ind, i) => (
               <motion.div
                 key={ind.title}
-                className="group rounded-2xl p-6 transition-all duration-300"
+                className="group rounded-2xl p-6 transition-all duration-300 backdrop-blur-sm"
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  backdropFilter: 'blur(8px)',
+                  background: 'rgba(20, 20, 20, 0.85)',
+                  border: '1px solid #222',
                   opacity: useTransform(scrollYProgress, [0.15 + i * 0.04, 0.28 + i * 0.04], [0, 1]),
                   y: useTransform(scrollYProgress, [0.15 + i * 0.04, 0.28 + i * 0.04], [50, 0]),
                   rotateY: useTransform(scrollYProgress, [0.15 + i * 0.04, 0.35 + i * 0.04], [i < 2 ? 8 : -8, 0]),
@@ -78,18 +87,18 @@ export default function Scene4Industries() {
               >
                 <div
                   className="h-12 w-12 rounded-xl flex items-center justify-center mb-4"
-                  style={{ background: `${ind.accent}12`, border: `1px solid ${ind.accent}25` }}
+                  style={{ background: `${ind.accent}15`, border: `1px solid ${ind.accent}30` }}
                 >
                   <ind.icon className="h-6 w-6" style={{ color: ind.accent }} />
                 </div>
                 <h3 className="text-lg font-bold mb-2" style={{ color: '#e0e0e0' }}>{ind.title}</h3>
-                <p className="text-sm mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>{ind.description}</p>
+                <p className="text-sm mb-4 leading-relaxed" style={{ color: '#777' }}>{ind.description}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {ind.objects.map((obj) => (
                     <span
                       key={obj}
                       className="text-[10px] font-medium px-2 py-1 rounded-full"
-                      style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+                      style={{ background: '#1e1e1e', color: '#888', border: '1px solid #2a2a2a' }}
                     >
                       {obj}
                     </span>
