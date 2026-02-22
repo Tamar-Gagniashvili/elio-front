@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Mail } from 'lucide-react';
 import Starfield from '@/components/landing/Starfield';
 import relinkLogo from '@/assets/relink-logo-3d.png';
-import cosmonautFloating from '@/assets/landing/cosmonaut-floating.png';
+import cosmonautHolding from '@/assets/landing/cosmonaut-holding.png';
 
 export default function Scene5CTA() {
   const ref = useRef<HTMLDivElement>(null);
@@ -78,25 +78,26 @@ export default function Scene5CTA() {
             }}
           >
             <motion.img
-              src={cosmonautFloating}
-              alt="Floating cosmonaut"
+              src={cosmonautHolding}
+              alt="Cosmonaut holding contact button"
               className="w-[280px] md:w-[360px] h-auto"
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
               style={{
-                WebkitMaskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
-                maskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
+                WebkitMaskImage: 'radial-gradient(ellipse 70% 70% at 50% 45%, black 40%, transparent 75%)',
+                maskImage: 'radial-gradient(ellipse 70% 70% at 50% 45%, black 40%, transparent 75%)',
               }}
             />
-            {/* Contact Us button "held" by the cosmonaut */}
+            {/* Contact Us button between the cosmonaut's hands */}
             <motion.a
               href="mailto:contact@relink.io"
-              className="absolute bottom-4 inline-flex items-center gap-2 h-12 px-8 text-base font-semibold rounded-full transition-colors duration-200 hover:scale-105"
+              className="absolute inline-flex items-center gap-2 h-11 px-7 text-sm font-semibold rounded-full transition-colors duration-200 hover:scale-105"
               style={{
+                bottom: '38%',
                 border: '1px solid #99FFCC60',
                 color: '#99FFCC',
-                background: 'rgba(153, 255, 204, 0.08)',
-                boxShadow: '0 0 30px rgba(153, 255, 204, 0.15)',
+                background: 'rgba(153, 255, 204, 0.1)',
+                boxShadow: '0 0 25px rgba(153, 255, 204, 0.2)',
               }}
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
