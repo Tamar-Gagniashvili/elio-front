@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import relinkLogo from '@/assets/relink-logo-3d.png';
 import cosmonautHero from '@/assets/landing/cosmonaut-hero.png';
+import heroBg from '@/assets/landing/hero-bg.png';
 
 /* ── Deterministic random for SSR-safe positions ── */
 function seededRandom(seed: number) {
@@ -137,10 +138,11 @@ export default function Scene1TheLink() {
     <section ref={ref} className="relative h-[200vh] w-full" style={{ background: '#000' }}>
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
 
-        {/* ── DEEP BLACK BASE + VIGNETTE ── */}
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse at center, #080810 0%, #000 100%)',
-        }} />
+        {/* ── HERO BACKGROUND IMAGE ── */}
+        <div className="absolute inset-0">
+          <img src={heroBg} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)' }} />
+        </div>
 
         {/* ── ANIMATED NODE NETWORK (SVG) ── */}
         <svg className="absolute inset-0 w-full h-full z-[1]" viewBox="0 0 100 100" preserveAspectRatio="none">
