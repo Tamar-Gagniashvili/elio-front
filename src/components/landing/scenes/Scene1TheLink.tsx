@@ -259,34 +259,6 @@ export default function Scene1TheLink() {
           />
         </div>
 
-        {/* ── COSMONAUT ── */}
-        <motion.div
-          className="absolute right-[-5%] md:right-[3%] bottom-[2%] md:bottom-[5%] w-[75vw] md:w-[42vw] lg:w-[36vw] max-w-[580px] z-[4]"
-          style={{ y: heroY, scale: heroScale }}
-        >
-          <motion.div
-            className="absolute inset-0 rounded-full blur-[100px]"
-            style={{
-              background: 'radial-gradient(circle, hsla(153, 100%, 80%, 0.12) 0%, transparent 70%)',
-              transform: 'scale(1.8)',
-            }}
-            animate={{
-              opacity: [0.5, 0.8, 0.5],
-            }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.img
-            src={cosmonautHero}
-            alt="ReLink Cosmonaut"
-            className="w-full h-auto object-contain relative z-10"
-            style={{
-              filter: 'drop-shadow(0 0 50px hsla(153, 100%, 80%, 0.35)) drop-shadow(0 0 100px hsla(153, 100%, 80%, 0.15))',
-            }}
-            initial={{ opacity: 0, x: 120, scale: 0.7 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ duration: 1.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] as const }}
-          />
-        </motion.div>
 
         {/* ── TITLE + TEXT CENTER ── */}
         <div ref={titleRef} className="relative z-20 flex flex-col items-center">
