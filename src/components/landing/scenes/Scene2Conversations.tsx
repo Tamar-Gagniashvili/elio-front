@@ -32,7 +32,7 @@ export default function Scene2Conversations() {
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1200px' }}>
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1f15 0%, #080808 50%, #000000 100%)' }}>
+      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10" style={{ background: 'radial-gradient(ellipse at 50% 0%, #111111 0%, #080808 50%, #000000 100%)' }}>
         <Starfield />
         <motion.div className="container max-w-screen-xl relative" style={{ opacity: sectionOpacity }}>
           {/* Section title */}
