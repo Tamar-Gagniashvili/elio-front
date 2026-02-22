@@ -70,14 +70,14 @@ function Cosmonaut() {
 
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.position.y = 0.3 + Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
+      meshRef.current.position.y = -1 + Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
     }
   });
 
   return (
-    <mesh ref={meshRef} position={[2.2, 0.3, 2]}>
+    <mesh ref={meshRef} position={[2.2, -1, 2]}>
       <planeGeometry args={[4.5, 4.5]} />
-      <meshBasicMaterial map={texture} transparent />
+      <meshBasicMaterial map={texture} transparent alphaTest={0.05} />
     </mesh>
   );
 }
