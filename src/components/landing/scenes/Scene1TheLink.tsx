@@ -218,21 +218,6 @@ export default function Scene1TheLink() {
                   ease: 'easeInOut',
                 }}
               />
-              {/* Label for channel nodes */}
-              {node.label && (
-                <motion.span
-                  className="text-[9px] md:text-[11px] font-semibold whitespace-nowrap hidden md:block"
-                  style={{
-                    color: node.color,
-                    textShadow: `0 0 10px ${node.color}`,
-                  }}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 0.8, x: 0 }}
-                  transition={{ delay: 1.5 + node.delay, duration: 0.5 }}
-                >
-                  {node.label}
-                </motion.span>
-              )}
             </motion.div>
           ))}
         </div>
