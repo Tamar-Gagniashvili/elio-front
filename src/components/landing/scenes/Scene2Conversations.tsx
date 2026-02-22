@@ -17,17 +17,17 @@ export default function Scene2Conversations() {
   });
 
   const sectionOpacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0]);
-  const chatX = useTransform(scrollYProgress, [0.05, 0.3], [-80, 0]);
+  const chatX = useTransform(scrollYProgress, [0.05, 0.3], [80, 0]);
   const chatOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 1]);
   const titleOpacity = useTransform(scrollYProgress, [0.05, 0.2], [0, 1]);
   const titleY = useTransform(scrollYProgress, [0.05, 0.2], [40, 0]);
   const aiOpacity = useTransform(scrollYProgress, [0.3, 0.45], [0, 1]);
   const aiY = useTransform(scrollYProgress, [0.3, 0.45], [20, 0]);
 
-  // Cosmonaut enters from right
-  const cosmonautX = useTransform(scrollYProgress, [0.1, 0.3], [200, 0]);
+  // Cosmonaut enters from left
+  const cosmonautX = useTransform(scrollYProgress, [0.1, 0.3], [-200, 0]);
   const cosmonautOpacity = useTransform(scrollYProgress, [0.1, 0.25], [0, 1]);
-  const cosmonautRotate = useTransform(scrollYProgress, [0.1, 0.35], [15, -5]);
+  const cosmonautRotate = useTransform(scrollYProgress, [0.1, 0.35], [-15, 5]);
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1200px' }}>
@@ -48,7 +48,29 @@ export default function Scene2Conversations() {
           </motion.div>
 
           <div className="grid lg:grid-cols-2 gap-8 items-center max-w-5xl mx-auto">
-            {/* LEFT: Chat window + AI suggestion */}
+            {/* LEFT: Cosmonaut floating */}
+            <motion.div
+              className="flex items-center justify-center"
+              style={{
+                x: cosmonautX,
+                opacity: cosmonautOpacity,
+                rotate: cosmonautRotate,
+              }}
+            >
+              <motion.img
+                src={cosmonautFloating}
+                alt="Floating cosmonaut"
+                className="w-[340px] md:w-[420px] h-auto drop-shadow-[0_0_40px_rgba(153,255,204,0.25)]"
+                animate={{ y: [0, -15, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                style={{
+                  WebkitMaskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
+                  maskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
+                }}
+              />
+            </motion.div>
+
+            {/* RIGHT: Chat window + AI suggestion */}
             <div className="space-y-4">
               <motion.div
                 className="rounded-2xl overflow-hidden"
@@ -122,26 +144,6 @@ export default function Scene2Conversations() {
                 </div>
               </motion.div>
             </div>
-
-            {/* RIGHT: Cosmonaut floating in from the right */}
-            <motion.div
-              className="flex items-center justify-center"
-              style={{
-                x: cosmonautX,
-                opacity: cosmonautOpacity,
-                rotate: cosmonautRotate,
-              }}
-            >
-              <img
-                src={cosmonautFloating}
-                alt="Floating cosmonaut"
-                className="w-[340px] md:w-[420px] h-auto drop-shadow-[0_0_40px_rgba(153,255,204,0.25)]"
-                style={{
-                  WebkitMaskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
-                  maskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
-                }}
-              />
-            </motion.div>
           </div>
         </motion.div>
       </div>
