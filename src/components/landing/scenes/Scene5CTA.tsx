@@ -80,7 +80,7 @@ export default function Scene5CTA() {
             <motion.img
               src={cosmonautHolding}
               alt="Cosmonaut holding contact button"
-              className="w-[280px] md:w-[360px] h-auto"
+              className="w-[340px] md:w-[440px] h-auto"
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
               style={{
@@ -91,18 +91,18 @@ export default function Scene5CTA() {
             {/* Contact Us button between the cosmonaut's hands */}
             <motion.a
               href="mailto:contact@relink.io"
-              className="absolute inline-flex items-center gap-2 h-11 px-7 text-sm font-semibold rounded-full transition-colors duration-200 hover:scale-105"
+              className="absolute inline-flex items-center gap-2.5 h-14 px-10 text-lg font-bold rounded-full transition-colors duration-200 hover:scale-105"
               style={{
-                bottom: '38%',
-                border: '1px solid #99FFCC60',
+                bottom: '36%',
+                border: '2px solid #99FFCC',
                 color: '#99FFCC',
-                background: 'rgba(153, 255, 204, 0.1)',
-                boxShadow: '0 0 25px rgba(153, 255, 204, 0.2)',
+                background: 'rgba(153, 255, 204, 0.15)',
+                boxShadow: '0 0 40px rgba(153, 255, 204, 0.3), 0 0 80px rgba(153, 255, 204, 0.1)',
               }}
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <Mail className="h-4 w-4" />
+              <Mail className="h-5 w-5" />
               Contact Us
             </motion.a>
           </motion.div>
