@@ -31,7 +31,26 @@ export default function Scene2Conversations() {
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1200px' }}>
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10" style={{ background: '#0a0a0a' }}>
+      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1f15 0%, #080808 50%, #000000 100%)' }}>
+        {/* Starfield background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {Array.from({ length: 120 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                width: Math.random() > 0.9 ? '2px' : '1px',
+                height: Math.random() > 0.9 ? '2px' : '1px',
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                background: '#99FFCC',
+                opacity: 0.15 + Math.random() * 0.4,
+                animation: `twinkle ${2 + Math.random() * 4}s ease-in-out ${Math.random() * 3}s infinite`,
+              }}
+            />
+          ))}
+          <style>{`@keyframes twinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.6; } }`}</style>
+        </div>
         <motion.div className="container max-w-screen-xl relative" style={{ opacity: sectionOpacity }}>
           {/* Section title */}
           <motion.div className="text-center mb-12" style={{ opacity: titleOpacity, y: titleY }}>
