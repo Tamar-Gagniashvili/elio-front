@@ -135,7 +135,8 @@ export default function Scene2Conversations() {
               <img
                 src={cosmonautFloating}
                 alt="Floating cosmonaut"
-                className="w-[340px] md:w-[420px] h-auto drop-shadow-[0_0_40px_rgba(153,255,204,0.25)] mix-blend-screen"
+                className="w-[340px] md:w-[420px] h-auto drop-shadow-[0_0_40px_rgba(153,255,204,0.25)]"
+                style={{ mixBlendMode: 'lighten' }}
               />
             </motion.div>
           </div>
