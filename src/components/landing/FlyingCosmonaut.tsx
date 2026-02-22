@@ -12,7 +12,7 @@ export default function FlyingCosmonaut() {
   return (
     <motion.img
       src={satelliteFly}
-      alt="Flying satellite"
+      alt="Flying cosmonaut"
       className="fixed z-50 w-16 h-16 md:w-20 md:h-20 pointer-events-none drop-shadow-[0_0_15px_rgba(153,255,204,0.4)]"
       style={{ x, y, rotate, scale }}
     />
