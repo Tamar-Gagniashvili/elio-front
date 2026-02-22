@@ -63,10 +63,37 @@ function CameraRig({ scrollProgress }: { scrollProgress: number }) {
 }
 
 
+/* ── Custom shader material to make black bg transparent ── */
+const chromaKeyVertexShader = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const chromaKeyFragmentShader = `
+  uniform sampler2D map;
+  varying vec2 vUv;
+  void main() {
+    vec4 texColor = texture2D(map, vUv);
+    float brightness = (texColor.r + texColor.g + texColor.b) / 3.0;
+    float alpha = smoothstep(0.05, 0.15, brightness);
+    gl_FragColor = vec4(texColor.rgb, alpha);
+  }
+`;
+
 /* ── Cosmonaut — larger, visible, facing left ── */
 function Cosmonaut() {
   const texture = useLoader(THREE.TextureLoader, cosmonautImg);
   const meshRef = useRef<THREE.Mesh>(null);
+
+  const shaderMaterial = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: { map: { value: texture } },
+    vertexShader: chromaKeyVertexShader,
+    fragmentShader: chromaKeyFragmentShader,
+    transparent: true,
+    depthWrite: false,
+  }), [texture]);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -75,9 +102,8 @@ function Cosmonaut() {
   });
 
   return (
-    <mesh ref={meshRef} position={[2.2, -1, 2]}>
+    <mesh ref={meshRef} position={[2.2, -1, 2]} material={shaderMaterial}>
       <planeGeometry args={[4.5, 4.5]} />
-      <meshBasicMaterial map={texture} transparent alphaTest={0.05} />
     </mesh>
   );
 }
