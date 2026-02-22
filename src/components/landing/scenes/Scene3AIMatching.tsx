@@ -28,31 +28,31 @@ export default function Scene3AIMatching() {
         <motion.img
           src={cosmonautAi}
           alt=""
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] object-contain pointer-events-none"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] object-contain pointer-events-none"
           style={{ opacity: bgImgOpacity, scale: bgImgScale }}
         />
 
         <motion.div className="container max-w-screen-xl relative z-10" style={{ opacity }}>
           {/* Title */}
-          <motion.div className="text-center mb-16" style={{ opacity: titleOpacity, y: titleY }}>
-            <span className="text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
+          <motion.div className="text-center mb-8 md:mb-16 px-4" style={{ opacity: titleOpacity, y: titleY }}>
+            <span className="text-[10px] md:text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
               Intelligence Layer
             </span>
-            <h2 className="mt-3 text-4xl md:text-6xl font-black tracking-tight" style={{ color: '#f0f0f0' }}>
+            <h2 className="mt-2 md:mt-3 text-2xl sm:text-4xl md:text-6xl font-black tracking-tight" style={{ color: '#f0f0f0' }}>
               FROM MESSAGE TO{' '}
               <span style={{ color: '#99FFCC' }}>MEANING.</span>
             </h2>
-            <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: '#666' }}>
+            <p className="mt-2 md:mt-3 text-sm md:text-base max-w-lg mx-auto" style={{ color: '#666' }}>
               AI connects conversations to inventory, automatically surfacing the right match.
             </p>
           </motion.div>
 
           {/* Matching visualization */}
-          <div className="max-w-4xl mx-auto relative">
-            <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
+          <div className="max-w-4xl mx-auto relative px-4">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
               {/* Left: Chat panel */}
               <motion.div
-                className="rounded-2xl p-5"
+                className="rounded-2xl p-3 md:p-5"
                 style={{
                   background: '#141414',
                   border: '1px solid #222',
@@ -82,7 +82,7 @@ export default function Scene3AIMatching() {
               </motion.div>
 
               {/* Center: Brain */}
-              <div className="flex flex-col items-center gap-2 px-4">
+              <div className="hidden md:flex flex-col items-center gap-2 px-4">
                 <motion.div
                   className="h-px w-24"
                   style={{
@@ -112,7 +112,7 @@ export default function Scene3AIMatching() {
 
               {/* Right: Objects panel */}
               <motion.div
-                className="rounded-2xl p-5"
+                className="rounded-2xl p-3 md:p-5"
                 style={{
                   background: '#141414',
                   border: '1px solid #222',
@@ -148,16 +148,16 @@ export default function Scene3AIMatching() {
             </div>
 
             {/* Stats row */}
-            <motion.div className="grid grid-cols-3 gap-6 mt-12" style={{ opacity: statsOpacity, y: statsY }}>
+            <motion.div className="grid grid-cols-3 gap-3 md:gap-6 mt-8 md:mt-12" style={{ opacity: statsOpacity, y: statsY }}>
               {[
                 { icon: Zap, label: 'Avg. Response', value: '< 2 min' },
                 { icon: Brain, label: 'Match Accuracy', value: '94%' },
                 { icon: ArrowRight, label: 'Deals Closed Faster', value: '3.2×' },
               ].map((stat) => (
-                <div key={stat.label} className="text-center p-5 rounded-2xl" style={{ background: '#141414', border: '1px solid #222' }}>
-                  <stat.icon className="h-6 w-6 mx-auto mb-2" style={{ color: '#99FFCC' }} />
-                  <p className="text-2xl font-black" style={{ color: '#f0f0f0' }}>{stat.value}</p>
-                  <p className="text-[10px] mt-1 tracking-wider uppercase" style={{ color: '#666' }}>{stat.label}</p>
+                <div key={stat.label} className="text-center p-3 md:p-5 rounded-2xl" style={{ background: '#141414', border: '1px solid #222' }}>
+                  <stat.icon className="h-5 w-5 md:h-6 md:w-6 mx-auto mb-2" style={{ color: '#99FFCC' }} />
+                  <p className="text-lg md:text-2xl font-black" style={{ color: '#f0f0f0' }}>{stat.value}</p>
+                  <p className="text-[8px] md:text-[10px] mt-1 tracking-wider uppercase" style={{ color: '#666' }}>{stat.label}</p>
                 </div>
               ))}
             </motion.div>

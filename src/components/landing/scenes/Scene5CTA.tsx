@@ -33,19 +33,19 @@ export default function Scene5CTA() {
         <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-6">
           {/* Left: Text + Get Started */}
           <div className="flex-1 text-center lg:text-left">
-            <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none" style={{ color: '#f0f0f0' }}>
+            <h2 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none" style={{ color: '#f0f0f0' }}>
               READY TO{' '}
               <span style={{ color: '#99FFCC' }}>LINK</span>{' '}
               IT ALL?
             </h2>
-            <p className="mt-5 text-lg md:text-xl max-w-md font-light" style={{ color: '#666' }}>
+            <p className="mt-4 md:mt-5 text-base md:text-xl max-w-md font-light mx-auto lg:mx-0" style={{ color: '#666' }}>
               Start managing conversations, objects, and teams in one unified platform.
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row items-center lg:items-start gap-4">
               <Link
                 to="/auth"
-                className="inline-flex items-center gap-2 h-14 px-10 text-lg font-bold rounded-full transition-all duration-200 hover:scale-105"
+                className="inline-flex items-center gap-2 h-12 md:h-14 px-8 md:px-10 text-base md:text-lg font-bold rounded-full transition-all duration-200 hover:scale-105"
                 style={{ background: '#99FFCC', color: '#0a0a0a' }}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
@@ -79,7 +79,7 @@ export default function Scene5CTA() {
             <motion.img
               src={cosmonautHolding}
               alt="Cosmonaut holding contact button"
-              className="w-[340px] md:w-[440px] h-auto"
+              className="w-[240px] sm:w-[340px] md:w-[440px] h-auto"
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
               style={{
@@ -90,7 +90,7 @@ export default function Scene5CTA() {
             {/* Contact Us button between the cosmonaut's hands */}
             <motion.a
               href="mailto:contact@relink.io"
-              className="absolute inline-flex items-center gap-2.5 h-14 px-10 text-lg font-bold rounded-full transition-colors duration-200 hover:scale-105"
+              className="absolute inline-flex items-center gap-2 h-11 md:h-14 px-6 md:px-10 text-sm md:text-lg font-bold rounded-full transition-colors duration-200 hover:scale-105"
               style={{
                 bottom: '36%',
                 border: '2px solid #99FFCC',
