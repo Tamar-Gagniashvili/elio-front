@@ -54,15 +54,13 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
   }), [textures]);
 
   useFrame((state) => {
-    // Instant swap at ~5% scroll, with a very quick cross-fade over 5% range
-    const swapStart = 0.03;
-    const swapEnd = 0.08;
-    const blend = THREE.MathUtils.clamp((scrollProgress - swapStart) / (swapEnd - swapStart), 0, 1);
+    // Instant swap — no cross-fade, just switch at threshold
+    const showStanding = scrollProgress > 0.04;
 
-    materialA.uniforms.opacity.value = 1 - blend;
-    materialB.uniforms.opacity.value = blend;
+    materialA.uniforms.opacity.value = showStanding ? 0 : 1;
+    materialB.uniforms.opacity.value = showStanding ? 1 : 0;
 
-    // After swap, fade out the whole cosmonaut as it "leaves" the 3D scene (shrinks into flying companion)
+    // After swap, fade out the whole cosmonaut as it leaves the 3D scene
     const fadeStart = 0.15;
     const fadeEnd = 0.35;
     const sceneFade = 1 - THREE.MathUtils.clamp((scrollProgress - fadeStart) / (fadeEnd - fadeStart), 0, 1);
@@ -78,12 +76,8 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
     if (meshARef.current) meshARef.current.position.set(...pos);
     if (meshBRef.current) meshBRef.current.position.set(...pos);
 
-    // Interpolate hand anchor
-    const anchor: [number, number, number] = [
-      POSE_ANCHORS[0][0] + (POSE_ANCHORS[1][0] - POSE_ANCHORS[0][0]) * blend,
-      POSE_ANCHORS[0][1] + (POSE_ANCHORS[1][1] - POSE_ANCHORS[0][1]) * blend,
-      POSE_ANCHORS[0][2] + (POSE_ANCHORS[1][2] - POSE_ANCHORS[0][2]) * blend,
-    ];
+    // Snap hand anchor
+    const anchor = showStanding ? POSE_ANCHORS[1] : POSE_ANCHORS[0];
     onHandAnchorUpdate?.(anchor);
   });
 
