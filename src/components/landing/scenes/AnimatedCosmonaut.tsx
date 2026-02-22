@@ -62,19 +62,18 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
 
     const floatY = Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
 
-    // Fade out the cosmonaut as it exits the hero scene
-    const fadeStart = 0.08;
-    const fadeEnd = 0.15;
-    const sceneFade = 1 - THREE.MathUtils.clamp((scrollProgress - fadeStart) / (fadeEnd - fadeStart), 0, 1);
+    // Fly away to the right instead of fading
+    const flyStart = 0.08;
+    const flyEnd = 0.18;
+    const flyT = THREE.MathUtils.clamp((scrollProgress - flyStart) / (flyEnd - flyStart), 0, 1);
+    const flyEased = flyT * flyT * (3 - 2 * flyT);
 
-    materialA.uniforms.opacity.value *= sceneFade;
-    materialB.uniforms.opacity.value *= sceneFade;
+    // Move right and slightly up
+    const posX = 2.2 + flyEased * 12;
+    const posY = -1 + floatY + flyEased * 1.5;
 
-    // reuse floatY from above
-    const pos: [number, number, number] = [2.2, -1 + floatY, 3];
-
-    if (meshARef.current) meshARef.current.position.set(...pos);
-    if (meshBRef.current) meshBRef.current.position.set(...pos);
+    if (meshARef.current) meshARef.current.position.set(posX, posY, 3);
+    if (meshBRef.current) meshBRef.current.position.set(posX, posY, 3);
 
     // Snap hand anchor
     const anchor = showStanding ? POSE_ANCHORS[1] : POSE_ANCHORS[0];
