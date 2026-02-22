@@ -31,7 +31,7 @@ export default function Scene5CTA() {
         className="container max-w-screen-xl relative z-10"
         style={{ opacity, y, scale }}
       >
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-6">
           {/* Left: Text + Get Started */}
           <div className="flex-1 text-center lg:text-left">
             <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none" style={{ color: '#f0f0f0' }}>
