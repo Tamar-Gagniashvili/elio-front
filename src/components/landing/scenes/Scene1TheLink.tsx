@@ -147,9 +147,9 @@ export default function Scene1TheLink() {
   const subtitleOpacity = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
   const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
 
-  // Text grows huge then collapses to zero
-  const textScale = useTransform(scrollYProgress, [0, 0.2, 0.4, 0.5], [1, 1, 8, 15]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.35, 0.45, 0.5], [1, 1, 0.8, 0]);
+  // Text grows huge then collapses to zero — smooth eased curve
+  const textScale = useTransform(scrollYProgress, [0, 0.15, 0.3, 0.42, 0.5], [1, 1, 3, 10, 20]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.3, 0.4, 0.48], [1, 1, 0.6, 0]);
 
   const titleText = 'RELINK';
 
