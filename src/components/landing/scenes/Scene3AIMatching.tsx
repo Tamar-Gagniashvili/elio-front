@@ -23,8 +23,7 @@ export default function Scene3AIMatching() {
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1000px' }}>
-      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1f15 0%, #080808 50%, #000000 100%)' }}>
-        <Starfield />
+      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: 'transparent' }}>
         {/* Background cosmonaut */}
         <motion.img
           src={cosmonautAi}
