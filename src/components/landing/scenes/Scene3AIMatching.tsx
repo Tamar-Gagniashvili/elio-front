@@ -23,7 +23,7 @@ export default function Scene3AIMatching() {
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1000px' }}>
-      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10">
+      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: '#000' }}>
         {/* Background cosmonaut */}
         <motion.img
           src={cosmonautAi}
