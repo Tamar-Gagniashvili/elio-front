@@ -131,7 +131,8 @@ export default function Scene1TheLink() {
   const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
   const heroY = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 1.15]);
-  const bgScale = useTransform(scrollYProgress, [0, 0.8], [1, 1.4]);
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 2.5]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, -150]);
 
   const titleText = 'RELINK';
 
@@ -142,7 +143,7 @@ export default function Scene1TheLink() {
         {/* ── HERO BACKGROUND IMAGE ── */}
         <motion.div
           className="absolute inset-0"
-          style={{ scale: bgScale }}
+          style={{ scale: bgScale, y: bgY }}
           whileHover={{ opacity: 0 }}
           transition={{ duration: 0.7 }}
         >
