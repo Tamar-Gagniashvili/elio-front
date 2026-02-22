@@ -110,6 +110,7 @@ export default function Scene1TheLink() {
   const titleRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(titleRef, { once: true });
   const [scrollProg, setScrollProg] = useState(0);
+  const hasAutoScrolled = useRef(false);
 
   const nodes = useMemo(() => generateNodes(), []);
   const edges = useMemo(() => generateEdges(nodes), [nodes]);
@@ -120,7 +121,19 @@ export default function Scene1TheLink() {
   });
 
   // Track scroll progress for the 3D scene
-  useMotionValueEvent(scrollYProgress, 'change', (v) => setScrollProg(v));
+  useMotionValueEvent(scrollYProgress, 'change', (v) => {
+    setScrollProg(v);
+    // Auto-scroll to Scene2 when text is about to fade out
+    if (v >= 0.42 && !hasAutoScrolled.current && ref.current) {
+      hasAutoScrolled.current = true;
+      const sectionBottom = ref.current.offsetTop + ref.current.offsetHeight;
+      window.scrollTo({ top: sectionBottom, behavior: 'smooth' });
+    }
+    // Reset flag when scrolling back up
+    if (v < 0.3) {
+      hasAutoScrolled.current = false;
+    }
+  });
 
   const logoScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.6]);
   const logoY = useTransform(scrollYProgress, [0, 0.8], [0, -120]);
