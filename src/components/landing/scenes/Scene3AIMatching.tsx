@@ -18,8 +18,8 @@ export default function Scene3AIMatching() {
   const rightRotate = useTransform(scrollYProgress, [0.15, 0.6], [-5, 0]);
   const statsOpacity = useTransform(scrollYProgress, [0.4, 0.55], [0, 1]);
   const statsY = useTransform(scrollYProgress, [0.4, 0.55], [30, 0]);
-  const bgImgOpacity = useTransform(scrollYProgress, [0.1, 0.3], [0, 0.15]);
-  const bgImgScale = useTransform(scrollYProgress, [0.1, 0.6], [0.9, 1.05]);
+  const bgImgOpacity = useTransform(scrollYProgress, [0.05, 0.4], [0, 0.15]);
+  const bgImgScale = useTransform(scrollYProgress, [0.05, 0.7], [0.85, 1.1]);
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1000px' }}>

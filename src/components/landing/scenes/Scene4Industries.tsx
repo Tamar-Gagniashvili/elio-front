@@ -45,7 +45,7 @@ export default function Scene4Industries() {
   const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0]);
   const titleOpacity = useTransform(scrollYProgress, [0.05, 0.18], [0, 1]);
   const titleY = useTransform(scrollYProgress, [0.05, 0.18], [40, 0]);
-  const bgImgOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 0.1]);
+  const bgImgOpacity = useTransform(scrollYProgress, [0.03, 0.35], [0, 0.1]);
 
   return (
     <section ref={ref} className="relative h-[200vh]">
