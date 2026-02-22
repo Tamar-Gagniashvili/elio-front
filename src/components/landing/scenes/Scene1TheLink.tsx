@@ -134,6 +134,10 @@ export default function Scene1TheLink() {
   const subtitleOpacity = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
   const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
 
+  // Text grows huge then collapses to zero
+  const textScale = useTransform(scrollYProgress, [0, 0.25, 0.35, 0.45], [1, 3.5, 3.5, 0]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.2, 0.38, 0.45], [1, 1, 1, 0]);
+
   const titleText = 'RELINK';
 
   return (
@@ -156,7 +160,11 @@ export default function Scene1TheLink() {
         </div>
 
         {/* ── TEXT CONTENT — LEFT SIDE ── */}
-        <div ref={titleRef} className="relative z-20 flex flex-col items-start pl-8 md:pl-16 lg:pl-24 max-w-2xl">
+        <motion.div
+          ref={titleRef}
+          className="relative z-20 flex flex-col items-start pl-8 md:pl-16 lg:pl-24 max-w-2xl origin-center"
+          style={{ scale: textScale, opacity: textOpacity }}
+        >
           {/* Letter-by-letter animated title */}
           <div className="flex overflow-hidden mb-4" style={{ perspective: '600px' }}>
             {titleText.split('').map((letter, i) => (
@@ -215,7 +223,7 @@ export default function Scene1TheLink() {
           >
             The omnichannel system that links it all.
           </motion.p>
-        </div>
+        </motion.div>
 
         {/* ── SCROLL INDICATOR ── */}
         <motion.div
