@@ -141,7 +141,7 @@ export default function Scene1TheLink() {
   const titleText = 'RELINK';
 
   return (
-    <section ref={ref} className="relative h-[200vh] w-full">
+    <section ref={ref} className="relative h-[200vh] w-full" style={{ background: '#000' }}>
       <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden">
 
         {/* ── 3D HERO SCENE (full background, moon + cosmonaut on right) ── */}
