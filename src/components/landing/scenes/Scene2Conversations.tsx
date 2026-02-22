@@ -35,23 +35,23 @@ export default function Scene2Conversations() {
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10">
         <motion.div className="container max-w-screen-xl relative" style={{ opacity: sectionOpacity }}>
           {/* Section title */}
-          <motion.div className="text-center mb-12" style={{ opacity: titleOpacity, y: titleY }}>
-            <span className="text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
+          <motion.div className="text-center mb-6 md:mb-12 px-4" style={{ opacity: titleOpacity, y: titleY }}>
+            <span className="text-[10px] md:text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
               Unified Inbox
             </span>
-            <h2 className="mt-3 text-4xl md:text-6xl font-black tracking-tight" style={{ color: '#f0f0f0' }}>
+            <h2 className="mt-2 md:mt-3 text-2xl sm:text-4xl md:text-6xl font-black tracking-tight" style={{ color: '#f0f0f0' }}>
               CONVERSATIONS{' '}
               <span style={{ color: '#99FFCC' }}>BECOME DATA.</span>
             </h2>
-            <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: '#666' }}>
+            <p className="mt-2 md:mt-3 text-sm md:text-base max-w-lg mx-auto" style={{ color: '#666' }}>
               Every message feeds into a structured system. Context is never lost.
             </p>
           </motion.div>
 
-          <div className="grid lg:grid-cols-2 gap-8 items-center max-w-5xl mx-auto">
-            {/* LEFT: Cosmonaut floating */}
+          <div className="grid lg:grid-cols-2 gap-6 md:gap-8 items-center max-w-5xl mx-auto px-4">
+            {/* LEFT: Cosmonaut floating — hidden on mobile */}
             <motion.div
-              className="flex items-center justify-center"
+              className="hidden md:flex items-center justify-center"
               style={{
                 x: cosmonautX,
                 opacity: cosmonautOpacity,
@@ -61,7 +61,7 @@ export default function Scene2Conversations() {
               <motion.img
                 src={cosmonautFloating}
                 alt="Floating cosmonaut"
-                className="w-[340px] md:w-[420px] h-auto drop-shadow-[0_0_40px_rgba(153,255,204,0.25)]"
+                className="w-[280px] md:w-[340px] lg:w-[420px] h-auto drop-shadow-[0_0_40px_rgba(153,255,204,0.25)]"
                 animate={{ y: [0, -15, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                 style={{

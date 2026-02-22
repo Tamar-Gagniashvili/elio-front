@@ -165,7 +165,7 @@ export default function Scene1TheLink() {
         {/* ── AMBIENT GLOW LAYERS ── */}
         <div className="absolute inset-0 z-[3] pointer-events-none">
           <motion.div
-            className="absolute top-1/2 left-[20%] -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
+            className="absolute top-1/2 left-[20%] -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[600px] md:h-[600px] rounded-full"
             style={{ background: 'radial-gradient(circle, hsla(153, 100%, 80%, 0.05) 0%, transparent 60%)' }}
             animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
             transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
@@ -175,7 +175,7 @@ export default function Scene1TheLink() {
         {/* ── TEXT CONTENT — LEFT SIDE ── */}
         <motion.div
           ref={titleRef}
-          className="relative z-20 flex flex-col items-start pl-8 md:pl-16 lg:pl-24 max-w-2xl origin-center"
+          className="relative z-20 flex flex-col items-center md:items-start px-5 md:pl-16 lg:pl-24 max-w-2xl origin-center"
           style={{ scale: textScale, opacity: textOpacity }}
         >
           {/* Letter-by-letter animated title */}
@@ -183,7 +183,7 @@ export default function Scene1TheLink() {
             {titleText.split('').map((letter, i) => (
               <motion.span
                 key={i}
-                className="text-6xl md:text-8xl lg:text-[9rem] font-black tracking-tighter leading-none"
+                className="text-4xl sm:text-6xl md:text-8xl lg:text-[9rem] font-black tracking-tighter leading-none"
                 style={{
                   color: i >= 2 ? '#99FFCC' : '#ffffff',
                   textShadow: i >= 2
@@ -206,7 +206,7 @@ export default function Scene1TheLink() {
             className="h-[3px] rounded-full mb-5"
             style={{ background: 'linear-gradient(90deg, #99FFCC, #00bcd4, transparent)' }}
             initial={{ width: 0, opacity: 0 }}
-            animate={isInView ? { width: '240px', opacity: 1 } : {}}
+            animate={isInView ? { width: '160px', opacity: 1 } : {}}
             transition={{ delay: 1.2, duration: 1, ease: 'easeOut' }}
           />
 
@@ -215,7 +215,7 @@ export default function Scene1TheLink() {
             {'Conversations Become Connections'.split(' ').map((word, i) => (
               <motion.span
                 key={i}
-                className="text-sm md:text-lg tracking-[0.25em] uppercase font-medium"
+                className="text-[10px] sm:text-sm md:text-lg tracking-[0.15em] md:tracking-[0.25em] uppercase font-medium"
                 style={{ color: i === 1 ? '#99FFCC' : '#888' }}
                 initial={{ opacity: 0, y: 15 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -240,7 +240,7 @@ export default function Scene1TheLink() {
 
         {/* ── SCROLL INDICATOR ── */}
         <motion.div
-          className="absolute bottom-10 left-8 md:left-16 lg:left-24 flex flex-col items-center gap-2 z-20"
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-16 lg:left-24 flex flex-col items-center gap-2 z-20"
           style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
         >
           <motion.span

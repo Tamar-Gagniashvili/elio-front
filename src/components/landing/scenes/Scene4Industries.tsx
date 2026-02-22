@@ -59,24 +59,24 @@ export default function Scene4Industries() {
         />
 
         <motion.div className="container max-w-screen-xl relative z-10" style={{ opacity }}>
-          <motion.div className="text-center mb-14" style={{ opacity: titleOpacity, y: titleY }}>
-            <span className="text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
+          <motion.div className="text-center mb-8 md:mb-14 px-4" style={{ opacity: titleOpacity, y: titleY }}>
+            <span className="text-[10px] md:text-xs font-semibold tracking-[0.3em] uppercase" style={{ color: '#99FFCC' }}>
               Any Industry
             </span>
-            <h2 className="mt-3 text-4xl md:text-6xl font-black tracking-tight" style={{ color: '#f0f0f0' }}>
+            <h2 className="mt-2 md:mt-3 text-2xl sm:text-4xl md:text-6xl font-black tracking-tight" style={{ color: '#f0f0f0' }}>
               THE SYSTEM THAT{' '}
               <span style={{ color: '#99FFCC' }}>LINKS</span> IT ALL.
             </h2>
-            <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: '#666' }}>
+            <p className="mt-2 md:mt-3 text-sm md:text-base max-w-lg mx-auto" style={{ color: '#666' }}>
               ReLink adapts to your business. Define your own objects, statuses, and workflows.
             </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5 max-w-5xl mx-auto px-4">
             {industries.map((ind, i) => (
               <motion.div
                 key={ind.title}
-                className="group rounded-2xl p-6 transition-all duration-300 backdrop-blur-sm"
+                className="group rounded-xl md:rounded-2xl p-4 md:p-6 transition-all duration-300 backdrop-blur-sm"
                 style={{
                   background: 'rgba(20, 20, 20, 0.85)',
                   border: '1px solid #222',
@@ -87,13 +87,13 @@ export default function Scene4Industries() {
                 }}
               >
                 <div
-                  className="h-12 w-12 rounded-xl flex items-center justify-center mb-4"
+                  className="h-10 w-10 md:h-12 md:w-12 rounded-xl flex items-center justify-center mb-3 md:mb-4"
                   style={{ background: `${ind.accent}15`, border: `1px solid ${ind.accent}30` }}
                 >
-                  <ind.icon className="h-6 w-6" style={{ color: ind.accent }} />
+                  <ind.icon className="h-5 w-5 md:h-6 md:w-6" style={{ color: ind.accent }} />
                 </div>
-                <h3 className="text-lg font-bold mb-2" style={{ color: '#e0e0e0' }}>{ind.title}</h3>
-                <p className="text-sm mb-4 leading-relaxed" style={{ color: '#777' }}>{ind.description}</p>
+                <h3 className="text-base md:text-lg font-bold mb-1 md:mb-2" style={{ color: '#e0e0e0' }}>{ind.title}</h3>
+                <p className="text-xs md:text-sm mb-3 md:mb-4 leading-relaxed hidden sm:block" style={{ color: '#777' }}>{ind.description}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {ind.objects.map((obj) => (
                     <span
