@@ -32,7 +32,7 @@ export default function Scene2Conversations() {
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1200px' }}>
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10" style={{ background: 'transparent' }}>
+      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden py-16 z-10">
         <motion.div className="container max-w-screen-xl relative" style={{ opacity: sectionOpacity }}>
           {/* Section title */}
           <motion.div className="text-center mb-12" style={{ opacity: titleOpacity, y: titleY }}>
