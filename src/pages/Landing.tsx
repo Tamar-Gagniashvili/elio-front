@@ -6,6 +6,7 @@ import Scene4Industries from '@/components/landing/scenes/Scene4Industries';
 import Scene5CTA from '@/components/landing/scenes/Scene5CTA';
 import FlyingCosmonaut from '@/components/landing/FlyingCosmonaut';
 import Starfield from '@/components/landing/Starfield';
+import NeonStrings from '@/components/landing/NeonStrings';
 
 export default function Landing() {
   return (
@@ -13,6 +14,7 @@ export default function Landing() {
       {/* Single unified background for all sections */}
       <div className="fixed inset-0 z-0">
         <Starfield count={200} />
+        <NeonStrings count={12} />
       </div>
       <FlyingCosmonaut />
       <LandingNav />
