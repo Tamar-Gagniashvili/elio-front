@@ -102,7 +102,7 @@ function Cosmonaut() {
   });
 
   return (
-    <mesh ref={meshRef} position={[2.2, -1, 2]} material={shaderMaterial}>
+    <mesh ref={meshRef} position={[2.2, -1, 3]} material={shaderMaterial} renderOrder={10}>
       <planeGeometry args={[4.5, 4.5]} />
     </mesh>
   );
