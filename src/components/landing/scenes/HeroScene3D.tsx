@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
 import { Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import moonTexture from '@/assets/landing/moon-texture.png';
+// moon removed
 import cosmonautImg from '@/assets/landing/cosmonaut-left.png';
 
 /* ── Social icon data ── */
@@ -62,35 +62,6 @@ function CameraRig({ scrollProgress }: { scrollProgress: number }) {
   return null;
 }
 
-/* ── Moon as a proper 3D sphere with surface texture ── */
-function MoonSphere() {
-  const texture = useLoader(THREE.TextureLoader, moonTexture);
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  // Configure texture for proper sphere wrapping
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.015;
-    }
-  });
-
-  return (
-    <mesh ref={meshRef} position={[3.5, -5, -2]}>
-      <sphereGeometry args={[7, 128, 128]} />
-      <meshStandardMaterial
-        map={texture}
-        roughness={0.95}
-        metalness={0.05}
-        bumpMap={texture}
-        bumpScale={0.15}
-        color="#aaaaaa"
-      />
-    </mesh>
-  );
-}
 
 /* ── Cosmonaut — larger, visible, facing left ── */
 function Cosmonaut() {
@@ -239,7 +210,7 @@ export default function HeroScene3D({ scrollProgress, className }: HeroScene3DPr
         <directionalLight position={[3, 2, 5]} intensity={0.3} color="#99FFCC" />
         <pointLight position={[2, 0, 3]} intensity={0.6} color="#99FFCC" distance={12} />
 
-        <MoonSphere />
+        
         <Cosmonaut />
         <EnergyRing />
         <EnergyRing2 />
