@@ -131,6 +131,7 @@ export default function Scene1TheLink() {
   const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
   const heroY = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 1.15]);
+  const bgScale = useTransform(scrollYProgress, [0, 0.8], [1, 1.4]);
 
   const titleText = 'RELINK';
 
@@ -139,10 +140,15 @@ export default function Scene1TheLink() {
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
 
         {/* ── HERO BACKGROUND IMAGE ── */}
-        <div className="absolute inset-0 transition-opacity duration-700 hover:opacity-0">
+        <motion.div
+          className="absolute inset-0"
+          style={{ scale: bgScale }}
+          whileHover={{ opacity: 0 }}
+          transition={{ duration: 0.7 }}
+        >
           <img src={heroBg} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)' }} />
-        </div>
+        </motion.div>
 
         {/* ── ANIMATED NODE NETWORK (SVG) ── */}
         <svg className="absolute inset-0 w-full h-full z-[1]" viewBox="0 0 100 100" preserveAspectRatio="none">
