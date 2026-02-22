@@ -138,83 +138,61 @@ export default function Scene1TheLink() {
 
   return (
     <section ref={ref} className="relative h-[200vh] w-full" style={{ background: '#000' }}>
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
+      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden">
 
-        {/* ── 3D HERO SCENE ── */}
+        {/* ── 3D HERO SCENE (full background, moon + cosmonaut on right) ── */}
         <Suspense fallback={<div className="absolute inset-0 bg-black" />}>
           <HeroScene3D scrollProgress={scrollProg} className="absolute inset-0 z-0" />
         </Suspense>
 
-        {/* ── ANIMATED NODE NETWORK (SVG) ── */}
-        <svg className="absolute inset-0 w-full h-full z-[1]" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* Edges / connections */}
-          {edges.map((edge, i) => (
-            <motion.line
-              key={`e-${i}`}
-              x1={edge.from.x}
-              y1={edge.from.y}
-              x2={edge.to.x}
-              y2={edge.to.y}
-              stroke="hsla(153, 100%, 80%, 0.08)"
-              strokeWidth={0.15}
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ delay: 1.5 + edge.delay, duration: 1.2, ease: 'easeOut' }}
-            />
-          ))}
-          {/* Animated data pulses along edges */}
-          {edges.slice(0, 10).map((edge, i) => (
-            <motion.circle
-              key={`pulse-${i}`}
-              r={0.4}
-              fill="#99FFCC"
-              initial={{ opacity: 0 }}
-              animate={{
-                cx: [edge.from.x, edge.to.x],
-                cy: [edge.from.y, edge.to.y],
-                opacity: [0, 0.8, 0],
-              }}
-              transition={{
-                duration: 2.5 + i * 0.3,
-                repeat: Infinity,
-                delay: 3 + i * 0.5,
-                ease: 'linear',
-              }}
-            />
-          ))}
-        </svg>
-
         {/* ── AMBIENT GLOW LAYERS ── */}
         <div className="absolute inset-0 z-[3] pointer-events-none">
           <motion.div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full"
-            style={{ background: 'radial-gradient(circle, hsla(153, 100%, 80%, 0.06) 0%, transparent 60%)' }}
-            animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }}
+            className="absolute top-1/2 left-[20%] -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
+            style={{ background: 'radial-gradient(circle, hsla(153, 100%, 80%, 0.05) 0%, transparent 60%)' }}
+            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
             transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className="absolute top-[20%] right-[10%] w-[300px] h-[300px] rounded-full"
-            style={{ background: 'radial-gradient(circle, hsla(173, 80%, 50%, 0.05) 0%, transparent 60%)' }}
-            animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.5, 0.2] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-          />
-          <motion.div
-            className="absolute bottom-[15%] left-[15%] w-[350px] h-[350px] rounded-full"
-            style={{ background: 'radial-gradient(circle, hsla(200, 100%, 50%, 0.04) 0%, transparent 60%)' }}
-            animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
           />
         </div>
 
+        {/* ── TEXT CONTENT — LEFT SIDE ── */}
+        <div ref={titleRef} className="relative z-20 flex flex-col items-start pl-8 md:pl-16 lg:pl-24 max-w-2xl">
+          {/* Logo */}
+          <motion.div
+            className="mb-6"
+            style={{ scale: logoScale, opacity: logoOpacity }}
+          >
+            <div className="relative">
+              <motion.div
+                className="absolute inset-0"
+                style={{ x: chainLeftX, rotate: chainLeftRotate, clipPath: 'polygon(0 0, 55% 0, 55% 100%, 0 100%)' }}
+              >
+                <img src={relinkLogo} alt="" className="w-16 h-16 md:w-24 md:h-24 object-contain rounded-2xl" />
+              </motion.div>
+              <motion.div
+                className="absolute inset-0"
+                style={{ x: chainRightX, rotate: chainRightRotate, clipPath: 'polygon(45% 0, 100% 0, 100% 100%, 45% 100%)' }}
+              >
+                <img src={relinkLogo} alt="" className="w-16 h-16 md:w-24 md:h-24 object-contain rounded-2xl" />
+              </motion.div>
+              <motion.img
+                src={relinkLogo}
+                alt="ReLink"
+                className="w-16 h-16 md:w-24 md:h-24 object-contain rounded-2xl"
+                style={{ opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]) }}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.15, duration: 0.8, ease: [0.22, 1, 0.36, 1] as const }}
+              />
+            </div>
+          </motion.div>
 
-        {/* ── TITLE + TEXT CENTER ── */}
-        <div ref={titleRef} className="relative z-20 flex flex-col items-center">
           {/* Letter-by-letter animated title */}
-          <div className="flex overflow-hidden mb-3" style={{ perspective: '600px' }}>
+          <div className="flex overflow-hidden mb-4" style={{ perspective: '600px' }}>
             {titleText.split('').map((letter, i) => (
               <motion.span
                 key={i}
-                className="text-7xl md:text-9xl lg:text-[10rem] font-black tracking-tighter leading-none"
+                className="text-6xl md:text-8xl lg:text-[9rem] font-black tracking-tighter leading-none"
                 style={{
                   color: i >= 2 ? '#99FFCC' : '#ffffff',
                   textShadow: i >= 2
@@ -235,14 +213,14 @@ export default function Scene1TheLink() {
           {/* Animated gradient line */}
           <motion.div
             className="h-[3px] rounded-full mb-5"
-            style={{ background: 'linear-gradient(90deg, transparent, #99FFCC, #00bcd4, transparent)' }}
+            style={{ background: 'linear-gradient(90deg, #99FFCC, #00bcd4, transparent)' }}
             initial={{ width: 0, opacity: 0 }}
-            animate={isInView ? { width: '280px', opacity: 1 } : {}}
+            animate={isInView ? { width: '240px', opacity: 1 } : {}}
             transition={{ delay: 1.2, duration: 1, ease: 'easeOut' }}
           />
 
-          {/* Tagline with word-by-word animation */}
-          <div className="flex gap-2 flex-wrap justify-center">
+          {/* Tagline */}
+          <div className="flex gap-2 flex-wrap">
             {'Conversations Become Connections'.split(' ').map((word, i) => (
               <motion.span
                 key={i}
@@ -259,8 +237,8 @@ export default function Scene1TheLink() {
 
           {/* Sub-tagline */}
           <motion.p
-            className="mt-4 text-xs md:text-sm tracking-widest"
-            style={{ color: '#444' }}
+            className="mt-4 text-xs md:text-sm tracking-widest max-w-sm"
+            style={{ color: '#555' }}
             initial={{ opacity: 0 }}
             animate={isInView ? { opacity: 1 } : {}}
             transition={{ delay: 2.2, duration: 0.8 }}
@@ -269,52 +247,9 @@ export default function Scene1TheLink() {
           </motion.p>
         </div>
 
-        {/* ── LOGO with split chains ── */}
-        <motion.div
-          className="relative z-10 flex flex-col items-center mt-8"
-          style={{ scale: logoScale, y: logoY, opacity: logoOpacity }}
-        >
-          <div className="relative">
-            <motion.div
-              className="absolute inset-0"
-              style={{ x: chainLeftX, rotate: chainLeftRotate, clipPath: 'polygon(0 0, 55% 0, 55% 100%, 0 100%)' }}
-            >
-              <img src={relinkLogo} alt="" className="w-24 h-24 md:w-36 md:h-36 object-contain rounded-3xl" />
-            </motion.div>
-            <motion.div
-              className="absolute inset-0"
-              style={{ x: chainRightX, rotate: chainRightRotate, clipPath: 'polygon(45% 0, 100% 0, 100% 100%, 45% 100%)' }}
-            >
-              <img src={relinkLogo} alt="" className="w-24 h-24 md:w-36 md:h-36 object-contain rounded-3xl" />
-            </motion.div>
-            <motion.img
-              src={relinkLogo}
-              alt="ReLink"
-              className="w-24 h-24 md:w-36 md:h-36 object-contain rounded-3xl"
-              style={{ opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]) }}
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: 0.15, duration: 0.8, ease: [0.22, 1, 0.36, 1] as const }}
-            />
-          </div>
-
-          <motion.p
-            className="mt-8 text-lg md:text-xl max-w-md text-center font-light tracking-wide"
-            style={{ color: '#999', opacity: taglineOpacity, y: taglineY }}
-          >
-            Where Conversations Become Connections.
-          </motion.p>
-          <motion.p
-            className="mt-3 text-sm max-w-sm text-center"
-            style={{ color: '#555', opacity: subtitleOpacity, y: subtitleY }}
-          >
-            The omnichannel system that links it all.
-          </motion.p>
-        </motion.div>
-
         {/* ── SCROLL INDICATOR ── */}
         <motion.div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20"
+          className="absolute bottom-10 left-8 md:left-16 lg:left-24 flex flex-col items-center gap-2 z-20"
           style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
         >
           <motion.span
