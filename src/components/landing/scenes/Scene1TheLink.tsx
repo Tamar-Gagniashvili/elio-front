@@ -1,10 +1,38 @@
 import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import relinkLogo from '@/assets/relink-logo-3d.png';
 import cosmonautHero from '@/assets/landing/cosmonaut-hero.png';
 
+const letterVariants = {
+  hidden: { opacity: 0, y: 40, rotateX: -90 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    transition: {
+      delay: 0.5 + i * 0.08,
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  }),
+};
+
+const glowPulse = {
+  animate: {
+    boxShadow: [
+      '0 0 30px hsla(153, 100%, 80%, 0.2)',
+      '0 0 60px hsla(153, 100%, 80%, 0.4)',
+      '0 0 30px hsla(153, 100%, 80%, 0.2)',
+    ],
+    transition: { duration: 3, repeat: Infinity, ease: 'easeInOut' as const },
+  },
+};
+
 export default function Scene1TheLink() {
   const ref = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(titleRef, { once: true });
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end start'],
@@ -21,8 +49,12 @@ export default function Scene1TheLink() {
   const taglineY = useTransform(scrollYProgress, [0.1, 0.25], [30, 0]);
   const subtitleOpacity = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
   const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
-  const heroImgOpacity = useTransform(scrollYProgress, [0, 0.2], [0.15, 0.3]);
-  const heroImgScale = useTransform(scrollYProgress, [0, 0.5], [1.1, 1.3]);
+
+  // Cosmonaut hero parallax - fully visible and highlighted
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, -100]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 1.15]);
+
+  const titleText = 'RELINK';
 
   return (
     <section
@@ -31,36 +63,133 @@ export default function Scene1TheLink() {
       style={{ background: '#0a0a0a' }}
     >
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
-        {/* Background cosmonaut image */}
-        <motion.img
-          src={cosmonautHero}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ opacity: heroImgOpacity, scale: heroImgScale }}
-        />
+        {/* Animated star field background */}
+        <div className="absolute inset-0">
+          {Array.from({ length: 60 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                width: Math.random() * 3 + 1,
+                height: Math.random() * 3 + 1,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                background: 'hsla(153, 100%, 80%, 0.6)',
+              }}
+              animate={{
+                opacity: [0, 1, 0],
+                scale: [0.5, 1, 0.5],
+              }}
+              transition={{
+                duration: Math.random() * 3 + 2,
+                repeat: Infinity,
+                delay: Math.random() * 3,
+                ease: 'easeInOut',
+              }}
+            />
+          ))}
+        </div>
 
-        {/* Ambient glow */}
-        <div
-          className="absolute w-[600px] h-[600px] rounded-full"
-          style={{
-            background: 'radial-gradient(circle, hsla(153 100% 80% / 0.06) 0%, transparent 70%)',
-          }}
-        />
-
-        {/* Title at top */}
-        <motion.h1
-          className="relative z-20 text-6xl md:text-8xl font-black tracking-tighter uppercase mb-8"
-          style={{
-            color: '#f0f0f0',
-            opacity: useTransform(scrollYProgress, [0, 0.15], [1, 0]),
-          }}
-        >
-          Re<span style={{ color: '#99FFCC' }}>Link</span>
-        </motion.h1>
-
-        {/* Logo below title with split chains effect */}
+        {/* Large ambient glows */}
         <motion.div
-          className="relative z-10 flex flex-col items-center"
+          className="absolute w-[700px] h-[700px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, hsla(153, 100%, 80%, 0.08) 0%, transparent 70%)',
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.5, 0.8, 0.5],
+          }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute w-[400px] h-[400px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, hsla(173, 80%, 50%, 0.06) 0%, transparent 60%)',
+            right: '10%',
+            top: '20%',
+          }}
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+        />
+
+        {/* Cosmonaut hero - FULLY VISIBLE with glow */}
+        <motion.div
+          className="absolute right-[-5%] md:right-[5%] bottom-[5%] md:bottom-[10%] w-[70vw] md:w-[45vw] lg:w-[38vw] max-w-[600px] z-[5]"
+          style={{ y: heroY, scale: heroScale }}
+        >
+          {/* Glow behind cosmonaut */}
+          <motion.div
+            className="absolute inset-0 rounded-full blur-[80px]"
+            style={{
+              background: 'radial-gradient(circle, hsla(153, 100%, 80%, 0.15) 0%, transparent 70%)',
+              transform: 'scale(1.5)',
+            }}
+            {...glowPulse}
+          />
+          <motion.img
+            src={cosmonautHero}
+            alt="ReLink Cosmonaut"
+            className="w-full h-auto object-contain relative z-10 drop-shadow-[0_0_40px_hsla(153,100%,80%,0.3)]"
+            initial={{ opacity: 0, x: 100, scale: 0.8 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 1.2, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </motion.div>
+
+        {/* Animated Title - letter by letter */}
+        <div ref={titleRef} className="relative z-20 flex flex-col items-center">
+          <div className="flex overflow-hidden mb-4">
+            {titleText.split('').map((letter, i) => (
+              <motion.span
+                key={i}
+                className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter"
+                style={{
+                  color: i >= 2 ? '#99FFCC' : '#f0f0f0',
+                  textShadow: i >= 2
+                    ? '0 0 30px hsla(153, 100%, 80%, 0.5), 0 0 60px hsla(153, 100%, 80%, 0.2)'
+                    : '0 0 20px hsla(0, 0%, 100%, 0.1)',
+                  display: 'inline-block',
+                }}
+                variants={letterVariants}
+                initial="hidden"
+                animate={isInView ? 'visible' : 'hidden'}
+                custom={i}
+              >
+                {letter}
+              </motion.span>
+            ))}
+          </div>
+
+          {/* Animated underline */}
+          <motion.div
+            className="h-[2px] rounded-full mb-6"
+            style={{
+              background: 'linear-gradient(90deg, transparent, #99FFCC, transparent)',
+            }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={isInView ? { width: '200px', opacity: 1 } : {}}
+            transition={{ delay: 1.2, duration: 0.8, ease: 'easeOut' }}
+          />
+
+          {/* Subtitle with typewriter feel */}
+          <motion.p
+            className="text-sm md:text-base tracking-[0.4em] uppercase font-light"
+            style={{ color: '#777' }}
+            initial={{ opacity: 0, y: 20, letterSpacing: '0.8em' }}
+            animate={isInView ? { opacity: 1, y: 0, letterSpacing: '0.4em' } : {}}
+            transition={{ delay: 1.4, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Conversations Become Connections
+          </motion.p>
+        </div>
+
+        {/* Logo below with split chains effect */}
+        <motion.div
+          className="relative z-10 flex flex-col items-center mt-10"
           style={{ scale: logoScale, y: logoY, opacity: logoOpacity }}
         >
           <div className="relative">
@@ -73,7 +202,7 @@ export default function Scene1TheLink() {
                 clipPath: 'polygon(0 0, 55% 0, 55% 100%, 0 100%)',
               }}
             >
-              <img src={relinkLogo} alt="" className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl" />
+              <img src={relinkLogo} alt="" className="w-28 h-28 md:w-40 md:h-40 object-contain rounded-3xl" />
             </motion.div>
             {/* Right chain */}
             <motion.div
@@ -84,16 +213,19 @@ export default function Scene1TheLink() {
                 clipPath: 'polygon(45% 0, 100% 0, 100% 100%, 45% 100%)',
               }}
             >
-              <img src={relinkLogo} alt="" className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl" />
+              <img src={relinkLogo} alt="" className="w-28 h-28 md:w-40 md:h-40 object-contain rounded-3xl" />
             </motion.div>
             {/* Full logo (visible before split) */}
             <motion.img
               src={relinkLogo}
               alt="ReLink"
-              className="w-36 h-36 md:w-52 md:h-52 object-contain rounded-3xl"
+              className="w-28 h-28 md:w-40 md:h-40 object-contain rounded-3xl"
               style={{
                 opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]),
               }}
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: 0.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
 
@@ -121,16 +253,23 @@ export default function Scene1TheLink() {
           </motion.p>
         </motion.div>
 
-        {/* Scroll indicator */}
+        {/* Scroll indicator with enhanced animation */}
         <motion.div
           className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20"
           style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
         >
-          <span className="text-[10px] tracking-[0.3em] uppercase font-medium" style={{ color: '#555' }}>Scroll</span>
+          <motion.span
+            className="text-[10px] tracking-[0.3em] uppercase font-medium"
+            style={{ color: '#555' }}
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            Scroll
+          </motion.span>
           <motion.div
             className="w-px h-10"
             style={{ background: 'linear-gradient(to bottom, #99FFCC, transparent)' }}
-            animate={{ y: [0, 8, 0] }}
+            animate={{ y: [0, 8, 0], opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
         </motion.div>
