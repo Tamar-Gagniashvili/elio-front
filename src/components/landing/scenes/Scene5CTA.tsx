@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Mail } from 'lucide-react';
+import Starfield from '@/components/landing/Starfield';
 import relinkLogo from '@/assets/relink-logo-3d.png';
 
 export default function Scene5CTA() {
@@ -17,7 +18,8 @@ export default function Scene5CTA() {
   const scale = useTransform(scrollYProgress, [0, 0.4], [0.95, 1]);
 
   return (
-    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden" style={{ background: '#0a0a0a' }}>
+    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1f15 0%, #080808 50%, #000000 100%)' }}>
+      <Starfield />
       {/* Ambient glow */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full"

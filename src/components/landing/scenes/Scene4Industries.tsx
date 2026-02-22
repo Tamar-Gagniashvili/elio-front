@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Home, Truck, Car, ShoppingBag } from 'lucide-react';
+import Starfield from '@/components/landing/Starfield';
 import cosmonautIndustries from '@/assets/landing/cosmonaut-industries.png';
 
 const industries = [
@@ -48,7 +49,8 @@ export default function Scene4Industries() {
 
   return (
     <section ref={ref} className="relative h-[200vh]">
-      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: '#0a0a0a' }}>
+      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1f15 0%, #080808 50%, #000000 100%)' }}>
+        <Starfield />
         {/* Background cosmonaut */}
         <motion.img
           src={cosmonautIndustries}
