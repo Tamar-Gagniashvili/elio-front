@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
-import cosmonautFly from '@/assets/landing/cosmonaut-fly.png';
+import satelliteFly from '@/assets/landing/satellite-fly.png';
 
 export default function FlyingCosmonaut() {
   const { scrollYProgress } = useScroll();
@@ -11,8 +11,8 @@ export default function FlyingCosmonaut() {
 
   return (
     <motion.img
-      src={cosmonautFly}
-      alt="Flying cosmonaut"
+      src={satelliteFly}
+      alt="Flying satellite"
       className="fixed z-50 w-16 h-16 md:w-20 md:h-20 pointer-events-none drop-shadow-[0_0_15px_rgba(153,255,204,0.4)]"
       style={{ x, y, rotate, scale }}
     />
