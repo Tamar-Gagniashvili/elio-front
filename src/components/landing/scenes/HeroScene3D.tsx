@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import cosmonautImg from '@/assets/landing/cosmonaut-left.png';
 
 /* ── Anchor = cosmonaut's raised hand (upper-left of sprite) ── */
-const HAND_ANCHOR: [number, number, number] = [1.0, 0.8, 2.2];
+const HAND_ANCHOR: [number, number, number] = [2.1, -0.6, 2.15];
 
 const SOCIAL_ICONS = [
   {
