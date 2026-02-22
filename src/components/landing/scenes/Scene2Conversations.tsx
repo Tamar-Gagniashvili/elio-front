@@ -26,9 +26,9 @@ export default function Scene2Conversations() {
   const aiY = useTransform(scrollYProgress, [0.3, 0.45], [20, 0]);
 
   // Cosmonaut enters from left
-  const cosmonautX = useTransform(scrollYProgress, [0.1, 0.3], [-200, 0]);
-  const cosmonautOpacity = useTransform(scrollYProgress, [0.1, 0.25], [0, 1]);
-  const cosmonautRotate = useTransform(scrollYProgress, [0.1, 0.35], [-15, 5]);
+  const cosmonautX = useTransform(scrollYProgress, [0.05, 0.4], [-300, 0]);
+  const cosmonautOpacity = useTransform(scrollYProgress, [0.05, 0.35], [0, 1]);
+  const cosmonautRotate = useTransform(scrollYProgress, [0.05, 0.45], [-20, 5]);
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1200px' }}>
