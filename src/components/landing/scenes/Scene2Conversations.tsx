@@ -136,7 +136,10 @@ export default function Scene2Conversations() {
                 src={cosmonautFloating}
                 alt="Floating cosmonaut"
                 className="w-[340px] md:w-[420px] h-auto drop-shadow-[0_0_40px_rgba(153,255,204,0.25)]"
-                style={{ mixBlendMode: 'lighten' }}
+                style={{
+                  WebkitMaskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
+                  maskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
+                }}
               />
             </motion.div>
           </div>
