@@ -1,11 +1,11 @@
-import { useRef, useMemo, useState } from 'react';
-import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
+import { useRef, useMemo, useState, useCallback } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import cosmonautImg from '@/assets/landing/cosmonaut-left.png';
+import AnimatedCosmonaut, { POSE_ANCHORS } from './AnimatedCosmonaut';
 
-/* ── Anchor = cosmonaut's raised hand (upper-left of sprite) ── */
-const HAND_ANCHOR: [number, number, number] = [2.1, -0.6, 2.15];
+/* ── Default anchor = first pose's hand position ── */
+const DEFAULT_HAND_ANCHOR: [number, number, number] = POSE_ANCHORS[0];
 
 const SOCIAL_ICONS = [
   {
