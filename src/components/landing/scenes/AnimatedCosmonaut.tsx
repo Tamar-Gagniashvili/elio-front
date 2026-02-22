@@ -62,29 +62,46 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
 
     const floatY = Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
 
-    // After standing, shrink and reposition to become the flying buddy
-    const shrinkStart = 0.12;
-    const shrinkEnd = 0.25;
-    const shrinkT = THREE.MathUtils.clamp((scrollProgress - shrinkStart) / (shrinkEnd - shrinkStart), 0, 1);
-    const eased = shrinkT * shrinkT * (3 - 2 * shrinkT); // smoothstep
+    // Phase 1: Fly out to the right (hero exit)
+    const exitStart = 0.10;
+    const exitEnd = 0.18;
+    const exitT = THREE.MathUtils.clamp((scrollProgress - exitStart) / (exitEnd - exitStart), 0, 1);
+    const exitEased = exitT * exitT * (3 - 2 * exitT);
 
-    // Scale from full size (1) down to buddy size (0.35)
-    const scale = 1 - eased * 0.65;
+    // Phase 2: Re-enter from right for section 2
+    const enterStart = 0.18;
+    const enterEnd = 0.28;
+    const enterT = THREE.MathUtils.clamp((scrollProgress - enterStart) / (enterEnd - enterStart), 0, 1);
+    const enterEased = enterT * enterT * (3 - 2 * enterT);
 
-    // Position: move from hero position toward top-right corner as buddy
-    const baseX = 2.2;
-    const baseY = -1;
-    const buddyX = 4.5;
-    const buddyY = 2.5;
-    const posX = baseX + (buddyX - baseX) * eased;
-    const posY = baseY + (buddyY - baseY) * eased + floatY;
+    let posX: number, posY: number, scale: number;
+
+    if (scrollProgress < exitStart) {
+      // Static hero position
+      posX = 2.2;
+      posY = -1 + floatY;
+      scale = 1;
+    } else if (scrollProgress < enterStart) {
+      // Flying out to the right
+      posX = 2.2 + exitEased * 8; // fly far right off-screen
+      posY = -1 + exitEased * 2 + floatY;
+      scale = 1 - exitEased * 0.5;
+    } else {
+      // Re-entering from the right as buddy
+      const offScreenX = 8;
+      const buddyX = 4.2;
+      const buddyY = 1.5;
+      posX = offScreenX - (offScreenX - buddyX) * enterEased;
+      posY = buddyY + floatY;
+      scale = 0.4 + enterEased * 0.05;
+    }
 
     if (meshARef.current) {
-      meshARef.current.position.set(posX, posY + floatY, 3);
+      meshARef.current.position.set(posX, posY, 3);
       meshARef.current.scale.setScalar(scale);
     }
     if (meshBRef.current) {
-      meshBRef.current.position.set(posX, posY + floatY, 3);
+      meshBRef.current.position.set(posX, posY, 3);
       meshBRef.current.scale.setScalar(scale);
     }
 
