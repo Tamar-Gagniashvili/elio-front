@@ -55,7 +55,7 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
 
   useFrame((state) => {
     // Instant swap — no cross-fade, just switch at threshold
-    const showStanding = scrollProgress > 0.04;
+    const showStanding = scrollProgress > 0.12;
 
     materialA.uniforms.opacity.value = showStanding ? 0 : 1;
     materialB.uniforms.opacity.value = showStanding ? 1 : 0;
@@ -63,8 +63,8 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
     const floatY = Math.sin(state.clock.elapsedTime * 0.35) * 0.05;
 
     // Fly away to the right instead of fading
-    const flyStart = 0.08;
-    const flyEnd = 0.18;
+    const flyStart = 0.18;
+    const flyEnd = 0.28;
     const flyT = THREE.MathUtils.clamp((scrollProgress - flyStart) / (flyEnd - flyStart), 0, 1);
     const flyEased = flyT * flyT * (3 - 2 * flyT);
 
