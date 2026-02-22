@@ -192,16 +192,25 @@ function BalloonBouquet({ handAnchor, scrollProgress }: { handAnchor: [number, n
       groupRef.current.rotation.z = Math.sin(t * 0.3) * 0.025;
     }
 
+    // Entrance: icons pop in staggered over 3 seconds, starting after 1s delay
+    const entranceDelay = 1.0;
+
     // Scatter progress: icons fly away between 5% and 15% scroll
     const scatterStart = 0.05;
     const scatterEnd = 0.15;
     const scatter = THREE.MathUtils.clamp((scrollProgress - scatterStart) / (scatterEnd - scatterStart), 0, 1);
-    // Ease out for natural flight
     const scatterEased = 1 - Math.pow(1 - scatter, 3);
 
     const newPositions: [number, number, number][] = [];
     iconRefs.current.forEach((ref, i) => {
       if (ref) {
+        // Staggered entrance per icon
+        const iconDelay = entranceDelay + i * 0.25;
+        const entranceT = THREE.MathUtils.clamp((t - iconDelay) / 1.2, 0, 1);
+        // Elastic ease-out
+        const entranceEased = entranceT === 0 ? 0 : entranceT === 1 ? 1 :
+          Math.pow(2, -10 * entranceT) * Math.sin((entranceT * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+
         const offset = i * 1.1;
         // Base position
         let bx = handAnchor[0] + SOCIAL_ICONS[i].offset[0] + Math.sin(t * 0.4 + offset) * 0.06;
@@ -217,8 +226,8 @@ function BalloonBouquet({ handAnchor, scrollProgress }: { handAnchor: [number, n
         ref.position.set(bx, by, bz);
         ref.rotation.z = Math.sin(t * 0.5 + offset) * 0.04 + scatterEased * (i % 2 === 0 ? 1 : -1) * 0.5;
 
-        // Fade out opacity via scale
-        const iconScale = 1 - scatterEased * 0.8;
+        // Scale combines entrance pop-in + scatter fade
+        const iconScale = entranceEased * (1 - scatterEased * 0.8);
         ref.scale.setScalar(Math.max(iconScale, 0));
 
         newPositions[i] = [bx, by, bz];
