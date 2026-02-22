@@ -139,7 +139,7 @@ export default function Scene1TheLink() {
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
 
         {/* ── HERO BACKGROUND IMAGE ── */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 transition-opacity duration-700 hover:opacity-0">
           <img src={heroBg} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)' }} />
         </div>
