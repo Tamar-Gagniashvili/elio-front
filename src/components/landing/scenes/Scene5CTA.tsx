@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Mail } from 'lucide-react';
 import Starfield from '@/components/landing/Starfield';
 import relinkLogo from '@/assets/relink-logo-3d.png';
+import cosmonautFloating from '@/assets/landing/cosmonaut-floating.png';
 
 export default function Scene5CTA() {
   const ref = useRef<HTMLDivElement>(null);
@@ -17,54 +18,93 @@ export default function Scene5CTA() {
   const y = useTransform(scrollYProgress, [0, 0.3], [60, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.4], [0.95, 1]);
 
+  // Cosmonaut flies in from right
+  const cosmonautX = useTransform(scrollYProgress, [0.1, 0.5], [300, 0]);
+  const cosmonautOpacity = useTransform(scrollYProgress, [0.1, 0.35], [0, 1]);
+  const cosmonautRotate = useTransform(scrollYProgress, [0.1, 0.5], [-20, 5]);
+
   return (
     <section ref={ref} className="relative py-32 md:py-40 overflow-hidden" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1f15 0%, #080808 50%, #000000 100%)' }}>
       <Starfield />
 
       <motion.div
-        className="container max-w-screen-md text-center relative z-10"
+        className="container max-w-screen-xl relative z-10"
         style={{ opacity, y, scale }}
       >
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+          {/* Left: Text + Get Started */}
+          <div className="flex-1 text-center lg:text-left">
+            <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none" style={{ color: '#f0f0f0' }}>
+              READY TO{' '}
+              <span style={{ color: '#99FFCC' }}>LINK</span>{' '}
+              IT ALL?
+            </h2>
+            <p className="mt-5 text-lg md:text-xl max-w-md font-light" style={{ color: '#666' }}>
+              Start managing conversations, objects, and teams in one unified platform.
+            </p>
 
-        <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none" style={{ color: '#f0f0f0' }}>
-          READY TO{' '}
-          <span style={{ color: '#99FFCC' }}>LINK</span>{' '}
-          IT ALL?
-        </h2>
-        <p className="mt-5 text-lg md:text-xl max-w-md mx-auto font-light" style={{ color: '#666' }}>
-          Start managing conversations, objects, and teams in one unified platform.
-        </p>
+            <div className="mt-10 flex flex-col sm:flex-row items-center lg:items-start gap-4">
+              <Link
+                to="/auth"
+                className="inline-flex items-center gap-2 h-14 px-10 text-lg font-bold rounded-full transition-all duration-200 hover:scale-105"
+                style={{ background: '#99FFCC', color: '#0a0a0a' }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              >
+                Get Started Free
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </div>
 
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            to="/auth"
-            className="inline-flex items-center gap-2 h-14 px-10 text-lg font-bold rounded-full transition-all duration-200 hover:scale-105"
-            style={{ background: '#99FFCC', color: '#0a0a0a' }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          >
-            Get Started Free
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-          <a
-            href="mailto:contact@relink.io"
-            className="inline-flex items-center gap-2 h-14 px-10 text-lg font-semibold rounded-full transition-colors duration-200"
-            style={{ border: '1px solid #333', color: '#ccc' }}
-          >
-            <Mail className="h-5 w-5" />
-            Contact Us
-          </a>
-        </div>
-
-        <div className="mt-10 flex items-center justify-center gap-6 text-sm" style={{ color: '#555' }}>
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full" style={{ background: '#99FFCC' }} />
-            <span>No credit card required</span>
+            <div className="mt-10 flex items-center gap-6 text-sm justify-center lg:justify-start" style={{ color: '#555' }}>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full" style={{ background: '#99FFCC' }} />
+                <span>No credit card required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full" style={{ background: '#99FFCC' }} />
+                <span>5-minute setup</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full" style={{ background: '#99FFCC' }} />
-            <span>5-minute setup</span>
-          </div>
+
+          {/* Right: Cosmonaut holding Contact Us */}
+          <motion.div
+            className="relative flex-shrink-0 flex flex-col items-center"
+            style={{
+              x: cosmonautX,
+              opacity: cosmonautOpacity,
+              rotate: cosmonautRotate,
+            }}
+          >
+            <motion.img
+              src={cosmonautFloating}
+              alt="Floating cosmonaut"
+              className="w-[280px] md:w-[360px] h-auto"
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                WebkitMaskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
+                maskImage: 'radial-gradient(ellipse 65% 70% at 50% 45%, black 40%, transparent 75%)',
+              }}
+            />
+            {/* Contact Us button "held" by the cosmonaut */}
+            <motion.a
+              href="mailto:contact@relink.io"
+              className="absolute bottom-4 inline-flex items-center gap-2 h-12 px-8 text-base font-semibold rounded-full transition-colors duration-200 hover:scale-105"
+              style={{
+                border: '1px solid #99FFCC60',
+                color: '#99FFCC',
+                background: 'rgba(153, 255, 204, 0.08)',
+                boxShadow: '0 0 30px rgba(153, 255, 204, 0.15)',
+              }}
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Mail className="h-4 w-4" />
+              Contact Us
+            </motion.a>
+          </motion.div>
         </div>
       </motion.div>
 
