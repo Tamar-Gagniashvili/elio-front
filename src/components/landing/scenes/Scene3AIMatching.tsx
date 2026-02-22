@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Brain, Zap, ArrowRight, MessageSquare, Package } from 'lucide-react';
+import Starfield from '@/components/landing/Starfield';
 import cosmonautAi from '@/assets/landing/cosmonaut-ai.png';
 
 export default function Scene3AIMatching() {
@@ -22,7 +23,8 @@ export default function Scene3AIMatching() {
 
   return (
     <section ref={ref} className="relative h-[200vh]" style={{ perspective: '1000px' }}>
-      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: '#0a0a0a' }}>
+      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden z-10" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1f15 0%, #080808 50%, #000000 100%)' }}>
+        <Starfield />
         {/* Background cosmonaut */}
         <motion.img
           src={cosmonautAi}
