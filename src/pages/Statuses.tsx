@@ -370,11 +370,11 @@ export default function Statuses() {
               <Tag className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Lead Statuses</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t('statuses.title')}</h1>
               <p className="text-muted-foreground">
                 {isAdmin 
-                  ? 'Create and manage statuses to categorize your leads' 
-                  : 'View available statuses for leads'}
+                  ? t('statuses.subtitleAdmin')
+                  : t('statuses.subtitleUser')}
               </p>
             </div>
           </div>
