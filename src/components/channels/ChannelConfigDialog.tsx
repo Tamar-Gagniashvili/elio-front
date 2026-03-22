@@ -358,10 +358,10 @@ export function ChannelConfigDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ChannelBadge channelType={channelType} size="sm" />
-            Configure {CHANNEL_CONFIG[channelType].label}
+            {t('channels.configureChannel', { channel: CHANNEL_CONFIG[channelType].label })}
           </DialogTitle>
           <DialogDescription>
-            Enter your API credentials to connect this channel
+            {t('channels.enterCredentials')}
           </DialogDescription>
         </DialogHeader>
 
