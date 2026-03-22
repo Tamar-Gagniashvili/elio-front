@@ -598,7 +598,18 @@
     "workspaceDetails": "Workspace Details",
     "workspaceDetailsDesc": "Basic information about your workspace",
     "workspaceName": "Workspace Name",
-    "workspaceId": "Workspace ID"
+    "workspaceId": "Workspace ID",
+    "editMember": "Edit Team Member",
+    "editMemberDesc": "Update position for {{name}}",
+    "enterPosition": "Enter or select a position",
+    "positionUpdated": "Member position updated",
+    "positionUpdateFailed": "Failed to update member position",
+    "success": "Success",
+    "trainee": "Trainee",
+    "junior": "Junior",
+    "midLevel": "Mid-Level",
+    "senior": "Senior",
+    "lead": "Lead"
   },
   "onboarding": {
     "title": "Create your workspace",
