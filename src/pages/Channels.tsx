@@ -161,8 +161,8 @@ export default function Channels() {
     } catch (err) {
       console.error('Save error:', err);
       toast({
-        title: 'Error',
-        description: 'Failed to save configuration',
+        title: t('common.error'),
+        description: t('channels.failedToSave'),
         variant: 'destructive',
       });
     }
