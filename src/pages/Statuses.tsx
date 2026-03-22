@@ -395,7 +395,7 @@ export default function Statuses() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{statuses.length}</p>
-                <p className="text-xs text-muted-foreground">Total Statuses</p>
+                <p className="text-xs text-muted-foreground">{t('statuses.totalStatuses')}</p>
               </div>
             </div>
             <div className="h-10 w-px bg-border" />
