@@ -345,7 +345,7 @@ export function ChannelConfigDialog({
           )}
 
           <div className="flex justify-end">
-            <Button onClick={() => onOpenChange(false)}>Close</Button>
+            <Button onClick={() => onOpenChange(false)}>{t('common.close')}</Button>
           </div>
         </DialogContent>
       </Dialog>
