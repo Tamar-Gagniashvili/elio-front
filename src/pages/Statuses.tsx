@@ -201,14 +201,14 @@ export default function Statuses() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to update status',
+        title: t('common.error'),
+        description: t('statuses.failedToUpdate'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Status updated!',
-        description: 'Your changes have been saved',
+        title: t('statuses.statusUpdated'),
+        description: t('statuses.statusUpdatedDesc'),
       });
       setEditingStatus(null);
       fetchStatuses();
