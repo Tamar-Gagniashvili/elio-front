@@ -26,6 +26,7 @@ const SUGGESTED_POSITIONS = [
 ];
 
 export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditMemberDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [position, setPosition] = useState('');
   const [isSaving, setIsSaving] = useState(false);
