@@ -194,7 +194,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
       case 'send_message':
         return (
           <Textarea
-            placeholder="Enter auto-reply message..."
+            placeholder={t('rules.autoReplyPlaceholder')}
             value={action.content || ''}
             onChange={(e) => updateAction(index, { content: e.target.value })}
             rows={3}
