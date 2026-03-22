@@ -125,8 +125,8 @@ export default function Channels() {
       if (encryptError) {
         console.error('Encryption error:', encryptError);
         toast({
-          title: 'Error',
-          description: 'Failed to encrypt credentials',
+          title: t('common.error'),
+          description: t('channels.failedToEncrypt'),
           variant: 'destructive',
         });
         setIsSaving(false);
