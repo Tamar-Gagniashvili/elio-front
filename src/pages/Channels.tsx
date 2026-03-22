@@ -89,8 +89,8 @@ export default function Channels() {
 
       if (error) {
         toast({
-          title: 'Error',
-          description: 'Failed to create channel',
+          title: t('common.error'),
+          description: t('channels.failedToCreate'),
           variant: 'destructive',
         });
         return;
@@ -125,8 +125,8 @@ export default function Channels() {
       if (encryptError) {
         console.error('Encryption error:', encryptError);
         toast({
-          title: 'Error',
-          description: 'Failed to encrypt credentials',
+          title: t('common.error'),
+          description: t('channels.failedToEncrypt'),
           variant: 'destructive',
         });
         setIsSaving(false);
@@ -142,8 +142,8 @@ export default function Channels() {
 
       if (error) {
         toast({
-          title: 'Error',
-          description: 'Failed to save configuration',
+          title: t('common.error'),
+          description: t('channels.failedToSave'),
           variant: 'destructive',
         });
       } else {
@@ -161,8 +161,8 @@ export default function Channels() {
     } catch (err) {
       console.error('Save error:', err);
       toast({
-        title: 'Error',
-        description: 'Failed to save configuration',
+        title: t('common.error'),
+        description: t('channels.failedToSave'),
         variant: 'destructive',
       });
     }
@@ -189,8 +189,8 @@ export default function Channels() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to update channel',
+        title: t('common.error'),
+        description: t('channels.failedToUpdate'),
         variant: 'destructive',
       });
     } else {

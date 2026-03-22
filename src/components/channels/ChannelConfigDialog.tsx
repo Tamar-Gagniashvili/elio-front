@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChannelType, CHANNEL_CONFIG } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -240,6 +241,7 @@ export function ChannelConfigDialog({
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const { currentTenant } = useAuth();
+  const { t } = useTranslation();
 
   const fields = CHANNEL_CREDENTIALS[channelType];
   const webhookUrl = currentTenant ? getWebhookUrl(channelType, currentTenant.id) : null;
@@ -298,19 +300,19 @@ export function ChannelConfigDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ChannelBadge channelType={channelType} size="sm" />
-              Configure {CHANNEL_CONFIG[channelType].label}
+              {t('channels.configureChannel', { channel: CHANNEL_CONFIG[channelType].label })}
             </DialogTitle>
             <DialogDescription>
-              Web Chat doesn't require any credentials. It's ready to use!
+              {t('channels.webChatReady')}
             </DialogDescription>
           </DialogHeader>
           
           {currentTenant && (
             <div className="space-y-3">
               <div>
-                <Label className="text-sm font-medium">Embed Code</Label>
+                <Label className="text-sm font-medium">{t('channels.embedCode')}</Label>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Copy this code and paste it before the closing &lt;/body&gt; tag on your website
+                  {t('channels.embedCodeDesc')}
                 </p>
               </div>
               <div className="relative">
@@ -326,24 +328,24 @@ export function ChannelConfigDialog({
                   {copiedEmbed ? (
                     <>
                       <Check className="h-3 w-3 mr-1" />
-                      Copied
+                      {t('channels.copied')}
                     </>
                   ) : (
                     <>
                       <Copy className="h-3 w-3 mr-1" />
-                      Copy
+                      {t('channels.copy')}
                     </>
                   )}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                <strong>Note:</strong> For production, use your published app URL or custom domain instead of the preview URL.
+                <strong>{t('common.note')}:</strong> {t('channels.embedNote')}
               </p>
             </div>
           )}
 
           <div className="flex justify-end">
-            <Button onClick={() => onOpenChange(false)}>Close</Button>
+            <Button onClick={() => onOpenChange(false)}>{t('common.close')}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -356,18 +358,18 @@ export function ChannelConfigDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ChannelBadge channelType={channelType} size="sm" />
-            Configure {CHANNEL_CONFIG[channelType].label}
+            {t('channels.configureChannel', { channel: CHANNEL_CONFIG[channelType].label })}
           </DialogTitle>
           <DialogDescription>
-            Enter your API credentials to connect this channel
+            {t('channels.enterCredentials')}
           </DialogDescription>
         </DialogHeader>
 
         {webhookUrl && (
           <div className="bg-muted rounded-lg p-3 space-y-2">
-            <Label className="text-sm font-medium">Webhook URL</Label>
+            <Label className="text-sm font-medium">{t('channels.webhookUrl')}</Label>
             <p className="text-xs text-muted-foreground">
-              Copy this URL and paste it into your {CHANNEL_CONFIG[channelType].label} settings
+              {t('channels.webhookUrlDesc', { channel: CHANNEL_CONFIG[channelType].label })}
             </p>
             <div className="flex items-center gap-2">
               <Input
@@ -403,7 +405,7 @@ export function ChannelConfigDialog({
                     rel="noopener noreferrer"
                     className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
                   >
-                    Get this <ExternalLink className="h-3 w-3" />
+                    {t('channels.getThis')} <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
               </div>
@@ -438,10 +440,10 @@ export function ChannelConfigDialog({
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading ? 'Saving...' : 'Save Configuration'}
+            {isLoading ? t('channels.saving') : t('channels.saveConfiguration')}
           </Button>
         </div>
       </DialogContent>
