@@ -471,7 +471,7 @@ export default function Statuses() {
               {/* Preview */}
               {newStatusName && (
                 <div className="pt-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Preview</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">{t('statuses.preview')}</Label>
                   <div className="mt-2 flex items-center gap-2">
                     <span className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium',
