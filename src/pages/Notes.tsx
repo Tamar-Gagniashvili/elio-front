@@ -439,16 +439,16 @@ export default function Notes() {
 
           {/* Notes Grid */}
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading notes...</div>
+            <div className="text-center py-12 text-muted-foreground">{t('notes.loadingNotes')}</div>
           ) : filteredNotes.length === 0 ? (
             <div className="text-center py-12">
               <StickyNote className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground">
                 {activeTab === 'personal' 
-                  ? "No personal notes yet. Add one for yourself!" 
+                  ? t('notes.noPersonalNotes')
                   : activeTab === 'chat'
-                  ? "No chat notes yet. Add notes to conversations!"
-                  : "No notes yet. Click 'New Note' to get started!"}
+                  ? t('notes.noChatNotes')
+                  : t('notes.noNotesClick')}
               </p>
             </div>
           ) : (
