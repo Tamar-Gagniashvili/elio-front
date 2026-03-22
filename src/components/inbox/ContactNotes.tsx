@@ -491,7 +491,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                         onClick={handleUpdateNote}
                         disabled={!newNote.trim() || isSaving}
                       >
-                        Update
+                        {t('common.update')}
                       </Button>
                     </div>
                   </div>
