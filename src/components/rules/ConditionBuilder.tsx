@@ -251,7 +251,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
 
       <Button variant="outline" onClick={addCondition} className="w-full">
         <Plus className="h-4 w-4 mr-2" />
-        Add Condition
+        {t('rules.addCondition')}
       </Button>
     </div>
   );
