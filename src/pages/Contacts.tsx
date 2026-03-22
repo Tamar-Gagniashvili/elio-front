@@ -524,7 +524,7 @@ export default function Contacts() {
                           <AccordionContent className="px-4 pb-4">
                             <div className="space-y-2 pt-2 border-t">
                               <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium py-2">
-                                Linked Contacts
+                                {t('contacts.linkedContacts')}
                               </p>
                               {group.contacts.map(renderContactRow)}
                             </div>
