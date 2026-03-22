@@ -25,39 +25,40 @@ interface ConditionBuilderProps {
   onChange: (conditions: ConditionGroup) => void;
 }
 
-const FIELD_OPTIONS: { value: ConditionField; label: string }[] = [
-  { value: 'channel_type', label: 'Channel' },
-  { value: 'message_content', label: 'Message Content' },
-  { value: 'message_language', label: 'Message Language' },
-  { value: 'contact.name', label: 'Contact Name' },
-  { value: 'contact.email', label: 'Contact Email' },
-  { value: 'contact.phone', label: 'Contact Phone' },
-  { value: 'time.hour', label: 'Hour of Day (0-23)' },
-  { value: 'time.day_of_week', label: 'Day of Week' },
-];
-
-const OPERATOR_OPTIONS: { value: ConditionOperator; label: string }[] = [
-  { value: 'equals', label: 'equals' },
-  { value: 'not_equals', label: 'does not equal' },
-  { value: 'contains', label: 'contains' },
-  { value: 'not_contains', label: 'does not contain' },
-  { value: 'starts_with', label: 'starts with' },
-  { value: 'ends_with', label: 'ends with' },
-  { value: 'greater_than', label: 'is greater than' },
-  { value: 'less_than', label: 'is less than' },
-];
-
-const DAY_OPTIONS = [
-  { value: '0', label: 'Sunday' },
-  { value: '1', label: 'Monday' },
-  { value: '2', label: 'Tuesday' },
-  { value: '3', label: 'Wednesday' },
-  { value: '4', label: 'Thursday' },
-  { value: '5', label: 'Friday' },
-  { value: '6', label: 'Saturday' },
-];
-
 export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps) {
+  const { t } = useTranslation();
+
+  const FIELD_OPTIONS: { value: ConditionField; label: string }[] = [
+    { value: 'channel_type', label: t('rules.field.channel') },
+    { value: 'message_content', label: t('rules.field.messageContent') },
+    { value: 'message_language', label: t('rules.field.messageLanguage') },
+    { value: 'contact.name', label: t('rules.field.contactName') },
+    { value: 'contact.email', label: t('rules.field.contactEmail') },
+    { value: 'contact.phone', label: t('rules.field.contactPhone') },
+    { value: 'time.hour', label: t('rules.field.hourOfDay') },
+    { value: 'time.day_of_week', label: t('rules.field.dayOfWeek') },
+  ];
+
+  const OPERATOR_OPTIONS: { value: ConditionOperator; label: string }[] = [
+    { value: 'equals', label: t('rules.operator.equals') },
+    { value: 'not_equals', label: t('rules.operator.notEquals') },
+    { value: 'contains', label: t('rules.operator.contains') },
+    { value: 'not_contains', label: t('rules.operator.notContains') },
+    { value: 'starts_with', label: t('rules.operator.startsWith') },
+    { value: 'ends_with', label: t('rules.operator.endsWith') },
+    { value: 'greater_than', label: t('rules.operator.greaterThan') },
+    { value: 'less_than', label: t('rules.operator.lessThan') },
+  ];
+
+  const DAY_OPTIONS = [
+    { value: '0', label: t('rules.days.sunday') },
+    { value: '1', label: t('rules.days.monday') },
+    { value: '2', label: t('rules.days.tuesday') },
+    { value: '3', label: t('rules.days.wednesday') },
+    { value: '4', label: t('rules.days.thursday') },
+    { value: '5', label: t('rules.days.friday') },
+    { value: '6', label: t('rules.days.saturday') },
+  ];
   const addCondition = () => {
     onChange({
       ...conditions,
