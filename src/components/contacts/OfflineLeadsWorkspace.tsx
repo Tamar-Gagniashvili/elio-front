@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact } from '@/lib/types';
@@ -41,6 +42,7 @@ interface OfflineLeadsWorkspaceProps {
 }
 
 export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps) {
+  const { t } = useTranslation();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [contactStatuses, setContactStatuses] = useState<Map<string, LeadStatus[]>>(new Map());
@@ -57,10 +59,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
   const { currentTenant, currentMembership, user } = useAuth();
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
   
-  // Get the current assignee for the selected contact
   const currentAssignee = selectedContact ? assignedUsers.get(selectedContact.id)?.id : null;
-  
-  // Sales users can reassign leads that are assigned to them
   const canReassign = isAdmin || (selectedContact && currentAssignee === user?.id);
 
   const fetchData = async () => {
@@ -68,7 +67,6 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
     
     setIsLoading(true);
     
-    // For sales users, get their assigned contact IDs first
     let allowedContactIds: string[] | null = null;
     
     if (!isAdmin) {
@@ -87,7 +85,6 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
       }
     }
 
-    // Fetch only offline contacts
     let contactsQuery = supabase
       .from('contacts')
       .select('*')
@@ -106,13 +103,11 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
     } else {
       setContacts(contactsData as Contact[]);
       
-      // Auto-select first contact if none selected
       if (contactsData && contactsData.length > 0 && !selectedContact) {
         setSelectedContact(contactsData[0] as Contact);
       }
     }
 
-    // Fetch conversations for assignment info
     const { data: conversations } = await supabase
       .from('conversations')
       .select('contact_id, assigned_to, assignment_reason, reassigned_by')
@@ -133,7 +128,6 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
         const reasonsMap = new Map<string, { reason: string; reassignedBy: string | null }>();
         const reassignerMap = new Map<string, string>();
         
-        // Build reassigner profiles map
         profiles?.forEach(p => {
           reassignerMap.set(p.user_id, p.full_name || p.email || 'Unknown');
         });
@@ -160,7 +154,6 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
       }
     }
 
-    // Fetch available statuses
     const { data: statusesData } = await supabase
       .from('lead_statuses')
       .select('id, name, color')
@@ -169,7 +162,6 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
 
     setAvailableStatuses(statusesData || []);
 
-    // Fetch contact statuses
     const { data: contactStatusData } = await supabase
       .from('contact_statuses')
       .select(`
@@ -205,13 +197,11 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
 
   const filteredContacts = useMemo(() => {
     return contacts.filter((contact) => {
-      // Filter by status
       if (selectedStatusFilter) {
         const statuses = contactStatuses.get(contact.id) || [];
         if (!statuses.some(s => s.id === selectedStatusFilter)) return false;
       }
       
-      // Filter by search query
       if (!searchQuery) return true;
       const query = searchQuery.toLowerCase();
       
@@ -277,9 +267,9 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
           <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
             <Users className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-semibold mb-1">No imported leads yet</h3>
+          <h3 className="font-semibold mb-1">{t('contacts.noImportedLeads')}</h3>
           <p className="text-sm text-muted-foreground">
-            Import leads using the "Import Leads" button to start working with them
+            {t('contacts.noImportedLeadsDesc')}
           </p>
         </CardContent>
       </Card>
@@ -294,14 +284,13 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search leads..."
+              placeholder={t('contacts.searchLeads')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9"
             />
           </div>
           
-          {/* Status Filter */}
           {availableStatuses.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               {availableStatuses.slice(0, 4).map((status) => {
@@ -362,12 +351,12 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm truncate">
-                          {contact.name || 'Unknown'}
+                          {contact.name || t('common.unknown')}
                         </span>
                         <ChannelBadge channelType={contact.channel_type} size="sm" />
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
-                        {contact.email || contact.phone || 'No contact info'}
+                        {contact.email || contact.phone || t('contacts.noContactInfoShort')}
                       </p>
                       {isAdmin && assignment && (
                         <p className="text-xs text-primary truncate mt-0.5">
@@ -386,7 +375,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
         </ScrollArea>
         
         <div className="p-2 border-t text-xs text-muted-foreground text-center">
-          {filteredContacts.length} of {contacts.length} leads
+          {t('contacts.leadsCount', { filtered: filteredContacts.length, total: contacts.length })}
         </div>
       </div>
 
@@ -403,13 +392,13 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
               />
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-semibold truncate">
-                  {selectedContact.name || 'Unknown'}
+                  {selectedContact.name || t('common.unknown')}
                 </h2>
                 <div className="flex items-center gap-2 mt-1">
                   <ChannelBadge channelType={selectedContact.channel_type} size="sm" />
                   {isAdmin && assignedUsers.get(selectedContact.id) && (
                     <Badge variant="outline" className="text-xs">
-                      Assigned to {assignedUsers.get(selectedContact.id)?.name}
+                      {t('contacts.assignedTo', { name: assignedUsers.get(selectedContact.id)?.name })}
                     </Badge>
                   )}
                 </div>
@@ -422,7 +411,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
                     className="h-5 px-1.5 text-xs"
                   >
                     <Tag className="h-3 w-3 mr-1" />
-                    Manage
+                    {t('contacts.manage')}
                   </Button>
                   {canReassign && (
                     <Button
@@ -432,7 +421,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
                       className="h-5 px-1.5 text-xs"
                     >
                       <UserPlus className="h-3 w-3 mr-1" />
-                      Reassign
+                      {t('contacts.reassign')}
                     </Button>
                   )}
                 </div>
@@ -446,7 +435,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
               <AlertCircle className="h-4 w-4 text-primary" />
               <AlertDescription className="text-sm">
                 <span className="font-medium">
-                  {reassignerProfiles.get(assignmentReasons.get(selectedContact.id)?.reassignedBy || '') || 'Someone'}
+                  {reassignerProfiles.get(assignmentReasons.get(selectedContact.id)?.reassignedBy || '') || t('common.unknown')}
                 </span>
                 {': '}
                 {assignmentReasons.get(selectedContact.id)?.reason}
@@ -460,7 +449,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
               {/* Contact Info */}
               <Card>
                 <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-sm font-medium">Contact Information</CardTitle>
+                  <CardTitle className="text-sm font-medium">{t('contacts.contactInformation')}</CardTitle>
                 </CardHeader>
                 <CardContent className="py-3 px-4 space-y-3">
                   {selectedContact.email && (
@@ -488,7 +477,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      Imported {formatDistanceToNow(new Date(selectedContact.created_at), { addSuffix: true })}
+                      {t('contacts.imported')} {formatDistanceToNow(new Date(selectedContact.created_at), { addSuffix: true })}
                     </span>
                   </div>
                 </CardContent>
@@ -497,7 +486,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
               <div>
                 <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
                   <StickyNote className="h-4 w-4" />
-                  Notes & Reminders
+                  {t('contacts.notesAndReminders')}
                 </h3>
                 {currentTenant && (
                   <ContactNotes contactId={selectedContact.id} tenantId={currentTenant.id} />
@@ -510,7 +499,7 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
         <div className="flex-1 flex items-center justify-center border rounded-lg bg-card">
           <div className="text-center text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Select a lead to view details</p>
+            <p>{t('contacts.selectLeadToView')}</p>
           </div>
         </div>
       )}
