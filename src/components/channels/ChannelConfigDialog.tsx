@@ -241,6 +241,7 @@ export function ChannelConfigDialog({
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const { currentTenant } = useAuth();
+  const { t } = useTranslation();
 
   const fields = CHANNEL_CREDENTIALS[channelType];
   const webhookUrl = currentTenant ? getWebhookUrl(channelType, currentTenant.id) : null;
