@@ -122,16 +122,16 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t('common.loading')}
               </>
             ) : (
-              'Save'
+              t('common.save')
             )}
           </Button>
         </DialogFooter>
