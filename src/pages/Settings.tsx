@@ -132,7 +132,7 @@ export default function Settings() {
                           </Badge>
                         )}
                         <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
-                          {member.role}
+                          {t(`settings.${member.role}`)}
                         </Badge>
                         {canEditMember(member) && (
                           <Button
