@@ -218,7 +218,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
             {t('common.notes')}
           </h4>
           {isLinked && (
-            <span title="Shared across linked contacts">
+            <span title={t('notes.sharedAcrossLinked')}>
               <Link2 className="h-3 w-3 text-muted-foreground" />
             </span>
           )}
