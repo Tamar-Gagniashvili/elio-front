@@ -56,7 +56,9 @@
     "unknown": "Unknown",
     "preview": "Preview",
     "clearFilter": "Clear filter",
-    "filterByStatus": "Filter by status"
+    "filterByStatus": "Filter by status",
+    "error": "Error",
+    "note": "Note"
   },
   "nav": {
     "inbox": "Inbox",
