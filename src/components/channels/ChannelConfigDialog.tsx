@@ -328,12 +328,12 @@ export function ChannelConfigDialog({
                   {copiedEmbed ? (
                     <>
                       <Check className="h-3 w-3 mr-1" />
-                      Copied
+                      {t('channels.copied')}
                     </>
                   ) : (
                     <>
                       <Copy className="h-3 w-3 mr-1" />
-                      Copy
+                      {t('channels.copy')}
                     </>
                   )}
                 </Button>
