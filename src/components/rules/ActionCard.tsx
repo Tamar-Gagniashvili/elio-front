@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,17 +24,18 @@ interface ActionCardProps {
   style?: React.CSSProperties;
 }
 
-const ACTION_OPTIONS: { value: ActionType; label: string; icon: string }[] = [
-  { value: 'assign_to_user', label: 'Assign to', icon: '👤' },
-  { value: 'assign_to_pool', label: 'Pool', icon: '👥' },
-  { value: 'apply_status', label: 'Status', icon: '🏷️' },
-  { value: 'send_message', label: 'Reply', icon: '💬' },
-];
-
 export function ActionCard({ action, onChange, onRemove, className, style }: ActionCardProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useAuth();
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
   const [statuses, setStatuses] = useState<{ id: string; name: string; color: string }[]>([]);
+
+  const ACTION_OPTIONS: { value: ActionType; label: string; icon: string }[] = [
+    { value: 'assign_to_user', label: t('rules.action.assignTo'), icon: '👤' },
+    { value: 'assign_to_pool', label: t('rules.action.pool'), icon: '👥' },
+    { value: 'apply_status', label: t('rules.action.status'), icon: '🏷️' },
+    { value: 'send_message', label: t('rules.action.reply'), icon: '💬' },
+  ];
 
   useEffect(() => {
     if (currentTenant) {
@@ -45,7 +47,6 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
   const fetchUsers = async () => {
     if (!currentTenant) return;
     
-    // Get only sales role memberships
     const { data: memberships } = await supabase
       .from('tenant_memberships')
       .select('user_id')
@@ -55,7 +56,6 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
 
     if (!memberships || memberships.length === 0) return;
 
-    // Then fetch profiles for those user_ids
     const userIds = memberships.map(m => m.user_id);
     const { data: profiles } = await supabase
       .from('profiles')
@@ -91,11 +91,11 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
             onValueChange={(value) => onChange({ user_id: value })}
           >
             <SelectTrigger className="h-7 text-xs bg-background/80">
-              <SelectValue placeholder="Select..." />
+              <SelectValue placeholder={t('rules.selectPlaceholder')} />
             </SelectTrigger>
             <SelectContent className="bg-popover border shadow-md z-50">
               {users.length === 0 ? (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">No users found</div>
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">{t('rules.noUsersFound')}</div>
               ) : (
                 users.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
@@ -110,7 +110,7 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
       case 'assign_to_pool':
         return (
           <div className="text-xs text-muted-foreground">
-            Round-robin
+            {t('rules.roundRobin')}
           </div>
         );
 
@@ -121,11 +121,11 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
             onValueChange={(value) => onChange({ status_id: value })}
           >
             <SelectTrigger className="h-7 text-xs bg-background/80">
-              <SelectValue placeholder="Select..." />
+              <SelectValue placeholder={t('rules.selectPlaceholder')} />
             </SelectTrigger>
             <SelectContent className="bg-popover border shadow-md z-50">
               {statuses.length === 0 ? (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">No statuses found</div>
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">{t('rules.noStatusesFound')}</div>
               ) : (
                 statuses.map((status) => (
                   <SelectItem key={status.id} value={status.id}>
@@ -147,7 +147,7 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
         return (
           <Textarea
             className="text-xs bg-background/80 min-h-[50px] resize-none"
-            placeholder="Message..."
+            placeholder={t('rules.messagePlaceholder')}
             value={action.content || ''}
             onChange={(e) => onChange({ content: e.target.value })}
             rows={2}
@@ -169,10 +169,8 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
       )}
       style={style}
     >
-      {/* Pin decoration */}
       <div className="absolute -top-2 right-3 w-4 h-4 rounded-full bg-emerald-500 shadow-sm border-2 border-emerald-600" />
       
-      {/* Remove button */}
       <Button
         variant="ghost"
         size="sm"
@@ -183,7 +181,6 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
       </Button>
 
       <div className="space-y-2">
-        {/* Action type with emoji */}
         <div className="flex items-center gap-2">
           <span className="text-lg">{actionConfig?.icon}</span>
           <Select
@@ -203,7 +200,6 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
           </Select>
         </div>
 
-        {/* Action configuration */}
         {renderActionConfig()}
       </div>
     </div>
