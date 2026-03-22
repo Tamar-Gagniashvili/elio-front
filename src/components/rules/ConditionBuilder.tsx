@@ -199,7 +199,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
                       {conditions.operator}
                     </span>
                   )}
-                  {index === 0 && <span className="text-sm font-medium w-12">IF</span>}
+                  {index === 0 && <span className="text-sm font-medium w-12">{t('rules.if')}</span>}
                   
                   <Select
                     value={condition.field}
