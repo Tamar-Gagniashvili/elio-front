@@ -512,16 +512,16 @@ export default function Statuses() {
               <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
                 <Tag className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No statuses yet</h3>
+              <h3 className="text-xl font-semibold mb-2">{t('statuses.noStatusesYet')}</h3>
               <p className="text-muted-foreground text-center mb-6 max-w-sm">
                 {isAdmin 
-                  ? 'Create your first status to start categorizing and tracking your leads effectively'
-                  : 'Your admin hasn\'t created any statuses yet'}
+                  ? t('statuses.emptyAdmin')
+                  : t('statuses.emptyUser')}
               </p>
               {isAdmin && (
                 <Button onClick={() => setIsAdding(true)} size="lg" className="gap-2">
                   <Plus className="h-5 w-5" />
-                  Create Your First Status
+                  {t('statuses.createFirstStatus')}
                 </Button>
               )}
             </CardContent>
