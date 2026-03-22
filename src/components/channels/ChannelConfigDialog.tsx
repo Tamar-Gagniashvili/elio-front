@@ -367,9 +367,9 @@ export function ChannelConfigDialog({
 
         {webhookUrl && (
           <div className="bg-muted rounded-lg p-3 space-y-2">
-            <Label className="text-sm font-medium">Webhook URL</Label>
+            <Label className="text-sm font-medium">{t('channels.webhookUrl')}</Label>
             <p className="text-xs text-muted-foreground">
-              Copy this URL and paste it into your {CHANNEL_CONFIG[channelType].label} settings
+              {t('channels.webhookUrlDesc', { channel: CHANNEL_CONFIG[channelType].label })}
             </p>
             <div className="flex items-center gap-2">
               <Input
