@@ -582,7 +582,7 @@ export default function Contacts() {
                               className="gap-1.5"
                             >
                               <UserPlus className="h-3.5 w-3.5" />
-                              Reassign
+                              {t('contacts.reassign')}
                             </Button>
                             <div className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
