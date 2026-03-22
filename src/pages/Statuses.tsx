@@ -495,10 +495,10 @@ export default function Statuses() {
               <div className="flex gap-3 pt-2">
                 <Button onClick={handleCreateStatus} disabled={!newStatusName.trim()} className="gap-2">
                   <Check className="h-4 w-4" />
-                  Create Status
+                  {t('statuses.createStatus')}
                 </Button>
                 <Button variant="ghost" onClick={() => { setIsAdding(false); setNewStatusName(''); }}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </div>
             </CardContent>
