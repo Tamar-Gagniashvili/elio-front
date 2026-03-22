@@ -320,10 +320,10 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
               </div>
               {customDate && (
                 <p className="text-xs text-muted-foreground">
-                  Reminder: {format(set(customDate, { 
+                  {t('notes.reminderPreview', { datetime: format(set(customDate, { 
                     hours: parseInt(customTime.split(':')[0]), 
                     minutes: parseInt(customTime.split(':')[1]) 
-                  }), "PPP 'at' p")}
+                  }), "PPP p") })}
                 </p>
               )}
             </div>
