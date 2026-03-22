@@ -145,7 +145,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
       case 'assign_to_pool':
         return (
           <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">Select team members for pool:</Label>
+            <Label className="text-sm text-muted-foreground">{t('rules.selectPoolMembers')}</Label>
             <div className="grid grid-cols-2 gap-2">
               {teamMembers.map((member) => (
                 <div key={member.membership_user_id} className="flex items-center gap-2">
