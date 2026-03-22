@@ -44,7 +44,9 @@
     "resolved": "გადაწყვეტილი",
     "archived": "არქივირებული",
     "clearFilter": "ფილტრის გასუფთავება",
-    "filterByStatus": "ფილტრი სტატუსით"
+    "filterByStatus": "ფილტრი სტატუსით",
+    "error": "შეცდომა",
+    "note": "შენიშვნა"
   },
   "nav": {
     "inbox": "შემოსული",

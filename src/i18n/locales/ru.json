@@ -44,7 +44,9 @@
     "resolved": "Решён",
     "archived": "В архиве",
     "clearFilter": "Очистить фильтр",
-    "filterByStatus": "Фильтр по статусу"
+    "filterByStatus": "Фильтр по статусу",
+    "error": "Ошибка",
+    "note": "Примечание"
   },
   "nav": {
     "inbox": "Входящие",
