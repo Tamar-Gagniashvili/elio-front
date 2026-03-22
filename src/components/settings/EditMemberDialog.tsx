@@ -49,14 +49,14 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to update member position',
+        title: t('common.error'),
+        description: t('settings.positionUpdateFailed'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Success',
-        description: 'Member position updated',
+        title: t('settings.success'),
+        description: t('settings.positionUpdated'),
       });
       onUpdate();
       onOpenChange(false);
