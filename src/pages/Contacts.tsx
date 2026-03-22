@@ -496,7 +496,7 @@ export default function Contacts() {
                                     <span key={email}>{email}</span>
                                   ))}
                                   {info.emails.length > 2 && (
-                                    <span>+{info.emails.length - 2} more</span>
+                                    <span>+{info.emails.length - 2} {t('common.more')}</span>
                                   )}
                                 </div>
                                 {renderStatusBadges(group.statuses)}
