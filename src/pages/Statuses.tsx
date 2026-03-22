@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Tag, Trash2, Edit2, Check, Sparkles, GripVertical, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_ICONS, StatusIndicator, getIconComponent } from '@/components/StatusIcon';
+import { useTranslation } from 'react-i18next';
 
 interface LeadStatus {
   id: string;
@@ -59,6 +60,7 @@ export default function Statuses() {
   const navigate = useNavigate();
   const { user, loading: authLoading, currentTenant, currentMembership } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
@@ -103,8 +105,8 @@ export default function Statuses() {
     if (statusesResult.error) {
       console.error('Error fetching statuses:', statusesResult.error);
       toast({
-        title: 'Error',
-        description: 'Failed to fetch statuses',
+        title: t('common.error'),
+        description: t('statuses.failedToFetch'),
         variant: 'destructive',
       });
       setIsLoading(false);
@@ -167,14 +169,14 @@ export default function Statuses() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to create status',
+        title: t('common.error'),
+        description: t('statuses.failedToCreate'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Status created!',
-        description: `"${newStatusName}" is now available for your leads`,
+        title: t('statuses.statusCreated'),
+        description: t('statuses.statusCreatedDesc', { name: newStatusName }),
       });
       setNewStatusName('');
       setNewStatusColor('blue');
@@ -199,14 +201,14 @@ export default function Statuses() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to update status',
+        title: t('common.error'),
+        description: t('statuses.failedToUpdate'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Status updated!',
-        description: 'Your changes have been saved',
+        title: t('statuses.statusUpdated'),
+        description: t('statuses.statusUpdatedDesc'),
       });
       setEditingStatus(null);
       fetchStatuses();
@@ -221,14 +223,14 @@ export default function Statuses() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to delete status. It may be in use.',
+        title: t('common.error'),
+        description: t('statuses.failedToDelete'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Status deleted',
-        description: `"${statusName}" has been removed`,
+        title: t('statuses.statusDeleted'),
+        description: t('statuses.statusDeletedDesc', { name: statusName }),
       });
       fetchStatuses();
     }
@@ -310,11 +312,11 @@ export default function Statuses() {
         <TabsList className="w-full">
           <TabsTrigger value="color" className="flex-1 gap-1.5">
             <Palette className="h-3.5 w-3.5" />
-            Color
+            {t('statuses.color')}
           </TabsTrigger>
           <TabsTrigger value="icon" className="flex-1 gap-1.5">
             <Tag className="h-3.5 w-3.5" />
-            Icon
+            {t('statuses.icon')}
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -368,18 +370,18 @@ export default function Statuses() {
               <Tag className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Lead Statuses</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t('statuses.title')}</h1>
               <p className="text-muted-foreground">
                 {isAdmin 
-                  ? 'Create and manage statuses to categorize your leads' 
-                  : 'View available statuses for leads'}
+                  ? t('statuses.subtitleAdmin')
+                  : t('statuses.subtitleUser')}
               </p>
             </div>
           </div>
           {isAdmin && !isAdding && statuses.length > 0 && (
             <Button onClick={() => setIsAdding(true)} className="gap-2">
               <Plus className="h-4 w-4" />
-              New Status
+              {t('statuses.newStatus')}
             </Button>
           )}
         </div>
@@ -393,7 +395,7 @@ export default function Statuses() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{statuses.length}</p>
-                <p className="text-xs text-muted-foreground">Total Statuses</p>
+                <p className="text-xs text-muted-foreground">{t('statuses.totalStatuses')}</p>
               </div>
             </div>
             <div className="h-10 w-px bg-border" />
@@ -422,7 +424,7 @@ export default function Statuses() {
                   </div>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">Active statuses</p>
+              <p className="text-sm text-muted-foreground">{t('statuses.activeStatuses')}</p>
             </div>
           </div>
         )}
@@ -437,23 +439,23 @@ export default function Statuses() {
             <CardContent className="pt-6 space-y-5">
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-lg">Create New Status</h3>
+                <h3 className="font-semibold text-lg">{t('statuses.createNewStatus')}</h3>
               </div>
               
               <div>
-                <Label htmlFor="status-name" className="text-sm font-medium">Status Name</Label>
+                <Label htmlFor="status-name" className="text-sm font-medium">{t('statuses.statusName')}</Label>
                 <Input
                   id="status-name"
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
-                  placeholder="e.g., Interested, Hot Lead, Follow Up..."
+                  placeholder={t('statuses.statusNamePlaceholder')}
                   className="mt-2"
                   autoFocus
                 />
               </div>
               
               <div>
-                <Label className="text-sm font-medium">Indicator Style</Label>
+                <Label className="text-sm font-medium">{t('statuses.indicatorStyle')}</Label>
                 <div className="mt-2">
                   <IndicatorModeSelector
                     mode={newIndicatorMode}
@@ -469,7 +471,7 @@ export default function Statuses() {
               {/* Preview */}
               {newStatusName && (
                 <div className="pt-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Preview</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">{t('statuses.preview')}</Label>
                   <div className="mt-2 flex items-center gap-2">
                     <span className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium',
@@ -493,10 +495,10 @@ export default function Statuses() {
               <div className="flex gap-3 pt-2">
                 <Button onClick={handleCreateStatus} disabled={!newStatusName.trim()} className="gap-2">
                   <Check className="h-4 w-4" />
-                  Create Status
+                  {t('statuses.createStatus')}
                 </Button>
                 <Button variant="ghost" onClick={() => { setIsAdding(false); setNewStatusName(''); }}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </div>
             </CardContent>
@@ -510,16 +512,16 @@ export default function Statuses() {
               <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
                 <Tag className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No statuses yet</h3>
+              <h3 className="text-xl font-semibold mb-2">{t('statuses.noStatusesYet')}</h3>
               <p className="text-muted-foreground text-center mb-6 max-w-sm">
                 {isAdmin 
-                  ? 'Create your first status to start categorizing and tracking your leads effectively'
-                  : 'Your admin hasn\'t created any statuses yet'}
+                  ? t('statuses.emptyAdmin')
+                  : t('statuses.emptyUser')}
               </p>
               {isAdmin && (
                 <Button onClick={() => setIsAdding(true)} size="lg" className="gap-2">
                   <Plus className="h-5 w-5" />
-                  Create Your First Status
+                  {t('statuses.createFirstStatus')}
                 </Button>
               )}
             </CardContent>
@@ -565,10 +567,10 @@ export default function Statuses() {
                         <div className="flex gap-2">
                           <Button size="sm" onClick={handleUpdateStatus} className="gap-1">
                             <Check className="h-3 w-3" />
-                            Save
+                            {t('common.save')}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditingStatus(null)}>
-                            Cancel
+                            {t('common.cancel')}
                           </Button>
                         </div>
                       </div>
@@ -588,7 +590,7 @@ export default function Statuses() {
                             />
                             <span className="font-medium">{status.name}</span>
                             <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                              {statusCounts[status.id] || 0} {(statusCounts[status.id] || 0) === 1 ? 'lead' : 'leads'}
+                              {statusCounts[status.id] || 0} {(statusCounts[status.id] || 0) === 1 ? t('statuses.lead') : t('statuses.leads')}
                             </span>
                           </div>
                         </div>
@@ -625,7 +627,7 @@ export default function Statuses() {
         {isAdmin && statuses.length > 0 && !isAdding && (
           <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground">
-              Tip: Click the <Edit2 className="h-3 w-3 inline-block mx-1" /> icon to edit or <Trash2 className="h-3 w-3 inline-block mx-1" /> to remove a status
+              {t('statuses.tipEdit')} <Edit2 className="h-3 w-3 inline-block mx-1" /> {t('statuses.tipEditIcon')} <Trash2 className="h-3 w-3 inline-block mx-1" /> {t('statuses.tipRemove')}
             </p>
           </div>
         )}
