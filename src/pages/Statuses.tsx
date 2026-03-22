@@ -443,12 +443,12 @@ export default function Statuses() {
               </div>
               
               <div>
-                <Label htmlFor="status-name" className="text-sm font-medium">Status Name</Label>
+                <Label htmlFor="status-name" className="text-sm font-medium">{t('statuses.statusName')}</Label>
                 <Input
                   id="status-name"
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
-                  placeholder="e.g., Interested, Hot Lead, Follow Up..."
+                  placeholder={t('statuses.statusNamePlaceholder')}
                   className="mt-2"
                   autoFocus
                 />
