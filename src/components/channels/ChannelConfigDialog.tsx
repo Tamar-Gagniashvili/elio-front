@@ -339,7 +339,7 @@ export function ChannelConfigDialog({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                <strong>Note:</strong> For production, use your published app URL or custom domain instead of the preview URL.
+                <strong>{t('common.note')}:</strong> {t('channels.embedNote')}
               </p>
             </div>
           )}
