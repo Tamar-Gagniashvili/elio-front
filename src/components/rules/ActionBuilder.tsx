@@ -173,7 +173,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
             onValueChange={(value) => updateAction(index, { status_id: value })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select status" />
+              <SelectValue placeholder={t('rules.selectStatus')} />
             </SelectTrigger>
             <SelectContent>
               {statuses.map((status) => (
