@@ -508,7 +508,7 @@ export default function Notes() {
                         className="mb-2 flex items-center gap-1 text-xs text-foreground/70 hover:text-foreground hover:underline transition-colors"
                       >
                         <MessageSquare className="h-3 w-3" />
-                        <span>{note.contact.name || 'Unknown'}</span>
+                        <span>{note.contact.name || t('common.unknown')}</span>
                       </button>
                     )}
                     
