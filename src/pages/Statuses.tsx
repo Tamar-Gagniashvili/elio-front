@@ -105,8 +105,8 @@ export default function Statuses() {
     if (statusesResult.error) {
       console.error('Error fetching statuses:', statusesResult.error);
       toast({
-        title: 'Error',
-        description: 'Failed to fetch statuses',
+        title: t('common.error'),
+        description: t('statuses.failedToFetch'),
         variant: 'destructive',
       });
       setIsLoading(false);
