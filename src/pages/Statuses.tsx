@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Tag, Trash2, Edit2, Check, Sparkles, GripVertical, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_ICONS, StatusIndicator, getIconComponent } from '@/components/StatusIcon';
+import { useTranslation } from 'react-i18next';
 
 interface LeadStatus {
   id: string;
