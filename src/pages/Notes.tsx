@@ -515,7 +515,7 @@ export default function Notes() {
                     {!note.contact_id && (
                       <div className="mb-2 flex items-center gap-1 text-xs text-foreground/70">
                         <Coffee className="h-3 w-3" />
-                        <span>Personal</span>
+                        <span>{t('notes.personal')}</span>
                       </div>
                     )}
 
