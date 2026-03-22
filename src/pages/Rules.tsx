@@ -132,7 +132,7 @@ export default function Rules() {
       return t('rules.noConditions');
     }
     const count = conditions.conditions.length;
-    return `${count} condition${count !== 1 ? 's' : ''} (${conditions.operator})`;
+    return `${count} ${t('rules.conditions').toLowerCase()} (${conditions.operator})`;
   };
 
   const getActionSummary = (actions: ActionsGroup) => {
