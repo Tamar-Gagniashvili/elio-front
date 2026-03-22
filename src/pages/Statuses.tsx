@@ -567,10 +567,10 @@ export default function Statuses() {
                         <div className="flex gap-2">
                           <Button size="sm" onClick={handleUpdateStatus} className="gap-1">
                             <Check className="h-3 w-3" />
-                            Save
+                            {t('common.save')}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditingStatus(null)}>
-                            Cancel
+                            {t('common.cancel')}
                           </Button>
                         </div>
                       </div>
