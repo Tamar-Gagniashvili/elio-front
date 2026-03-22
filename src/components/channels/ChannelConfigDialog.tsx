@@ -440,10 +440,10 @@ export function ChannelConfigDialog({
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading ? 'Saving...' : 'Save Configuration'}
+            {isLoading ? t('channels.saving') : t('channels.saveConfiguration')}
           </Button>
         </div>
       </DialogContent>
