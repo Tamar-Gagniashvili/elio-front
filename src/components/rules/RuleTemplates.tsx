@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Languages, Clock, MessageSquare, Users } from 'lucide-react';
 import type { ConditionGroup, ActionsGroup, ConditionField, ConditionOperator, ActionType } from '@/lib/ruleTypes';
@@ -8,8 +9,8 @@ interface RuleTemplatesProps {
 
 interface Template {
   id: string;
-  name: string;
-  description: string;
+  nameKey: string;
+  descKey: string;
   icon: React.ReactNode;
   conditions: ConditionGroup;
   actions: ActionsGroup;
@@ -18,8 +19,8 @@ interface Template {
 const TEMPLATES: Template[] = [
   {
     id: 'language-routing',
-    name: 'Route by Language',
-    description: 'Send speakers of a language to a specific team member',
+    nameKey: 'rules.template.routeByLanguage',
+    descKey: 'rules.template.routeByLanguageDesc',
     icon: <Languages className="h-4 w-4" />,
     conditions: {
       operator: 'AND',
@@ -34,8 +35,8 @@ const TEMPLATES: Template[] = [
   },
   {
     id: 'channel-routing',
-    name: 'Route by Channel',
-    description: 'Handle leads differently based on which channel they come from',
+    nameKey: 'rules.template.routeByChannel',
+    descKey: 'rules.template.routeByChannelDesc',
     icon: <MessageSquare className="h-4 w-4" />,
     conditions: {
       operator: 'AND',
@@ -52,8 +53,8 @@ const TEMPLATES: Template[] = [
   },
   {
     id: 'business-hours',
-    name: 'Business Hours',
-    description: 'Route differently during and outside business hours',
+    nameKey: 'rules.template.businessHours',
+    descKey: 'rules.template.businessHoursDesc',
     icon: <Clock className="h-4 w-4" />,
     conditions: {
       operator: 'AND',
@@ -69,8 +70,8 @@ const TEMPLATES: Template[] = [
   },
   {
     id: 'vip-keywords',
-    name: 'VIP Detection',
-    description: 'Flag important leads based on keywords in their message',
+    nameKey: 'rules.template.vipDetection',
+    descKey: 'rules.template.vipDetectionDesc',
     icon: <Users className="h-4 w-4" />,
     conditions: {
       operator: 'OR',
@@ -89,9 +90,11 @@ const TEMPLATES: Template[] = [
 ];
 
 export function RuleTemplates({ onApply }: RuleTemplatesProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground mb-3">Start with a template:</p>
+      <p className="text-xs text-muted-foreground mb-3">{t('rules.startWithTemplate')}</p>
       <div className="grid grid-cols-2 gap-2">
         {TEMPLATES.map((template) => (
           <Button
@@ -99,13 +102,13 @@ export function RuleTemplates({ onApply }: RuleTemplatesProps) {
             variant="outline"
             size="sm"
             className="h-auto py-2 px-3 justify-start text-left"
-            onClick={() => onApply(template.conditions, template.actions, template.name, template.description)}
+            onClick={() => onApply(template.conditions, template.actions, t(template.nameKey), t(template.descKey))}
           >
             <div className="flex items-start gap-2">
               <div className="mt-0.5 text-muted-foreground">{template.icon}</div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium truncate">{template.name}</div>
-                <div className="text-[10px] text-muted-foreground line-clamp-1">{template.description}</div>
+                <div className="text-xs font-medium truncate">{t(template.nameKey)}</div>
+                <div className="text-[10px] text-muted-foreground line-clamp-1">{t(template.descKey)}</div>
               </div>
             </div>
           </Button>
