@@ -42,7 +42,9 @@
     "open": "ღია",
     "assigned": "მინიჭებული",
     "resolved": "გადაწყვეტილი",
-    "archived": "არქივირებული"
+    "archived": "არქივირებული",
+    "clearFilter": "ფილტრის გასუფთავება",
+    "filterByStatus": "ფილტრი სტატუსით"
   },
   "nav": {
     "inbox": "შემოსული",

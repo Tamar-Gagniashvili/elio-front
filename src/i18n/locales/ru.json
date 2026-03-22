@@ -42,7 +42,9 @@
     "open": "Открыт",
     "assigned": "Назначен",
     "resolved": "Решён",
-    "archived": "В архиве"
+    "archived": "В архиве",
+    "clearFilter": "Очистить фильтр",
+    "filterByStatus": "Фильтр по статусу"
   },
   "nav": {
     "inbox": "Входящие",
