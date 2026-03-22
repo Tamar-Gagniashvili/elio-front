@@ -208,7 +208,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
 
   return (
     <div className="space-y-4">
-      <Label>Actions to execute</Label>
+      <Label>{t('rules.actionsToExecute')}</Label>
 
       {actions.actions.length === 0 ? (
         <Card>
