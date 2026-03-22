@@ -18,12 +18,12 @@ interface TeamMember extends TenantMembership {
   profile: Profile;
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  trainee: 'Trainee',
-  junior: 'Junior',
-  mid: 'Mid-Level',
-  senior: 'Senior',
-  lead: 'Lead',
+const POSITION_KEYS: Record<string, string> = {
+  trainee: 'settings.trainee',
+  junior: 'settings.junior',
+  mid: 'settings.midLevel',
+  senior: 'settings.senior',
+  lead: 'settings.lead',
 };
 
 export default function Settings() {
@@ -114,7 +114,7 @@ export default function Settings() {
                         />
                         <div>
                           <p className="font-medium">
-                            {member.profile?.full_name || 'Unknown'}
+                            {member.profile?.full_name || t('common.unknown')}
                             {member.user_id === profile?.user_id && (
                               <span className="text-muted-foreground ml-1">({t('common.you')})</span>
                             )}
@@ -128,11 +128,11 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         {member.position && (
                           <Badge variant="outline">
-                            {POSITION_LABELS[member.position] || member.position}
+                            {POSITION_KEYS[member.position] ? t(POSITION_KEYS[member.position]) : member.position}
                           </Badge>
                         )}
                         <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
-                          {member.role}
+                          {t(`settings.${member.role}`)}
                         </Badge>
                         {canEditMember(member) && (
                           <Button

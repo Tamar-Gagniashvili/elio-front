@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { TenantMembership, Profile } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -25,6 +26,7 @@ const SUGGESTED_POSITIONS = [
 ];
 
 export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditMemberDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [position, setPosition] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -47,14 +49,14 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to update member position',
+        title: t('common.error'),
+        description: t('settings.positionUpdateFailed'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Success',
-        description: 'Member position updated',
+        title: t('settings.success'),
+        description: t('settings.positionUpdated'),
       });
       onUpdate();
       onOpenChange(false);
@@ -76,20 +78,20 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Team Member</DialogTitle>
+          <DialogTitle>{t('settings.editMember')}</DialogTitle>
           <DialogDescription>
-            Update position for {member.profile?.full_name || member.profile?.email}
+            {t('settings.editMemberDesc', { name: member.profile?.full_name || member.profile?.email })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Position</Label>
+            <Label>{t('settings.position')}</Label>
             <div className="relative">
               <Input
                 value={position}
                 onChange={(e) => setPosition(e.target.value)}
-                placeholder="Enter or select a position"
+                placeholder={t('settings.enterPosition')}
               />
               {position && (
                 <Button
@@ -120,16 +122,16 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t('common.loading')}
               </>
             ) : (
-              'Save'
+              t('common.save')
             )}
           </Button>
         </DialogFooter>
