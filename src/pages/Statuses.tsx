@@ -590,7 +590,7 @@ export default function Statuses() {
                             />
                             <span className="font-medium">{status.name}</span>
                             <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                              {statusCounts[status.id] || 0} {(statusCounts[status.id] || 0) === 1 ? 'lead' : 'leads'}
+                              {statusCounts[status.id] || 0} {(statusCounts[status.id] || 0) === 1 ? t('statuses.lead') : t('statuses.leads')}
                             </span>
                           </div>
                         </div>
