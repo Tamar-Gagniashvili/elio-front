@@ -114,7 +114,7 @@ export default function Settings() {
                         />
                         <div>
                           <p className="font-medium">
-                            {member.profile?.full_name || 'Unknown'}
+                            {member.profile?.full_name || t('common.unknown')}
                             {member.user_id === profile?.user_id && (
                               <span className="text-muted-foreground ml-1">({t('common.you')})</span>
                             )}
