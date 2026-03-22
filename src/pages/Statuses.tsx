@@ -169,14 +169,14 @@ export default function Statuses() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to create status',
+        title: t('common.error'),
+        description: t('statuses.failedToCreate'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Status created!',
-        description: `"${newStatusName}" is now available for your leads`,
+        title: t('statuses.statusCreated'),
+        description: t('statuses.statusCreatedDesc', { name: newStatusName }),
       });
       setNewStatusName('');
       setNewStatusColor('blue');
