@@ -477,7 +477,7 @@ export default function Contacts() {
                                     {group.displayName}
                                   </h3>
                                   <span className="text-xs text-muted-foreground">
-                                    ({group.contacts.length} linked)
+                                    ({group.contacts.length} {t('contacts.linked')})
                                   </span>
                                 </div>
                                 
@@ -496,7 +496,7 @@ export default function Contacts() {
                                     <span key={email}>{email}</span>
                                   ))}
                                   {info.emails.length > 2 && (
-                                    <span>+{info.emails.length - 2} more</span>
+                                    <span>+{info.emails.length - 2} {t('common.more')}</span>
                                   )}
                                 </div>
                                 {renderStatusBadges(group.statuses)}
@@ -513,7 +513,7 @@ export default function Contacts() {
                                   className="gap-1.5"
                                 >
                                   <UserPlus className="h-3.5 w-3.5" />
-                                  Reassign
+                                  {t('contacts.reassign')}
                                 </Button>
                                 <div className="text-sm text-muted-foreground">
                                   {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
@@ -524,7 +524,7 @@ export default function Contacts() {
                           <AccordionContent className="px-4 pb-4">
                             <div className="space-y-2 pt-2 border-t">
                               <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium py-2">
-                                Linked Contacts
+                                {t('contacts.linkedContacts')}
                               </p>
                               {group.contacts.map(renderContactRow)}
                             </div>
@@ -582,7 +582,7 @@ export default function Contacts() {
                               className="gap-1.5"
                             >
                               <UserPlus className="h-3.5 w-3.5" />
-                              Reassign
+                              {t('contacts.reassign')}
                             </Button>
                             <div className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
