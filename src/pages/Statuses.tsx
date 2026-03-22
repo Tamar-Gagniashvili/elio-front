@@ -424,7 +424,7 @@ export default function Statuses() {
                   </div>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">Active statuses</p>
+              <p className="text-sm text-muted-foreground">{t('statuses.activeStatuses')}</p>
             </div>
           </div>
         )}
