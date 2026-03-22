@@ -78,9 +78,9 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Team Member</DialogTitle>
+          <DialogTitle>{t('settings.editMember')}</DialogTitle>
           <DialogDescription>
-            Update position for {member.profile?.full_name || member.profile?.email}
+            {t('settings.editMemberDesc', { name: member.profile?.full_name || member.profile?.email })}
           </DialogDescription>
         </DialogHeader>
 
