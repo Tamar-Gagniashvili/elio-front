@@ -166,7 +166,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
     return (
       <Input
         className="flex-1"
-        placeholder="Enter value..."
+        placeholder={t('rules.enterValue')}
         value={String(condition.value)}
         onChange={(e) => updateCondition(index, { value: e.target.value })}
       />
