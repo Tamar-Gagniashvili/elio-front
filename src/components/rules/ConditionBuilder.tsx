@@ -185,7 +185,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
       {conditions.conditions.length === 0 ? (
         <Card>
           <CardContent className="py-6 text-center text-muted-foreground">
-            No conditions defined. This rule will match all incoming leads.
+            {t('rules.noConditionsDefined')}
           </CardContent>
         </Card>
       ) : (
