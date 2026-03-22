@@ -89,8 +89,8 @@ export default function Channels() {
 
       if (error) {
         toast({
-          title: 'Error',
-          description: 'Failed to create channel',
+          title: t('common.error'),
+          description: t('channels.failedToCreate'),
           variant: 'destructive',
         });
         return;
