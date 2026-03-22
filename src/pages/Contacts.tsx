@@ -477,7 +477,7 @@ export default function Contacts() {
                                     {group.displayName}
                                   </h3>
                                   <span className="text-xs text-muted-foreground">
-                                    ({group.contacts.length} linked)
+                                    ({group.contacts.length} {t('contacts.linked')})
                                   </span>
                                 </div>
                                 
