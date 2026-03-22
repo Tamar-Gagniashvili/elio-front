@@ -381,7 +381,7 @@ export default function Statuses() {
           {isAdmin && !isAdding && statuses.length > 0 && (
             <Button onClick={() => setIsAdding(true)} className="gap-2">
               <Plus className="h-4 w-4" />
-              New Status
+              {t('statuses.newStatus')}
             </Button>
           )}
         </div>
