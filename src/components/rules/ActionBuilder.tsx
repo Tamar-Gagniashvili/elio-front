@@ -130,7 +130,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
             onValueChange={(value) => updateAction(index, { user_id: value })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select team member" />
+              <SelectValue placeholder={t('rules.selectTeamMember')} />
             </SelectTrigger>
             <SelectContent>
               {teamMembers.map((member) => (
