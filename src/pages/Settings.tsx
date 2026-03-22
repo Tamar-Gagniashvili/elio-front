@@ -128,7 +128,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         {member.position && (
                           <Badge variant="outline">
-                            {POSITION_LABELS[member.position] || member.position}
+                            {POSITION_KEYS[member.position] ? t(POSITION_KEYS[member.position]) : member.position}
                           </Badge>
                         )}
                         <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
