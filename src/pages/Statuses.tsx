@@ -455,7 +455,7 @@ export default function Statuses() {
               </div>
               
               <div>
-                <Label className="text-sm font-medium">Indicator Style</Label>
+                <Label className="text-sm font-medium">{t('statuses.indicatorStyle')}</Label>
                 <div className="mt-2">
                   <IndicatorModeSelector
                     mode={newIndicatorMode}
