@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -26,6 +27,7 @@ interface RuleEditorProps {
 }
 
 export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps) {
+  const { t } = useTranslation();
   const { currentTenant, user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -90,7 +92,7 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
 
   const handleSave = async () => {
     if (!currentTenant || !name.trim()) {
-      toast({ title: 'Please enter a rule name', variant: 'destructive' });
+      toast({ title: t('rules.pleaseEnterName'), variant: 'destructive' });
       return;
     }
 
@@ -108,11 +110,11 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
         .eq('id', rule.id);
 
       if (error) {
-        toast({ title: 'Error updating rule', description: error.message, variant: 'destructive' });
+        toast({ title: t('rules.errorUpdating'), description: error.message, variant: 'destructive' });
         setSaving(false);
         return;
       }
-      toast({ title: 'Rule updated' });
+      toast({ title: t('rules.ruleUpdated') });
     } else {
       const { data: existingRules } = await supabase
         .from('routing_rules')
@@ -136,11 +138,11 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
         }]);
 
       if (error) {
-        toast({ title: 'Error creating rule', description: error.message, variant: 'destructive' });
+        toast({ title: t('rules.errorCreating'), description: error.message, variant: 'destructive' });
         setSaving(false);
         return;
       }
-      toast({ title: 'Rule created' });
+      toast({ title: t('rules.ruleCreated') });
     }
 
     setSaving(false);
@@ -154,34 +156,33 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{rule ? 'Edit Rule' : 'Create New Rule'}</DialogTitle>
+          <DialogTitle>{rule ? t('rules.editRule') : t('rules.createNewRule')}</DialogTitle>
           <DialogDescription>
-            Build your routing flow using the visual board below
+            {t('rules.buildFlow')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2">
-          {/* Rule templates for new rules */}
           {isNewRule && isEmpty && (
             <RuleTemplates onApply={handleApplyTemplate} />
           )}
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <Label htmlFor="name" className="text-xs">Name</Label>
+              <Label htmlFor="name" className="text-xs">{t('common.name')}</Label>
               <Input
                 id="name"
-                placeholder="e.g., Georgian Speakers"
+                placeholder={t('rules.namePlaceholder')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="h-8 text-sm"
               />
             </div>
             <div className="flex-[2]">
-              <Label htmlFor="description" className="text-xs">Description (optional)</Label>
+              <Label htmlFor="description" className="text-xs">{t('rules.descriptionOptional')}</Label>
               <Input
                 id="description"
-                placeholder="Route Georgian speakers to..."
+                placeholder={t('rules.descriptionPlaceholder')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="h-8 text-sm"
@@ -189,7 +190,6 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
             </div>
           </div>
 
-          {/* Natural language preview */}
           <NaturalLanguagePreview
             conditions={conditions}
             actions={actions}
@@ -197,7 +197,6 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
             statuses={statuses}
           />
 
-          {/* Flow Board */}
           <FlowBoard
             conditions={conditions}
             actions={actions}
@@ -208,10 +207,10 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={saving || !name.trim()}>
-            {saving ? 'Saving...' : rule ? 'Update Rule' : 'Create Rule'}
+            {saving ? t('rules.saving') : rule ? t('rules.updateRule') : t('rules.createRule')}
           </Button>
         </DialogFooter>
       </DialogContent>

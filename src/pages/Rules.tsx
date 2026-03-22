@@ -62,7 +62,7 @@ export default function Rules() {
       .order('priority', { ascending: true });
 
     if (error) {
-      toast({ title: 'Error loading rules', description: error.message, variant: 'destructive' });
+      toast({ title: t('rules.errorUpdating'), description: error.message, variant: 'destructive' });
     } else {
       const typedRules: RoutingRule[] = (data || []).map((rule) => ({
         ...rule,
@@ -132,12 +132,12 @@ export default function Rules() {
       return t('rules.noConditions');
     }
     const count = conditions.conditions.length;
-    return `${count} condition${count !== 1 ? 's' : ''} (${conditions.operator})`;
+    return `${count} ${t('rules.conditions').toLowerCase()} (${conditions.operator})`;
   };
 
   const getActionSummary = (actions: ActionsGroup) => {
     if (!actions.actions || actions.actions.length === 0) {
-      return 'No actions';
+      return t('rules.noActions');
     }
     return actions.actions.map(a => a.type.replace(/_/g, ' ')).join(', ');
   };

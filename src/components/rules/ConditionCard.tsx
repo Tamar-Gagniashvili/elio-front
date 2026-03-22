@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,39 +22,41 @@ interface ConditionCardProps {
   style?: React.CSSProperties;
 }
 
-const FIELD_OPTIONS: { value: ConditionField; label: string }[] = [
-  { value: 'channel_type', label: 'Channel' },
-  { value: 'message_content', label: 'Message' },
-  { value: 'message_language', label: 'Language' },
-  { value: 'contact.name', label: 'Name' },
-  { value: 'contact.email', label: 'Email' },
-  { value: 'contact.phone', label: 'Phone' },
-  { value: 'time.hour', label: 'Hour' },
-  { value: 'time.day_of_week', label: 'Day' },
-];
-
-const OPERATOR_OPTIONS: { value: ConditionOperator; label: string }[] = [
-  { value: 'equals', label: 'is' },
-  { value: 'not_equals', label: 'is not' },
-  { value: 'contains', label: 'contains' },
-  { value: 'not_contains', label: 'doesn\'t contain' },
-  { value: 'starts_with', label: 'starts with' },
-  { value: 'ends_with', label: 'ends with' },
-  { value: 'greater_than', label: 'is after' },
-  { value: 'less_than', label: 'is before' },
-];
-
-const DAY_OPTIONS = [
-  { value: '0', label: 'Sun' },
-  { value: '1', label: 'Mon' },
-  { value: '2', label: 'Tue' },
-  { value: '3', label: 'Wed' },
-  { value: '4', label: 'Thu' },
-  { value: '5', label: 'Fri' },
-  { value: '6', label: 'Sat' },
-];
-
 export function ConditionCard({ condition, onChange, onRemove, className, style }: ConditionCardProps) {
+  const { t } = useTranslation();
+
+  const FIELD_OPTIONS: { value: ConditionField; label: string }[] = [
+    { value: 'channel_type', label: t('rules.field.channel') },
+    { value: 'message_content', label: t('rules.field.message') },
+    { value: 'message_language', label: t('rules.field.language') },
+    { value: 'contact.name', label: t('rules.field.name') },
+    { value: 'contact.email', label: t('rules.field.email') },
+    { value: 'contact.phone', label: t('rules.field.phone') },
+    { value: 'time.hour', label: t('rules.field.hour') },
+    { value: 'time.day_of_week', label: t('rules.field.day') },
+  ];
+
+  const OPERATOR_OPTIONS: { value: ConditionOperator; label: string }[] = [
+    { value: 'equals', label: t('rules.operator.is') },
+    { value: 'not_equals', label: t('rules.operator.isNot') },
+    { value: 'contains', label: t('rules.operator.contains') },
+    { value: 'not_contains', label: t('rules.operator.doesntContain') },
+    { value: 'starts_with', label: t('rules.operator.startsWith') },
+    { value: 'ends_with', label: t('rules.operator.endsWith') },
+    { value: 'greater_than', label: t('rules.operator.isAfter') },
+    { value: 'less_than', label: t('rules.operator.isBefore') },
+  ];
+
+  const DAY_OPTIONS = [
+    { value: '0', label: t('rules.days.sun') },
+    { value: '1', label: t('rules.days.mon') },
+    { value: '2', label: t('rules.days.tue') },
+    { value: '3', label: t('rules.days.wed') },
+    { value: '4', label: t('rules.days.thu') },
+    { value: '5', label: t('rules.days.fri') },
+    { value: '6', label: t('rules.days.sat') },
+  ];
+
   const renderValueInput = () => {
     if (condition.field === 'channel_type') {
       return (
@@ -131,7 +134,7 @@ export function ConditionCard({ condition, onChange, onRemove, className, style 
     return (
       <Input
         className="h-7 text-xs bg-background/80"
-        placeholder="value..."
+        placeholder={t('rules.value')}
         value={String(condition.value)}
         onChange={(e) => onChange({ value: e.target.value })}
       />
@@ -146,10 +149,8 @@ export function ConditionCard({ condition, onChange, onRemove, className, style 
       )}
       style={style}
     >
-      {/* Pin decoration */}
       <div className="absolute -top-2 right-3 w-4 h-4 rounded-full bg-red-500 shadow-sm border-2 border-red-600" />
       
-      {/* Remove button */}
       <Button
         variant="ghost"
         size="sm"
@@ -160,7 +161,6 @@ export function ConditionCard({ condition, onChange, onRemove, className, style 
       </Button>
 
       <div className="space-y-2">
-        {/* Field selector */}
         <Select
           value={condition.field}
           onValueChange={(value: ConditionField) => onChange({ field: value, value: '' })}
@@ -177,7 +177,6 @@ export function ConditionCard({ condition, onChange, onRemove, className, style 
           </SelectContent>
         </Select>
 
-        {/* Operator selector */}
         <Select
           value={condition.operator}
           onValueChange={(value: ConditionOperator) => onChange({ operator: value })}
@@ -194,7 +193,6 @@ export function ConditionCard({ condition, onChange, onRemove, className, style 
           </SelectContent>
         </Select>
 
-        {/* Value input */}
         {renderValueInput()}
       </div>
     </div>

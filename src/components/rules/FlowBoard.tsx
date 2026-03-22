@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, ArrowRight, GitBranch, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ const STICKY_COLORS = {
 };
 
 export function FlowBoard({ conditions, actions, onConditionsChange, onActionsChange }: FlowBoardProps) {
+  const { t } = useTranslation();
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
 
   const addCondition = () => {
@@ -115,7 +117,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
         {/* CONDITIONS ZONE */}
         <div className="flex flex-col items-center gap-2 min-w-[160px]">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">IF</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('rules.if')}</span>
             {conditions.conditions.length > 1 && (
               <Button
                 variant="outline"
@@ -123,12 +125,11 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
                 onClick={toggleOperator}
                 className="text-[10px] h-5 px-1.5"
               >
-                {conditions.operator === 'AND' ? 'ALL' : 'ANY'}
+                {conditions.operator === 'AND' ? t('rules.all') : t('rules.any')}
               </Button>
             )}
           </div>
 
-          {/* Condition cards */}
           <div className="flex flex-col gap-2">
             {conditions.conditions.map((condition, index) => (
               <div key={index} className="flex items-center gap-2">
@@ -150,7 +151,6 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
             ))}
           </div>
 
-          {/* Add condition button */}
           <button
             onClick={addCondition}
             className={cn(
@@ -160,7 +160,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
             )}
           >
             <Plus className="h-4 w-4" />
-            <span className="text-xs font-medium">Add Condition</span>
+            <span className="text-xs font-medium">{t('rules.addCondition')}</span>
           </button>
         </div>
 
@@ -172,10 +172,9 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
         {/* THEN ACTIONS ZONE */}
         <div className="flex flex-col items-center gap-2 min-w-[160px]">
           <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-            THEN
+            {t('rules.then').toUpperCase()}
           </div>
 
-          {/* Action cards */}
           <div className="flex flex-col gap-2">
             {actions.actions.map((action, index) => (
               <ActionCard
@@ -191,7 +190,6 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
             ))}
           </div>
 
-          {/* Add action button */}
           <button
             onClick={() => addAction(false)}
             className={cn(
@@ -201,7 +199,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
             )}
           >
             <Plus className="h-4 w-4" />
-            <span className="text-xs font-medium">Add Action</span>
+            <span className="text-xs font-medium">{t('rules.addAction')}</span>
           </button>
         </div>
 
@@ -211,7 +209,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
             <div className="flex items-center justify-center self-center mt-6">
               <div className="flex items-center gap-1">
                 <div className="h-px w-3 bg-muted-foreground/30" />
-                <span className="text-[10px] text-muted-foreground uppercase">or</span>
+                <span className="text-[10px] text-muted-foreground uppercase">{t('rules.or')}</span>
                 <div className="h-px w-3 bg-muted-foreground/30" />
               </div>
             </div>
@@ -219,7 +217,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
             <div className="flex flex-col items-center gap-2 min-w-[160px]">
               <div className="flex items-center gap-1">
                 <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-                  ELSE
+                  {t('rules.else').toUpperCase()}
                 </span>
                 <Button
                   variant="ghost"
@@ -231,7 +229,6 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
                 </Button>
               </div>
 
-              {/* Else action cards */}
               <div className="flex flex-col gap-2">
                 {(actions.elseActions || []).map((action, index) => (
                   <ActionCard
@@ -247,7 +244,6 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
                 ))}
               </div>
 
-              {/* Add else action button */}
               <button
                 onClick={() => addAction(true)}
                 className={cn(
@@ -257,14 +253,13 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
                 )}
               >
                 <Plus className="h-4 w-4" />
-                <span className="text-xs font-medium">Add Else Action</span>
+                <span className="text-xs font-medium">{t('rules.addElseAction')}</span>
               </button>
             </div>
           </>
         )}
       </div>
 
-      {/* Add ELSE branch button - centered at bottom */}
       {!hasElseBranch && (
         <div className="flex justify-center mt-4">
           <Button
@@ -274,7 +269,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
             className="text-xs text-muted-foreground hover:text-foreground h-7"
           >
             <GitBranch className="h-3.5 w-3.5 mr-1" />
-            Add ELSE branch
+            {t('rules.addElseBranch')}
           </Button>
         </div>
       )}

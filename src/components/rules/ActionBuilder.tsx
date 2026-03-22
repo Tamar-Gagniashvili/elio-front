@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -23,14 +24,15 @@ interface ActionBuilderProps {
   onChange: (actions: ActionsGroup) => void;
 }
 
-const ACTION_OPTIONS: { value: ActionType; label: string; description: string }[] = [
-  { value: 'assign_to_user', label: 'Assign to User', description: 'Route the lead to a specific team member' },
-  { value: 'assign_to_pool', label: 'Assign to Pool', description: 'Round-robin assign within a subset of users' },
-  { value: 'apply_status', label: 'Apply Status', description: 'Automatically tag the lead with a status' },
-  { value: 'send_message', label: 'Send Auto-Reply', description: 'Send an automatic response message' },
-];
-
 export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
+  const { t } = useTranslation();
+
+  const ACTION_OPTIONS: { value: ActionType; label: string; description: string }[] = [
+    { value: 'assign_to_user', label: t('rules.action.assignToUser'), description: t('rules.action.assignToDesc') },
+    { value: 'assign_to_pool', label: t('rules.action.assignToPool'), description: t('rules.action.assignToPoolDesc') },
+    { value: 'apply_status', label: t('rules.action.applyStatus'), description: t('rules.action.applyStatusDesc') },
+    { value: 'send_message', label: t('rules.action.sendMessage'), description: t('rules.action.sendMessageDesc') },
+  ];
   const { currentTenant } = useAuth();
   const [teamMembers, setTeamMembers] = useState<(Profile & { membership_user_id: string })[]>([]);
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
@@ -128,7 +130,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
             onValueChange={(value) => updateAction(index, { user_id: value })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select team member" />
+              <SelectValue placeholder={t('rules.selectTeamMember')} />
             </SelectTrigger>
             <SelectContent>
               {teamMembers.map((member) => (
@@ -143,7 +145,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
       case 'assign_to_pool':
         return (
           <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">Select team members for pool:</Label>
+            <Label className="text-sm text-muted-foreground">{t('rules.selectPoolMembers')}</Label>
             <div className="grid grid-cols-2 gap-2">
               {teamMembers.map((member) => (
                 <div key={member.membership_user_id} className="flex items-center gap-2">
@@ -171,7 +173,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
             onValueChange={(value) => updateAction(index, { status_id: value })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select status" />
+              <SelectValue placeholder={t('rules.selectStatus')} />
             </SelectTrigger>
             <SelectContent>
               {statuses.map((status) => (
@@ -192,7 +194,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
       case 'send_message':
         return (
           <Textarea
-            placeholder="Enter auto-reply message..."
+            placeholder={t('rules.autoReplyPlaceholder')}
             value={action.content || ''}
             onChange={(e) => updateAction(index, { content: e.target.value })}
             rows={3}
@@ -206,12 +208,12 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
 
   return (
     <div className="space-y-4">
-      <Label>Actions to execute</Label>
+      <Label>{t('rules.actionsToExecute')}</Label>
 
       {actions.actions.length === 0 ? (
         <Card>
           <CardContent className="py-6 text-center text-muted-foreground">
-            No actions defined. Add actions to execute when conditions match.
+            {t('rules.noActionsDefined')}
           </CardContent>
         </Card>
       ) : (

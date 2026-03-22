@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -51,9 +52,8 @@ interface SimulationResult {
   branch: 'then' | 'else' | null;
 }
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useAuth();
   const [input, setInput] = useState<SimulationInput>({
     channel: 'telegram',
@@ -69,6 +69,8 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
   const [statuses, setStatuses] = useState<{ id: string; name: string }[]>([]);
   const [hasRun, setHasRun] = useState(false);
+
+  const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
   useEffect(() => {
     if (currentTenant && open) {
@@ -221,15 +223,15 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
     switch (action.type) {
       case 'assign_to_user':
         const user = users.find(u => u.id === action.user_id);
-        return `Assign to ${user?.name || 'Unknown user'}`;
+        return t('rules.action.assignToAction', { name: user?.name || t('rules.action.unknownStatus') });
       case 'assign_to_pool':
         const poolUsers = action.user_ids?.map(id => users.find(u => u.id === id)?.name).filter(Boolean);
-        return `Round-robin: ${poolUsers?.join(', ') || 'No users'}`;
+        return t('rules.action.roundRobinAction', { names: poolUsers?.join(', ') || t('rules.action.noUsers') });
       case 'apply_status':
         const status = statuses.find(s => s.id === action.status_id);
-        return `Apply status: ${status?.name || 'Unknown'}`;
+        return t('rules.action.applyStatusAction', { name: status?.name || t('rules.action.unknownStatus') });
       case 'send_message':
-        return `Auto-reply: "${action.content?.substring(0, 30)}..."`;
+        return t('rules.action.autoReplyAction', { preview: action.content?.substring(0, 30) || '' });
       default:
         return action.type;
     }
@@ -237,14 +239,14 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
 
   const getFieldLabel = (field: string): string => {
     const labels: Record<string, string> = {
-      'channel_type': 'Channel',
-      'message_content': 'Message',
-      'message_language': 'Language',
-      'contact.name': 'Name',
-      'contact.email': 'Email',
-      'contact.phone': 'Phone',
-      'time.hour': 'Hour',
-      'time.day_of_week': 'Day',
+      'channel_type': t('rules.field.channel'),
+      'message_content': t('rules.field.message'),
+      'message_language': t('rules.field.language'),
+      'contact.name': t('rules.field.name'),
+      'contact.email': t('rules.field.email'),
+      'contact.phone': t('rules.field.phone'),
+      'time.hour': t('rules.field.hour'),
+      'time.day_of_week': t('rules.field.day'),
     };
     return labels[field] || field;
   };
@@ -258,23 +260,22 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Play className="h-5 w-5" />
-            Test Routing Rules
+            {t('rules.testRoutingRules')}
           </DialogTitle>
           <DialogDescription>
-            Simulate an incoming message to see which rules would trigger
+            {t('rules.simulateDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
-          {/* Simulation Input */}
           <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
             <div className="col-span-2">
               <Label className="text-xs mb-1 flex items-center gap-1">
                 <MessageSquare className="h-3 w-3" />
-                Message Content
+                {t('rules.messageContent')}
               </Label>
               <Textarea
-                placeholder="Type a sample message..."
+                placeholder={t('rules.sampleMessagePlaceholder')}
                 value={input.messageContent}
                 onChange={(e) => setInput({ ...input, messageContent: e.target.value })}
                 className="h-16 text-sm"
@@ -282,7 +283,7 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
             </div>
 
             <div>
-              <Label className="text-xs mb-1">Channel</Label>
+              <Label className="text-xs mb-1">{t('rules.channel')}</Label>
               <Select
                 value={input.channel}
                 onValueChange={(value: ChannelType) => setInput({ ...input, channel: value })}
@@ -303,7 +304,7 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
             <div>
               <Label className="text-xs mb-1 flex items-center gap-1">
                 <Globe className="h-3 w-3" />
-                Language
+                {t('rules.language')}
               </Label>
               <Select
                 value={input.language}
@@ -325,7 +326,7 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
             <div>
               <Label className="text-xs mb-1 flex items-center gap-1">
                 <User className="h-3 w-3" />
-                Contact Name
+                {t('rules.contactName')}
               </Label>
               <Input
                 placeholder="John Doe"
@@ -336,7 +337,7 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
             </div>
 
             <div>
-              <Label className="text-xs mb-1">Contact Email</Label>
+              <Label className="text-xs mb-1">{t('rules.contactEmail')}</Label>
               <Input
                 type="email"
                 placeholder="john@example.com"
@@ -347,7 +348,7 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
             </div>
 
             <div>
-              <Label className="text-xs mb-1">Contact Phone</Label>
+              <Label className="text-xs mb-1">{t('rules.contactPhone')}</Label>
               <Input
                 placeholder="+1234567890"
                 value={input.contactPhone}
@@ -358,7 +359,7 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
 
             <div className="flex gap-2">
               <div className="flex-1">
-                <Label className="text-xs mb-1">Hour (0-23)</Label>
+                <Label className="text-xs mb-1">{t('rules.hour')}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -369,7 +370,7 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
                 />
               </div>
               <div className="flex-1">
-                <Label className="text-xs mb-1">Day</Label>
+                <Label className="text-xs mb-1">{t('rules.day')}</Label>
                 <Select
                   value={String(input.dayOfWeek)}
                   onValueChange={(value) => setInput({ ...input, dayOfWeek: parseInt(value) })}
@@ -378,9 +379,9 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {DAY_NAMES.map((day, i) => (
+                    {DAY_KEYS.map((dayKey, i) => (
                       <SelectItem key={i} value={String(i)}>
-                        {day}
+                        {t(`rules.days.${dayKey}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -392,26 +393,25 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
           <div className="flex justify-center">
             <Button onClick={runSimulation} className="gap-2">
               <Play className="h-4 w-4" />
-              Run Simulation
+              {t('rules.runSimulation')}
             </Button>
           </div>
 
-          {/* Results */}
           {hasRun && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium">Results:</span>
+                <span className="font-medium">{t('rules.results')}</span>
                 <Badge variant="default" className="bg-emerald-500">
-                  {matchedCount} matched
+                  {matchedCount} {t('rules.matched')}
                 </Badge>
                 {elseCount > 0 && (
                   <Badge variant="secondary" className="bg-rose-100 text-rose-700">
-                    {elseCount} ELSE triggered
+                    {elseCount} {t('rules.elseTriggered')}
                   </Badge>
                 )}
                 {results.filter(r => !r.branch).length > 0 && (
                   <Badge variant="outline">
-                    {results.filter(r => !r.branch).length} skipped
+                    {results.filter(r => !r.branch).length} {t('rules.skipped')}
                   </Badge>
                 )}
               </div>
@@ -440,12 +440,11 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
                         <span className="font-medium text-sm">{result.rule.name}</span>
                         {result.branch && (
                           <Badge variant="outline" className="text-xs">
-                            {result.branch === 'then' ? 'THEN' : 'ELSE'} path
+                            {result.branch === 'then' ? t('rules.thenPath') : t('rules.elsePath')}
                           </Badge>
                         )}
                       </div>
 
-                      {/* Condition results */}
                       {result.conditionResults.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {result.conditionResults.map((cr, i) => (
@@ -463,7 +462,6 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
                         </div>
                       )}
 
-                      {/* Triggered actions */}
                       {result.triggeredActions.length > 0 && (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <ArrowRight className="h-3 w-3" />
@@ -479,7 +477,7 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
 
                   {results.length === 0 && (
                     <p className="text-center text-muted-foreground py-4">
-                      No active rules to test
+                      {t('rules.noActiveRules')}
                     </p>
                   )}
                 </div>
