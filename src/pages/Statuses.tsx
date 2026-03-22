@@ -60,6 +60,7 @@ export default function Statuses() {
   const navigate = useNavigate();
   const { user, loading: authLoading, currentTenant, currentMembership } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
