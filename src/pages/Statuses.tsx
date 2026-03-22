@@ -627,7 +627,7 @@ export default function Statuses() {
         {isAdmin && statuses.length > 0 && !isAdding && (
           <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground">
-              Tip: Click the <Edit2 className="h-3 w-3 inline-block mx-1" /> icon to edit or <Trash2 className="h-3 w-3 inline-block mx-1" /> to remove a status
+              {t('statuses.tipEdit')} <Edit2 className="h-3 w-3 inline-block mx-1" /> {t('statuses.tipEditIcon')} <Trash2 className="h-3 w-3 inline-block mx-1" /> {t('statuses.tipRemove')}
             </p>
           </div>
         )}
