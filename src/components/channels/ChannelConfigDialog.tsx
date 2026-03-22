@@ -405,7 +405,7 @@ export function ChannelConfigDialog({
                     rel="noopener noreferrer"
                     className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
                   >
-                    Get this <ExternalLink className="h-3 w-3" />
+                    {t('channels.getThis')} <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
               </div>
