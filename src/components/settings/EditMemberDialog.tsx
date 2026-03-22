@@ -86,12 +86,12 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Position</Label>
+            <Label>{t('settings.position')}</Label>
             <div className="relative">
               <Input
                 value={position}
                 onChange={(e) => setPosition(e.target.value)}
-                placeholder="Enter or select a position"
+                placeholder={t('settings.enterPosition')}
               />
               {position && (
                 <Button
