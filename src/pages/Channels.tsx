@@ -189,8 +189,8 @@ export default function Channels() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to update channel',
+        title: t('common.error'),
+        description: t('channels.failedToUpdate'),
         variant: 'destructive',
       });
     } else {
