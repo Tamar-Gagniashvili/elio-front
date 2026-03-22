@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,20 +59,21 @@ interface TeamMember {
 
 type AssignmentStrategy = 'none' | 'round_robin' | 'single_user' | 'routing_rule';
 
-const CONTACT_FIELDS = [
-  { key: 'name', label: 'Name', description: 'Contact name' },
-  { key: 'email', label: 'Email', description: 'Email address' },
-  { key: 'phone', label: 'Phone', description: 'Phone number' },
-  { key: 'external_id', label: 'External ID', description: 'Your CRM or system ID' },
-];
-
 export function ImportLeadsDialog({
   open,
   onOpenChange,
   onImportComplete,
 }: ImportLeadsDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant, user } = useAuth();
   const { toast } = useToast();
+
+  const CONTACT_FIELDS = [
+    { key: 'name', label: t('contacts.fieldName'), description: t('contacts.fieldNameDesc') },
+    { key: 'email', label: t('contacts.fieldEmail'), description: t('contacts.fieldEmailDesc') },
+    { key: 'phone', label: t('contacts.fieldPhone'), description: t('contacts.fieldPhoneDesc') },
+    { key: 'external_id', label: t('contacts.fieldExternalId'), description: t('contacts.fieldExternalIdDesc') },
+  ];
 
   const [step, setStep] = useState(1);
   const [file, setFile] = useState<File | null>(null);
@@ -100,7 +102,6 @@ export function ImportLeadsDialog({
     errors: string[];
   } | null>(null);
 
-  // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
       setStep(1);
@@ -116,7 +117,6 @@ export function ImportLeadsDialog({
     }
   }, [open]);
 
-  // Fetch routing rules and team members
   useEffect(() => {
     if (open && currentTenant) {
       fetchRoutingRules();
@@ -126,21 +126,17 @@ export function ImportLeadsDialog({
 
   const fetchRoutingRules = async () => {
     if (!currentTenant) return;
-    
     const { data } = await supabase
       .from('routing_rules')
       .select('id, name, description')
       .eq('tenant_id', currentTenant.id)
       .eq('is_active', true)
       .order('priority');
-    
     setRoutingRules(data || []);
   };
 
   const fetchTeamMembers = async () => {
     if (!currentTenant) return;
-    
-    // First get memberships with sales role
     const { data: memberships, error: membershipError } = await supabase
       .from('tenant_memberships')
       .select('user_id, role')
@@ -154,15 +150,11 @@ export function ImportLeadsDialog({
     }
 
     if (!memberships || memberships.length === 0) {
-      console.log('No sales team members found');
       setTeamMembers([]);
       return;
     }
 
-    // Get user IDs
     const userIds = memberships.map(m => m.user_id);
-    
-    // Fetch profiles for these users
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
       .select('user_id, full_name, email')
@@ -172,7 +164,6 @@ export function ImportLeadsDialog({
       console.error('Error fetching profiles:', profileError);
     }
 
-    // Combine data
     const members: TeamMember[] = memberships.map((m) => {
       const profile = profiles?.find(p => p.user_id === m.user_id);
       return {
@@ -181,8 +172,6 @@ export function ImportLeadsDialog({
         role: m.role,
       };
     });
-    
-    console.log('Team members loaded:', members);
     setTeamMembers(members);
   };
 
@@ -204,8 +193,8 @@ export function ImportLeadsDialog({
 
       if (jsonData.length === 0) {
         toast({
-          title: 'Empty file',
-          description: 'The file contains no data rows',
+          title: t('contacts.emptyFile'),
+          description: t('contacts.emptyFileDesc'),
           variant: 'destructive',
         });
         return;
@@ -216,7 +205,6 @@ export function ImportLeadsDialog({
       setPreviewRows(jsonData.slice(0, 5));
       setAllRows(jsonData);
 
-      // Auto-map columns with similar names
       const autoMapping: Record<string, string> = {};
       CONTACT_FIELDS.forEach((field) => {
         const match = headers.find(
@@ -231,12 +219,12 @@ export function ImportLeadsDialog({
     } catch (error) {
       console.error('Error parsing file:', error);
       toast({
-        title: 'Error parsing file',
-        description: 'Could not read the Excel file. Please check the format.',
+        title: t('contacts.errorParsingFile'),
+        description: t('contacts.errorParsingFileDesc'),
         variant: 'destructive',
       });
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const handleImport = async () => {
     if (!currentTenant || !user) return;
@@ -262,7 +250,7 @@ export function ImportLeadsDialog({
       if (error) throw error;
 
       setImportResult(data.results);
-      setStep(4); // Go to results step
+      setStep(4);
       
       if (data.results.imported > 0) {
         onImportComplete();
@@ -270,8 +258,8 @@ export function ImportLeadsDialog({
     } catch (error) {
       console.error('Import error:', error);
       toast({
-        title: 'Import failed',
-        description: error.message || 'An error occurred during import',
+        title: t('contacts.importFailed'),
+        description: error.message || t('errors.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -311,7 +299,7 @@ export function ImportLeadsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
-            Import Offline Leads
+            {t('contacts.importOfflineLeads')}
           </DialogTitle>
         </DialogHeader>
 
@@ -348,9 +336,9 @@ export function ImportLeadsDialog({
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="font-semibold mb-1">Upload Your File</h3>
+                <h3 className="font-semibold mb-1">{t('contacts.uploadYourFile')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Upload an Excel (.xlsx, .xls) or CSV file with your leads
+                  {t('contacts.uploadFileDesc')}
                 </p>
               </div>
 
@@ -366,14 +354,14 @@ export function ImportLeadsDialog({
                       <FileSpreadsheet className="h-10 w-10 text-primary mb-2" />
                       <span className="font-medium">{file.name}</span>
                       <span className="text-sm text-muted-foreground">
-                        {allRows.length} rows found
+                        {t('contacts.rowsFound', { count: allRows.length })}
                       </span>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center text-muted-foreground">
                       <Upload className="h-10 w-10 mb-2" />
-                      <span className="font-medium">Click to upload</span>
-                      <span className="text-sm">or drag and drop</span>
+                      <span className="font-medium">{t('contacts.clickToUpload')}</span>
+                      <span className="text-sm">{t('contacts.orDragDrop')}</span>
                     </div>
                   )}
                   <Input
@@ -388,7 +376,7 @@ export function ImportLeadsDialog({
               {previewRows.length > 0 && (
                 <div className="border rounded-lg overflow-hidden">
                   <div className="bg-muted px-4 py-2 text-sm font-medium">
-                    Preview (first 5 rows)
+                    {t('contacts.previewFirstRows')}
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -423,9 +411,9 @@ export function ImportLeadsDialog({
           {step === 2 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="font-semibold mb-1">Map Your Columns</h3>
+                <h3 className="font-semibold mb-1">{t('contacts.mapYourColumns')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Tell us which columns contain contact information
+                  {t('contacts.mapColumnsDesc')}
                 </p>
               </div>
 
@@ -446,10 +434,10 @@ export function ImportLeadsDialog({
                       }
                     >
                       <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select column..." />
+                        <SelectValue placeholder={t('contacts.selectColumn')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="_none">Don't map</SelectItem>
+                        <SelectItem value="_none">{t('contacts.dontMap')}</SelectItem>
                         {columns.map((col) => (
                           <SelectItem key={col} value={col}>
                             {col}
@@ -463,7 +451,7 @@ export function ImportLeadsDialog({
 
               {Object.values(columnMapping).some(Boolean) && (
                 <div className="border rounded-lg p-4 bg-muted/30">
-                  <p className="text-sm font-medium mb-2">Mapping Preview</p>
+                  <p className="text-sm font-medium mb-2">{t('contacts.mappingPreview')}</p>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(columnMapping)
                       .filter(([, col]) => col)
@@ -482,9 +470,9 @@ export function ImportLeadsDialog({
           {step === 3 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="font-semibold mb-1">Lead Assignment</h3>
+                <h3 className="font-semibold mb-1">{t('contacts.leadAssignment')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Choose how to assign these leads to your sales team
+                  {t('contacts.leadAssignmentDesc')}
                 </p>
               </div>
 
@@ -501,9 +489,9 @@ export function ImportLeadsDialog({
                 >
                   <RadioGroupItem value="none" className="mt-0.5" />
                   <div>
-                    <p className="font-medium">Leave Unassigned</p>
+                    <p className="font-medium">{t('contacts.leaveUnassigned')}</p>
                     <p className="text-sm text-muted-foreground">
-                      Import contacts without assigning to anyone
+                      {t('contacts.leaveUnassignedDesc')}
                     </p>
                   </div>
                 </label>
@@ -518,10 +506,10 @@ export function ImportLeadsDialog({
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      <p className="font-medium">Round Robin</p>
+                      <p className="font-medium">{t('contacts.roundRobin')}</p>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Distribute leads evenly among selected team members
+                      {t('contacts.roundRobinDesc')}
                     </p>
                   </div>
                 </label>
@@ -536,10 +524,10 @@ export function ImportLeadsDialog({
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
-                      <p className="font-medium">Assign to One Person</p>
+                      <p className="font-medium">{t('contacts.assignToOnePerson')}</p>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Assign all leads to a specific team member
+                      {t('contacts.assignToOnePersonDesc')}
                     </p>
                   </div>
                 </label>
@@ -554,10 +542,10 @@ export function ImportLeadsDialog({
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4" />
-                      <p className="font-medium">Use Routing Rule</p>
+                      <p className="font-medium">{t('contacts.useRoutingRule')}</p>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Apply an existing routing rule to assign and tag leads
+                      {t('contacts.useRoutingRuleDesc')}
                     </p>
                   </div>
                 </label>
@@ -569,8 +557,8 @@ export function ImportLeadsDialog({
                   <div className="flex items-center justify-between">
                     <Label>
                       {assignmentStrategy === 'round_robin' 
-                        ? 'Select team members for round-robin' 
-                        : 'Select team member'}
+                        ? t('contacts.selectTeamMembersRR')
+                        : t('contacts.selectTeamMember')}
                     </Label>
                     {assignmentStrategy === 'round_robin' && teamMembers.length > 1 && (
                       <Button
@@ -586,14 +574,14 @@ export function ImportLeadsDialog({
                         }}
                         className="text-xs h-7"
                       >
-                        {selectedUserIds.length === teamMembers.length ? 'Deselect All' : 'Select All'}
+                        {selectedUserIds.length === teamMembers.length ? t('contacts.deselectAll') : t('contacts.selectAll')}
                       </Button>
                     )}
                   </div>
                   {teamMembers.length === 0 ? (
                     <div className="text-sm text-muted-foreground space-y-2">
-                      <p>No sales team members found.</p>
-                      <p className="text-xs">Add team members with the "sales" role in Settings to enable assignment.</p>
+                      <p>{t('contacts.noSalesMembers')}</p>
+                      <p className="text-xs">{t('contacts.noSalesMembersDesc')}</p>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -634,7 +622,7 @@ export function ImportLeadsDialog({
                   )}
                   {selectedUserIds.length > 0 && assignmentStrategy === 'round_robin' && (
                     <p className="text-xs text-muted-foreground">
-                      {selectedUserIds.length} member{selectedUserIds.length > 1 ? 's' : ''} selected
+                      {t('contacts.membersSelected', { count: selectedUserIds.length })}
                     </p>
                   )}
                 </div>
@@ -643,15 +631,15 @@ export function ImportLeadsDialog({
               {/* Routing Rule Selection */}
               {assignmentStrategy === 'routing_rule' && (
                 <div className="border rounded-lg p-4 space-y-3">
-                  <Label>Select routing rule</Label>
+                  <Label>{t('contacts.selectRoutingRule')}</Label>
                   {routingRules.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No routing rules found. Create rules in the Rules page first.
+                      {t('contacts.noRoutingRules')}
                     </p>
                   ) : (
                     <Select value={selectedRuleId} onValueChange={setSelectedRuleId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Choose a rule..." />
+                        <SelectValue placeholder={t('contacts.chooseRule')} />
                       </SelectTrigger>
                       <SelectContent>
                         {routingRules.map((rule) => (
@@ -688,7 +676,7 @@ export function ImportLeadsDialog({
                     <AlertCircle className="h-8 w-8 text-muted-foreground" />
                   )}
                 </div>
-                <h3 className="font-semibold text-xl mb-1">Import Complete</h3>
+                <h3 className="font-semibold text-xl mb-1">{t('contacts.importComplete')}</h3>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -696,49 +684,46 @@ export function ImportLeadsDialog({
                   <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                     {importResult.imported}
                   </p>
-                  <p className="text-sm text-green-700 dark:text-green-300">Imported</p>
+                  <p className="text-sm text-green-700 dark:text-green-300">{t('contacts.importedCount')}</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
                   <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
                     {importResult.skipped}
                   </p>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300">Skipped</p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">{t('contacts.skippedCount')}</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                   <p className="text-3xl font-bold text-red-600 dark:text-red-400">
                     {importResult.errors.length}
                   </p>
-                  <p className="text-sm text-red-700 dark:text-red-300">Errors</p>
+                  <p className="text-sm text-red-700 dark:text-red-300">{t('contacts.errorsCount')}</p>
                 </div>
               </div>
 
-              {/* Skipped leads details */}
               {importResult.skippedLeads && importResult.skippedLeads.length > 0 && (
                 <div className="border rounded-lg p-4 bg-yellow-50 dark:bg-yellow-900/20">
                   <p className="font-medium text-yellow-700 dark:text-yellow-300 mb-3">
-                    Skipped Leads (already exist):
+                    {t('contacts.skippedLeads')}
                   </p>
                   
-                  {/* Summary by reason */}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {importResult.skippedLeads.filter(s => s.reason === 'duplicate_email').length > 0 && (
                       <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
-                        {importResult.skippedLeads.filter(s => s.reason === 'duplicate_email').length} duplicate emails
+                        {t('contacts.duplicateEmails', { count: importResult.skippedLeads.filter(s => s.reason === 'duplicate_email').length })}
                       </Badge>
                     )}
                     {importResult.skippedLeads.filter(s => s.reason === 'duplicate_phone').length > 0 && (
                       <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
-                        {importResult.skippedLeads.filter(s => s.reason === 'duplicate_phone').length} duplicate phones
+                        {t('contacts.duplicatePhones', { count: importResult.skippedLeads.filter(s => s.reason === 'duplicate_phone').length })}
                       </Badge>
                     )}
                     {importResult.skippedLeads.filter(s => s.reason === 'no_identifying_info').length > 0 && (
                       <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
-                        {importResult.skippedLeads.filter(s => s.reason === 'no_identifying_info').length} missing info
+                        {t('contacts.missingInfo', { count: importResult.skippedLeads.filter(s => s.reason === 'no_identifying_info').length })}
                       </Badge>
                     )}
                   </div>
                   
-                  {/* Detailed list */}
                   <ul className="text-sm text-yellow-600 dark:text-yellow-400 space-y-1.5 max-h-[150px] overflow-y-auto">
                     {importResult.skippedLeads.slice(0, 15).map((lead, i) => (
                       <li key={i} className="flex items-center gap-2">
@@ -746,15 +731,15 @@ export function ImportLeadsDialog({
                         <span className="font-medium">{lead.name}</span>
                         <span className="text-yellow-500 dark:text-yellow-500">—</span>
                         <span className="text-xs">
-                          {lead.reason === 'duplicate_email' && `Email "${lead.value}" already exists`}
-                          {lead.reason === 'duplicate_phone' && `Phone "${lead.value}" already exists`}
-                          {lead.reason === 'no_identifying_info' && 'No name, email, or phone'}
+                          {lead.reason === 'duplicate_email' && t('contacts.emailAlreadyExists', { value: lead.value })}
+                          {lead.reason === 'duplicate_phone' && t('contacts.phoneAlreadyExists', { value: lead.value })}
+                          {lead.reason === 'no_identifying_info' && t('contacts.noIdentifyingInfo')}
                         </span>
                       </li>
                     ))}
                     {importResult.skippedLeads.length > 15 && (
                       <li className="text-xs text-yellow-500 dark:text-yellow-500 pl-4">
-                        ...and {importResult.skippedLeads.length - 15} more
+                        {t('contacts.andMore', { count: importResult.skippedLeads.length - 15 })}
                       </li>
                     )}
                   </ul>
@@ -763,13 +748,13 @@ export function ImportLeadsDialog({
 
               {importResult.errors.length > 0 && (
                 <div className="border rounded-lg p-4 bg-red-50 dark:bg-red-900/20">
-                  <p className="font-medium text-red-700 dark:text-red-300 mb-2">Errors:</p>
+                  <p className="font-medium text-red-700 dark:text-red-300 mb-2">{t('contacts.errorsLabel')}</p>
                   <ul className="text-sm text-red-600 dark:text-red-400 space-y-1">
                     {importResult.errors.slice(0, 10).map((err, i) => (
                       <li key={i}>{err}</li>
                     ))}
                     {importResult.errors.length > 10 && (
-                      <li>...and {importResult.errors.length - 10} more</li>
+                      <li>{t('contacts.andMore', { count: importResult.errors.length - 10 })}</li>
                     )}
                   </ul>
                 </div>
@@ -786,7 +771,7 @@ export function ImportLeadsDialog({
             disabled={step === 1 || step === 4}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('common.back')}
           </Button>
 
           {step < 3 ? (
@@ -794,7 +779,7 @@ export function ImportLeadsDialog({
               onClick={() => setStep(step + 1)}
               disabled={!canProceedFromStep(step)}
             >
-              Next
+              {t('common.next')}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : step === 3 ? (
@@ -805,18 +790,18 @@ export function ImportLeadsDialog({
               {isImporting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Importing...
+                  {t('contacts.importing')}
                 </>
               ) : (
                 <>
-                  Import {allRows.length} Leads
+                  {t('contacts.importNLeads', { count: allRows.length })}
                   <Check className="h-4 w-4 ml-2" />
                 </>
               )}
             </Button>
           ) : (
             <Button onClick={() => onOpenChange(false)}>
-              Done
+              {t('contacts.done')}
             </Button>
           )}
         </div>
