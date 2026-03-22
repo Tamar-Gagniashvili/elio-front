@@ -62,7 +62,7 @@ export default function Rules() {
       .order('priority', { ascending: true });
 
     if (error) {
-      toast({ title: 'Error loading rules', description: error.message, variant: 'destructive' });
+      toast({ title: t('rules.errorUpdating'), description: error.message, variant: 'destructive' });
     } else {
       const typedRules: RoutingRule[] = (data || []).map((rule) => ({
         ...rule,
