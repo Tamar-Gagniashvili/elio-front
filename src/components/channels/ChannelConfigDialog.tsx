@@ -300,10 +300,10 @@ export function ChannelConfigDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ChannelBadge channelType={channelType} size="sm" />
-              Configure {CHANNEL_CONFIG[channelType].label}
+              {t('channels.configureChannel', { channel: CHANNEL_CONFIG[channelType].label })}
             </DialogTitle>
             <DialogDescription>
-              Web Chat doesn't require any credentials. It's ready to use!
+              {t('channels.webChatReady')}
             </DialogDescription>
           </DialogHeader>
           
