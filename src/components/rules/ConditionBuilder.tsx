@@ -176,9 +176,9 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label>Match conditions</Label>
+        <Label>{t('rules.matchConditions')}</Label>
         <Button variant="outline" size="sm" onClick={toggleOperator}>
-          {conditions.operator === 'AND' ? 'Match ALL' : 'Match ANY'}
+          {conditions.operator === 'AND' ? t('rules.matchAll') : t('rules.matchAny')}
         </Button>
       </div>
 
