@@ -449,7 +449,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                               )}
                             >
                               <CalendarIcon className="mr-2 h-3 w-3" />
-                              {customDate ? format(customDate, "PPP") : "Pick a date"}
+                              {customDate ? format(customDate, "PPP") : t('notes.reminder.pickDate')}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
