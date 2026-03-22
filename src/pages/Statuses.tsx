@@ -312,11 +312,11 @@ export default function Statuses() {
         <TabsList className="w-full">
           <TabsTrigger value="color" className="flex-1 gap-1.5">
             <Palette className="h-3.5 w-3.5" />
-            Color
+            {t('statuses.color')}
           </TabsTrigger>
           <TabsTrigger value="icon" className="flex-1 gap-1.5">
             <Tag className="h-3.5 w-3.5" />
-            Icon
+            {t('statuses.icon')}
           </TabsTrigger>
         </TabsList>
       </Tabs>
