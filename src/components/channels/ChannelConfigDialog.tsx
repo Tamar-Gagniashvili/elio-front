@@ -310,9 +310,9 @@ export function ChannelConfigDialog({
           {currentTenant && (
             <div className="space-y-3">
               <div>
-                <Label className="text-sm font-medium">Embed Code</Label>
+                <Label className="text-sm font-medium">{t('channels.embedCode')}</Label>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Copy this code and paste it before the closing &lt;/body&gt; tag on your website
+                  {t('channels.embedCodeDesc')}
                 </p>
               </div>
               <div className="relative">
