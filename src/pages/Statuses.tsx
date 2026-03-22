@@ -223,14 +223,14 @@ export default function Statuses() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to delete status. It may be in use.',
+        title: t('common.error'),
+        description: t('statuses.failedToDelete'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Status deleted',
-        description: `"${statusName}" has been removed`,
+        title: t('statuses.statusDeleted'),
+        description: t('statuses.statusDeletedDesc', { name: statusName }),
       });
       fetchStatuses();
     }
