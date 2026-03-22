@@ -339,7 +339,7 @@ export default function Notes() {
                     <SelectItem value="none">{t('notes.personalNote')}</SelectItem>
                     {contacts.map(contact => (
                       <SelectItem key={contact.id} value={contact.id}>
-                        {contact.name || contact.external_id || 'Unknown'}
+                        {contact.name || contact.external_id || t('common.unknown')}
                       </SelectItem>
                     ))}
                   </SelectContent>

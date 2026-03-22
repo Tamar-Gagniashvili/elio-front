@@ -535,7 +535,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                         )}>
                           <Clock className="h-3 w-3" />
                           {note.reminder_shown 
-                            ? 'Reminded' 
+                            ? t('notes.reminded')
                             : formatDistanceToNow(new Date(note.reminder_at), { addSuffix: true })
                           }
                         </span>

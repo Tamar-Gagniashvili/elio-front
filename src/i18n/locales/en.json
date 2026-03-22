@@ -310,6 +310,9 @@
     "personalNote": "Personal note (no contact)",
     "pinIt": "Pin it!",
     "loadingNotes": "Loading notes...",
+    "reminded": "Reminded",
+    "sharedAcrossLinked": "Shared across linked contacts",
+    "reminderPreview": "Reminder: {{datetime}}",
     "reminder": {
       "none": "No reminder",
       "5min": "In 5 minutes",
