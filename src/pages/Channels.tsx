@@ -142,8 +142,8 @@ export default function Channels() {
 
       if (error) {
         toast({
-          title: 'Error',
-          description: 'Failed to save configuration',
+          title: t('common.error'),
+          description: t('channels.failedToSave'),
           variant: 'destructive',
         });
       } else {
