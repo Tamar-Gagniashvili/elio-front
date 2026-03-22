@@ -213,7 +213,7 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
       {actions.actions.length === 0 ? (
         <Card>
           <CardContent className="py-6 text-center text-muted-foreground">
-            No actions defined. Add actions to execute when conditions match.
+            {t('rules.noActionsDefined')}
           </CardContent>
         </Card>
       ) : (
