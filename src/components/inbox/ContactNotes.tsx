@@ -218,7 +218,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
             {t('common.notes')}
           </h4>
           {isLinked && (
-            <span title="Shared across linked contacts">
+            <span title={t('notes.sharedAcrossLinked')}>
               <Link2 className="h-3 w-3 text-muted-foreground" />
             </span>
           )}
@@ -294,7 +294,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {customDate ? format(customDate, "PPP") : "Pick a date"}
+                      {customDate ? format(customDate, "PPP") : t('notes.reminder.pickDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -320,10 +320,10 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
               </div>
               {customDate && (
                 <p className="text-xs text-muted-foreground">
-                  Reminder: {format(set(customDate, { 
+                  {t('notes.reminderPreview', { datetime: format(set(customDate, { 
                     hours: parseInt(customTime.split(':')[0]), 
                     minutes: parseInt(customTime.split(':')[1]) 
-                  }), "PPP 'at' p")}
+                  }), "PPP p") })}
                 </p>
               )}
             </div>
@@ -449,7 +449,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                               )}
                             >
                               <CalendarIcon className="mr-2 h-3 w-3" />
-                              {customDate ? format(customDate, "PPP") : "Pick a date"}
+                              {customDate ? format(customDate, "PPP") : t('notes.reminder.pickDate')}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -483,7 +483,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                         className="h-7 text-xs"
                         onClick={cancelEdit}
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                       <Button
                         size="sm"
@@ -491,7 +491,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                         onClick={handleUpdateNote}
                         disabled={!newNote.trim() || isSaving}
                       >
-                        Update
+                        {t('common.update')}
                       </Button>
                     </div>
                   </div>
@@ -535,7 +535,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                         )}>
                           <Clock className="h-3 w-3" />
                           {note.reminder_shown 
-                            ? 'Reminded' 
+                            ? t('notes.reminded')
                             : formatDistanceToNow(new Date(note.reminder_at), { addSuffix: true })
                           }
                         </span>

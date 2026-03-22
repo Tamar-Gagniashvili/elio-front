@@ -339,7 +339,7 @@ export default function Notes() {
                     <SelectItem value="none">{t('notes.personalNote')}</SelectItem>
                     {contacts.map(contact => (
                       <SelectItem key={contact.id} value={contact.id}>
-                        {contact.name || contact.external_id || 'Unknown'}
+                        {contact.name || contact.external_id || t('common.unknown')}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -439,16 +439,16 @@ export default function Notes() {
 
           {/* Notes Grid */}
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading notes...</div>
+            <div className="text-center py-12 text-muted-foreground">{t('notes.loadingNotes')}</div>
           ) : filteredNotes.length === 0 ? (
             <div className="text-center py-12">
               <StickyNote className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground">
                 {activeTab === 'personal' 
-                  ? "No personal notes yet. Add one for yourself!" 
+                  ? t('notes.noPersonalNotes')
                   : activeTab === 'chat'
-                  ? "No chat notes yet. Add notes to conversations!"
-                  : "No notes yet. Click 'New Note' to get started!"}
+                  ? t('notes.noChatNotes')
+                  : t('notes.noNotesClick')}
               </p>
             </div>
           ) : (
@@ -508,14 +508,14 @@ export default function Notes() {
                         className="mb-2 flex items-center gap-1 text-xs text-foreground/70 hover:text-foreground hover:underline transition-colors"
                       >
                         <MessageSquare className="h-3 w-3" />
-                        <span>{note.contact.name || 'Unknown'}</span>
+                        <span>{note.contact.name || t('common.unknown')}</span>
                       </button>
                     )}
                     
                     {!note.contact_id && (
                       <div className="mb-2 flex items-center gap-1 text-xs text-foreground/70">
                         <Coffee className="h-3 w-3" />
-                        <span>Personal</span>
+                        <span>{t('notes.personal')}</span>
                       </div>
                     )}
 
@@ -536,7 +536,7 @@ export default function Notes() {
                         )}>
                           <Clock className="h-3 w-3" />
                           {note.reminder_shown 
-                            ? 'Reminded' 
+                            ? t('notes.reminded')
                             : formatDistanceToNow(new Date(note.reminder_at), { addSuffix: true })
                           }
                         </span>
