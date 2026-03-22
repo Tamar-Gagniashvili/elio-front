@@ -18,12 +18,12 @@ interface TeamMember extends TenantMembership {
   profile: Profile;
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  trainee: 'Trainee',
-  junior: 'Junior',
-  mid: 'Mid-Level',
-  senior: 'Senior',
-  lead: 'Lead',
+const POSITION_KEYS: Record<string, string> = {
+  trainee: 'settings.trainee',
+  junior: 'settings.junior',
+  mid: 'settings.midLevel',
+  senior: 'settings.senior',
+  lead: 'settings.lead',
 };
 
 export default function Settings() {
