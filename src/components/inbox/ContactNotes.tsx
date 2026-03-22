@@ -483,7 +483,7 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
                         className="h-7 text-xs"
                         onClick={cancelEdit}
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                       <Button
                         size="sm"
