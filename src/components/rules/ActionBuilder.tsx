@@ -24,14 +24,15 @@ interface ActionBuilderProps {
   onChange: (actions: ActionsGroup) => void;
 }
 
-const ACTION_OPTIONS: { value: ActionType; label: string; description: string }[] = [
-  { value: 'assign_to_user', label: 'Assign to User', description: 'Route the lead to a specific team member' },
-  { value: 'assign_to_pool', label: 'Assign to Pool', description: 'Round-robin assign within a subset of users' },
-  { value: 'apply_status', label: 'Apply Status', description: 'Automatically tag the lead with a status' },
-  { value: 'send_message', label: 'Send Auto-Reply', description: 'Send an automatic response message' },
-];
-
 export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
+  const { t } = useTranslation();
+
+  const ACTION_OPTIONS: { value: ActionType; label: string; description: string }[] = [
+    { value: 'assign_to_user', label: t('rules.action.assignToUser'), description: t('rules.action.assignToDesc') },
+    { value: 'assign_to_pool', label: t('rules.action.assignToPool'), description: t('rules.action.assignToPoolDesc') },
+    { value: 'apply_status', label: t('rules.action.applyStatus'), description: t('rules.action.applyStatusDesc') },
+    { value: 'send_message', label: t('rules.action.sendMessage'), description: t('rules.action.sendMessageDesc') },
+  ];
   const { currentTenant } = useAuth();
   const [teamMembers, setTeamMembers] = useState<(Profile & { membership_user_id: string })[]>([]);
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
