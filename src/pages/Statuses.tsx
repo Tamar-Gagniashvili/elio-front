@@ -439,7 +439,7 @@ export default function Statuses() {
             <CardContent className="pt-6 space-y-5">
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-lg">Create New Status</h3>
+                <h3 className="font-semibold text-lg">{t('statuses.createNewStatus')}</h3>
               </div>
               
               <div>
