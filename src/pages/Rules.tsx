@@ -137,7 +137,7 @@ export default function Rules() {
 
   const getActionSummary = (actions: ActionsGroup) => {
     if (!actions.actions || actions.actions.length === 0) {
-      return 'No actions';
+      return t('rules.noActions');
     }
     return actions.actions.map(a => a.type.replace(/_/g, ' ')).join(', ');
   };
