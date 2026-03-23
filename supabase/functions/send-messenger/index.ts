@@ -32,9 +32,11 @@ async function postMessengerMessage(params: {
   pageToken: string
   recipientId: string
   content: string
+  appSecretProof?: string
 }): Promise<{ ok: boolean; result: MetaSendResponse; status: number }> {
-  const { target, pageToken, recipientId, content } = params
-  const url = `https://graph.facebook.com/v25.0/${target}/messages?access_token=${encodeURIComponent(pageToken)}`
+  const { target, pageToken, recipientId, content, appSecretProof } = params
+  const proofQuery = appSecretProof ? `&appsecret_proof=${encodeURIComponent(appSecretProof)}` : ''
+  const url = `https://graph.facebook.com/v25.0/${target}/messages?access_token=${encodeURIComponent(pageToken)}${proofQuery}`
 
   const response = await fetch(url, {
     method: 'POST',
@@ -55,11 +57,13 @@ async function postMessengerMessage(params: {
 async function resolvePageTokenFromUserToken(params: {
   token: string
   preferredPageId?: string
+  appSecretProof?: string
 }): Promise<{ pageId: string; pageToken: string } | null> {
-  const { token, preferredPageId } = params
+  const { token, preferredPageId, appSecretProof } = params
+  const proofQuery = appSecretProof ? `&appsecret_proof=${encodeURIComponent(appSecretProof)}` : ''
 
   const response = await fetch(
-    `https://graph.facebook.com/v25.0/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(token)}`
+    `https://graph.facebook.com/v25.0/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(token)}${proofQuery}`
   )
 
   const result = (await response.json()) as MetaAccountsResponse
@@ -75,6 +79,22 @@ async function resolvePageTokenFromUserToken(params: {
     pageId: matched.id,
     pageToken: matched.access_token,
   }
+}
+
+async function createAppSecretProof(token: string, appSecret: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(appSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(token))
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 async function decryptCredential(encryptedValue: string): Promise<string> {
@@ -157,6 +177,8 @@ Deno.serve(async (req) => {
     }
 
     const pageToken = await decryptCredential(config.page_access_token)
+    const decryptedAppSecret = config.app_secret ? await decryptCredential(config.app_secret) : ''
+    const appSecretProof = decryptedAppSecret ? await createAppSecretProof(pageToken, decryptedAppSecret) : undefined
     const recipientId = contact.external_id
 
     if (!recipientId) {
@@ -177,6 +199,7 @@ Deno.serve(async (req) => {
         pageToken,
         recipientId,
         content,
+        appSecretProof,
       })
 
       console.log(`Facebook API response (${target}):`, attempt.result)
@@ -193,6 +216,7 @@ Deno.serve(async (req) => {
     const resolved = await resolvePageTokenFromUserToken({
       token: pageToken,
       preferredPageId: configuredPageId || undefined,
+      appSecretProof,
     })
 
     if (resolved) {
@@ -202,6 +226,9 @@ Deno.serve(async (req) => {
         pageToken: resolved.pageToken,
         recipientId,
         content,
+        appSecretProof: decryptedAppSecret
+          ? await createAppSecretProof(resolved.pageToken, decryptedAppSecret)
+          : undefined,
       })
 
       console.log(`Facebook API response (resolved:${resolved.pageId}):`, recoveredAttempt.result)
