@@ -148,10 +148,14 @@ async function executeActions(
             try {
               let pageToken = channelConfig.page_access_token
               if (pageToken.startsWith('enc:')) pageToken = await decryptCredential(pageToken)
+              const pageId = channelConfig?.page_id || 'me'
               
-              await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageToken}`, {
+              await fetch(`https://graph.facebook.com/v25.0/${pageId}/messages`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${pageToken}`
+                },
                 body: JSON.stringify({
                   recipient: { id: senderId },
                   message: { text: action.content }
@@ -310,7 +314,9 @@ Deno.serve(async (req) => {
             let pageToken = (channel.config as any)?.page_access_token
             if (pageToken?.startsWith('enc:')) pageToken = await decryptCredential(pageToken)
             if (pageToken) {
-              const profileRes = await fetch(`https://graph.facebook.com/v18.0/${senderId}?fields=first_name,last_name,profile_pic&access_token=${pageToken}`)
+              const profileRes = await fetch(`https://graph.facebook.com/v25.0/${senderId}?fields=first_name,last_name,profile_pic`, {
+                headers: { 'Authorization': `Bearer ${pageToken}` }
+              })
               if (profileRes.ok) {
                 const profile = await profileRes.json()
                 const firstName = profile.first_name || ''

@@ -63,6 +63,12 @@ const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
   ],
   messenger: [
     {
+      key: 'page_id',
+      label: 'Page ID',
+      placeholder: '110517210349704',
+      type: 'text',
+    },
+    {
       key: 'page_access_token',
       label: 'Page Access Token',
       placeholder: 'EAAG...',

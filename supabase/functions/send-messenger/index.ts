@@ -94,10 +94,17 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Get page_id from config or use 'me' as fallback
+    const pageId = (channel.config as any)?.page_id || 'me'
+    console.log(`Sending message via page_id: ${pageId} to recipient: ${recipientId}`)
+
     // Send message via Facebook Graph API
-    const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageToken}`, {
+    const fbResponse = await fetch(`https://graph.facebook.com/v25.0/${pageId}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${pageToken}`
+      },
       body: JSON.stringify({
         recipient: { id: recipientId },
         message: { text: content }
