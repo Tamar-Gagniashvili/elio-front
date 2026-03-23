@@ -445,20 +445,24 @@ function InboxContent() {
 
     // If this is a Telegram conversation, send via Telegram API first
     if (channelType === 'telegram') {
-      const { data, error: telegramError } = await supabase.functions.invoke('send-telegram', {
-        body: {
-          conversation_id: selectedConversation.id,
-          content
-        }
+      const { error: telegramError } = await supabase.functions.invoke('send-telegram', {
+        body: { conversation_id: selectedConversation.id, content }
       });
-
       if (telegramError) {
         console.error('Error sending to Telegram:', telegramError);
-        toast({
-          title: 'Error',
-          description: 'Failed to send message to Telegram',
-          variant: 'destructive',
-        });
+        toast({ title: 'Error', description: 'Failed to send message to Telegram', variant: 'destructive' });
+        return;
+      }
+    }
+
+    // If this is a Messenger conversation, send via Messenger API first
+    if (channelType === 'messenger') {
+      const { error: messengerError } = await supabase.functions.invoke('send-messenger', {
+        body: { conversation_id: selectedConversation.id, content }
+      });
+      if (messengerError) {
+        console.error('Error sending to Messenger:', messengerError);
+        toast({ title: 'Error', description: 'Failed to send message to Messenger', variant: 'destructive' });
         return;
       }
     }
