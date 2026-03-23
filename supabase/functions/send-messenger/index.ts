@@ -5,6 +5,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+type MetaError = {
+  message?: string
+  type?: string
+  code?: number
+  error_subcode?: number
+  fbtrace_id?: string
+}
+
+type MetaSendResponse = {
+  message_id?: string
+  error?: MetaError
+}
+
+async function postMessengerMessage(params: {
+  target: string
+  pageToken: string
+  recipientId: string
+  content: string
+}): Promise<{ ok: boolean; result: MetaSendResponse; status: number }> {
+  const { target, pageToken, recipientId, content } = params
+  const url = `https://graph.facebook.com/v25.0/${target}/messages?access_token=${encodeURIComponent(pageToken)}`
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_type: 'RESPONSE',
+      recipient: { id: recipientId },
+      message: { text: content },
+    }),
+  })
+
+  const result = (await response.json()) as MetaSendResponse
+  return { ok: response.ok, result, status: response.status }
+}
+
 async function decryptCredential(encryptedValue: string): Promise<string> {
   if (!encryptedValue.startsWith('enc:')) return encryptedValue
   const ciphertext = encryptedValue.slice(4)
@@ -94,34 +132,41 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Get page_id from config or use 'me' as fallback
-    const pageId = (channel.config as any)?.page_id || 'me'
-    console.log(`Sending message via page_id: ${pageId} to recipient: ${recipientId}`)
+    const configuredPageId = ((channel.config as any)?.page_id || '').trim()
+    const sendTargets = Array.from(new Set(['me', configuredPageId].filter(Boolean)))
+    let lastFailure: { target: string; status: number; result: MetaSendResponse } | null = null
 
-    // Send message via Facebook Graph API
-    const fbResponse = await fetch(`https://graph.facebook.com/v25.0/${pageId}/messages`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${pageToken}`
-      },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        message: { text: content }
+    for (const target of sendTargets) {
+      console.log(`Sending message via target: ${target} to recipient: ${recipientId}`)
+      const attempt = await postMessengerMessage({
+        target,
+        pageToken,
+        recipientId,
+        content,
       })
-    })
 
-    const fbResult = await fbResponse.json()
-    console.log('Facebook API response:', fbResult)
+      console.log(`Facebook API response (${target}):`, attempt.result)
 
-    if (!fbResponse.ok) {
-      return new Response(JSON.stringify({ error: fbResult.error?.message || 'Failed to send message' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      if (attempt.ok) {
+        return new Response(JSON.stringify({ success: true, message_id: attempt.result.message_id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      lastFailure = { target, status: attempt.status, result: attempt.result }
     }
 
-    return new Response(JSON.stringify({ success: true, message_id: fbResult.message_id }), {
+    const fallbackMessage = lastFailure?.result?.error?.message || 'Failed to send message'
+    const errorContext = {
+      target: lastFailure?.target,
+      code: lastFailure?.result?.error?.code,
+      subcode: lastFailure?.result?.error?.error_subcode,
+      type: lastFailure?.result?.error?.type,
+      trace: lastFailure?.result?.error?.fbtrace_id,
+    }
+
+    return new Response(JSON.stringify({ error: fallbackMessage, meta: errorContext }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
