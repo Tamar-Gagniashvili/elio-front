@@ -302,8 +302,8 @@ Deno.serve(async (req) => {
 
         let { data: contact } = await supabase.from('contacts').select('*').eq('tenant_id', tenantId).eq('external_id', senderId).eq('channel_type', 'messenger').single()
 
-        if (!contact) {
-          // Fetch real name and profile pic from Facebook Graph API
+        // Helper to fetch profile from Facebook Graph API
+        const fetchMessengerProfile = async () => {
           let userName = 'Messenger User'
           let avatarUrl: string | null = null
           try {
@@ -318,17 +318,31 @@ Deno.serve(async (req) => {
                 userName = [firstName, lastName].filter(Boolean).join(' ') || 'Messenger User'
                 avatarUrl = profile.profile_pic || null
                 console.log(`Fetched Messenger profile: ${userName}`)
+              } else {
+                console.error('Graph API error:', profileRes.status, await profileRes.text())
               }
             }
           } catch (err) {
             console.error('Error fetching Messenger profile:', err)
           }
+          return { userName, avatarUrl }
+        }
 
+        if (!contact) {
+          const { userName, avatarUrl } = await fetchMessengerProfile()
           const { data: newContact, error: contactError } = await supabase.from('contacts').insert({
             tenant_id: tenantId, external_id: senderId, channel_type: 'messenger', name: userName, avatar_url: avatarUrl, metadata: {}
           }).select().single()
           if (contactError) { console.error('Error creating contact:', contactError); continue }
           contact = newContact
+        } else if (contact.name === 'Messenger User' || !contact.name) {
+          // Update existing contacts that still have the default name
+          const { userName, avatarUrl } = await fetchMessengerProfile()
+          if (userName !== 'Messenger User') {
+            await supabase.from('contacts').update({ name: userName, avatar_url: avatarUrl || contact.avatar_url }).eq('id', contact.id)
+            contact.name = userName
+            contact.avatar_url = avatarUrl || contact.avatar_url
+          }
         }
 
         const now = new Date()
