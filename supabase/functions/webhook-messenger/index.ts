@@ -303,8 +303,29 @@ Deno.serve(async (req) => {
         let { data: contact } = await supabase.from('contacts').select('*').eq('tenant_id', tenantId).eq('external_id', senderId).eq('channel_type', 'messenger').single()
 
         if (!contact) {
+          // Fetch real name and profile pic from Facebook Graph API
+          let userName = 'Messenger User'
+          let avatarUrl: string | null = null
+          try {
+            let pageToken = (channel.config as any)?.page_access_token
+            if (pageToken?.startsWith('enc:')) pageToken = await decryptCredential(pageToken)
+            if (pageToken) {
+              const profileRes = await fetch(`https://graph.facebook.com/v18.0/${senderId}?fields=first_name,last_name,profile_pic&access_token=${pageToken}`)
+              if (profileRes.ok) {
+                const profile = await profileRes.json()
+                const firstName = profile.first_name || ''
+                const lastName = profile.last_name || ''
+                userName = [firstName, lastName].filter(Boolean).join(' ') || 'Messenger User'
+                avatarUrl = profile.profile_pic || null
+                console.log(`Fetched Messenger profile: ${userName}`)
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching Messenger profile:', err)
+          }
+
           const { data: newContact, error: contactError } = await supabase.from('contacts').insert({
-            tenant_id: tenantId, external_id: senderId, channel_type: 'messenger', name: 'Messenger User', metadata: {}
+            tenant_id: tenantId, external_id: senderId, channel_type: 'messenger', name: userName, avatar_url: avatarUrl, metadata: {}
           }).select().single()
           if (contactError) { console.error('Error creating contact:', contactError); continue }
           contact = newContact
