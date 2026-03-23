@@ -18,6 +18,15 @@ type MetaSendResponse = {
   error?: MetaError
 }
 
+type MetaAccountsResponse = {
+  data?: Array<{
+    id: string
+    name?: string
+    access_token?: string
+  }>
+  error?: MetaError
+}
+
 async function postMessengerMessage(params: {
   target: string
   pageToken: string
@@ -41,6 +50,31 @@ async function postMessengerMessage(params: {
 
   const result = (await response.json()) as MetaSendResponse
   return { ok: response.ok, result, status: response.status }
+}
+
+async function resolvePageTokenFromUserToken(params: {
+  token: string
+  preferredPageId?: string
+}): Promise<{ pageId: string; pageToken: string } | null> {
+  const { token, preferredPageId } = params
+
+  const response = await fetch(
+    `https://graph.facebook.com/v25.0/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(token)}`
+  )
+
+  const result = (await response.json()) as MetaAccountsResponse
+  if (!response.ok || !result.data?.length) return null
+
+  const matched = preferredPageId
+    ? result.data.find((page) => page.id === preferredPageId)
+    : result.data[0]
+
+  if (!matched?.access_token) return null
+
+  return {
+    pageId: matched.id,
+    pageToken: matched.access_token,
+  }
 }
 
 async function decryptCredential(encryptedValue: string): Promise<string> {
@@ -154,6 +188,31 @@ Deno.serve(async (req) => {
       }
 
       lastFailure = { target, status: attempt.status, result: attempt.result }
+    }
+
+    const resolved = await resolvePageTokenFromUserToken({
+      token: pageToken,
+      preferredPageId: configuredPageId || undefined,
+    })
+
+    if (resolved) {
+      console.log(`Resolved page token from /me/accounts for page_id: ${resolved.pageId}`)
+      const recoveredAttempt = await postMessengerMessage({
+        target: resolved.pageId,
+        pageToken: resolved.pageToken,
+        recipientId,
+        content,
+      })
+
+      console.log(`Facebook API response (resolved:${resolved.pageId}):`, recoveredAttempt.result)
+
+      if (recoveredAttempt.ok) {
+        return new Response(JSON.stringify({ success: true, message_id: recoveredAttempt.result.message_id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      lastFailure = { target: resolved.pageId, status: recoveredAttempt.status, result: recoveredAttempt.result }
     }
 
     const fallbackMessage = lastFailure?.result?.error?.message || 'Failed to send message'
