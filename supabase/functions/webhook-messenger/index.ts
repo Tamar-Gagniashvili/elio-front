@@ -314,7 +314,9 @@ Deno.serve(async (req) => {
             let pageToken = (channel.config as any)?.page_access_token
             if (pageToken?.startsWith('enc:')) pageToken = await decryptCredential(pageToken)
             if (pageToken) {
-              const profileRes = await fetch(`https://graph.facebook.com/v18.0/${senderId}?fields=first_name,last_name,profile_pic&access_token=${pageToken}`)
+              const profileRes = await fetch(`https://graph.facebook.com/v25.0/${senderId}?fields=first_name,last_name,profile_pic`, {
+                headers: { 'Authorization': `Bearer ${pageToken}` }
+              })
               if (profileRes.ok) {
                 const profile = await profileRes.json()
                 const firstName = profile.first_name || ''
