@@ -5,6 +5,98 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+type MetaError = {
+  message?: string
+  type?: string
+  code?: number
+  error_subcode?: number
+  fbtrace_id?: string
+}
+
+type MetaSendResponse = {
+  message_id?: string
+  error?: MetaError
+}
+
+type MetaAccountsResponse = {
+  data?: Array<{
+    id: string
+    name?: string
+    access_token?: string
+  }>
+  error?: MetaError
+}
+
+async function postMessengerMessage(params: {
+  target: string
+  pageToken: string
+  recipientId: string
+  content: string
+  appSecretProof?: string
+}): Promise<{ ok: boolean; result: MetaSendResponse; status: number }> {
+  const { target, pageToken, recipientId, content, appSecretProof } = params
+  const proofQuery = appSecretProof ? `&appsecret_proof=${encodeURIComponent(appSecretProof)}` : ''
+  const url = `https://graph.facebook.com/v25.0/${target}/messages?access_token=${encodeURIComponent(pageToken)}${proofQuery}`
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_type: 'RESPONSE',
+      recipient: { id: recipientId },
+      message: { text: content },
+    }),
+  })
+
+  const result = (await response.json()) as MetaSendResponse
+  return { ok: response.ok, result, status: response.status }
+}
+
+async function resolvePageTokenFromUserToken(params: {
+  token: string
+  preferredPageId?: string
+  appSecretProof?: string
+}): Promise<{ pageId: string; pageToken: string } | null> {
+  const { token, preferredPageId, appSecretProof } = params
+  const proofQuery = appSecretProof ? `&appsecret_proof=${encodeURIComponent(appSecretProof)}` : ''
+
+  const response = await fetch(
+    `https://graph.facebook.com/v25.0/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(token)}${proofQuery}`
+  )
+
+  const result = (await response.json()) as MetaAccountsResponse
+  if (!response.ok || !result.data?.length) return null
+
+  const matched = preferredPageId
+    ? result.data.find((page) => page.id === preferredPageId)
+    : result.data[0]
+
+  if (!matched?.access_token) return null
+
+  return {
+    pageId: matched.id,
+    pageToken: matched.access_token,
+  }
+}
+
+async function createAppSecretProof(token: string, appSecret: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(appSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(token))
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
 async function decryptCredential(encryptedValue: string): Promise<string> {
   if (!encryptedValue.startsWith('enc:')) return encryptedValue
   const ciphertext = encryptedValue.slice(4)
@@ -85,6 +177,8 @@ Deno.serve(async (req) => {
     }
 
     const pageToken = await decryptCredential(config.page_access_token)
+    const decryptedAppSecret = config.app_secret ? await decryptCredential(config.app_secret) : ''
+    const appSecretProof = decryptedAppSecret ? await createAppSecretProof(pageToken, decryptedAppSecret) : undefined
     const recipientId = contact.external_id
 
     if (!recipientId) {
@@ -94,34 +188,71 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Get page_id from config or use 'me' as fallback
-    const pageId = (channel.config as any)?.page_id || 'me'
-    console.log(`Sending message via page_id: ${pageId} to recipient: ${recipientId}`)
+    const configuredPageId = ((channel.config as any)?.page_id || '').trim()
+    const sendTargets = Array.from(new Set(['me', configuredPageId].filter(Boolean)))
+    let lastFailure: { target: string; status: number; result: MetaSendResponse } | null = null
 
-    // Send message via Facebook Graph API
-    const fbResponse = await fetch(`https://graph.facebook.com/v25.0/${pageId}/messages`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${pageToken}`
-      },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        message: { text: content }
+    for (const target of sendTargets) {
+      console.log(`Sending message via target: ${target} to recipient: ${recipientId}`)
+      const attempt = await postMessengerMessage({
+        target,
+        pageToken,
+        recipientId,
+        content,
+        appSecretProof,
       })
-    })
 
-    const fbResult = await fbResponse.json()
-    console.log('Facebook API response:', fbResult)
+      console.log(`Facebook API response (${target}):`, attempt.result)
 
-    if (!fbResponse.ok) {
-      return new Response(JSON.stringify({ error: fbResult.error?.message || 'Failed to send message' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      if (attempt.ok) {
+        return new Response(JSON.stringify({ success: true, message_id: attempt.result.message_id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      lastFailure = { target, status: attempt.status, result: attempt.result }
     }
 
-    return new Response(JSON.stringify({ success: true, message_id: fbResult.message_id }), {
+    const resolved = await resolvePageTokenFromUserToken({
+      token: pageToken,
+      preferredPageId: configuredPageId || undefined,
+      appSecretProof,
+    })
+
+    if (resolved) {
+      console.log(`Resolved page token from /me/accounts for page_id: ${resolved.pageId}`)
+      const recoveredAttempt = await postMessengerMessage({
+        target: resolved.pageId,
+        pageToken: resolved.pageToken,
+        recipientId,
+        content,
+        appSecretProof: decryptedAppSecret
+          ? await createAppSecretProof(resolved.pageToken, decryptedAppSecret)
+          : undefined,
+      })
+
+      console.log(`Facebook API response (resolved:${resolved.pageId}):`, recoveredAttempt.result)
+
+      if (recoveredAttempt.ok) {
+        return new Response(JSON.stringify({ success: true, message_id: recoveredAttempt.result.message_id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      lastFailure = { target: resolved.pageId, status: recoveredAttempt.status, result: recoveredAttempt.result }
+    }
+
+    const fallbackMessage = lastFailure?.result?.error?.message || 'Failed to send message'
+    const errorContext = {
+      target: lastFailure?.target,
+      code: lastFailure?.result?.error?.code,
+      subcode: lastFailure?.result?.error?.error_subcode,
+      type: lastFailure?.result?.error?.type,
+      trace: lastFailure?.result?.error?.fbtrace_id,
+    }
+
+    return new Response(JSON.stringify({ error: fallbackMessage, meta: errorContext }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
