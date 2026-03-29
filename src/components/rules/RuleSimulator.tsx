@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import {
   Dialog,
   DialogContent,
@@ -81,26 +81,23 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
   const fetchUsersAndStatuses = async () => {
     if (!currentTenant) return;
     
-    const [usersRes, statusesRes] = await Promise.all([
-      supabase
-        .from('tenant_memberships')
-        .select('user_id, profiles!inner(full_name, email)')
-        .eq('tenant_id', currentTenant.id)
-        .eq('is_active', true),
-      supabase
-        .from('lead_statuses')
-        .select('id, name')
-        .eq('tenant_id', currentTenant.id),
-    ]);
+    try {
+      const [usersRes, statusesRes] = await Promise.all([
+        api.get<any[]>(`/tenant-memberships`),
+        api.get<any[]>(`/lead-statuses`),
+      ]);
 
-    if (usersRes.data) {
-      setUsers(usersRes.data.map((m: any) => ({
-        id: m.user_id,
-        name: m.profiles.full_name || m.profiles.email,
-      })));
-    }
-    if (statusesRes.data) {
-      setStatuses(statusesRes.data);
+      if (usersRes) {
+        setUsers(usersRes.filter(m => m.is_active).map((m: any) => ({
+          id: m.user_id,
+          name: m.profile?.full_name || m.profile?.email || 'Unknown',
+        })));
+      }
+      if (statusesRes) {
+        setStatuses(statusesRes);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 

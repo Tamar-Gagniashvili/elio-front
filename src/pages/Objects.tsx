@@ -5,7 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ObjectTypeList } from '@/components/objects/ObjectTypeList';
 import { ObjectsTable } from '@/components/objects/ObjectsTable';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import type { Json } from '@/integrations/supabase/types';
 import { ObjectType, ObjectTypeField, ObjectStatus } from '@/lib/objectTypes';
 import { Loader2 } from 'lucide-react';
@@ -33,28 +33,12 @@ export default function Objects() {
     setLoading(true);
     try {
       // Fetch object types
-      const { data: typesData, error: typesError } = await supabase
-        .from('object_types')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: true });
-
-      if (typesError) throw typesError;
-
-      const types = (typesData || []) as ObjectType[];
+      const types = await api.get<ObjectType[]>(`/object-types?is_archived=0`);
       setObjectTypes(types);
 
       // Fetch fields for all types
       if (types.length > 0) {
-        const { data: fieldsData, error: fieldsError } = await supabase
-          .from('object_type_fields')
-          .select('*')
-          .eq('tenant_id', currentTenant.id)
-          .in('object_type_id', types.map(t => t.id))
-          .order('display_order', { ascending: true });
-
-        if (fieldsError) throw fieldsError;
+        const fieldsData = await api.get<ObjectTypeField[]>(`/object-type-fields`);
 
         const fieldsByType: Record<string, ObjectTypeField[]> = {};
         (fieldsData || []).forEach((field) => {
@@ -70,14 +54,7 @@ export default function Objects() {
         setFields(fieldsByType);
 
         // Fetch statuses for all types
-        const { data: statusesData, error: statusesError } = await supabase
-          .from('object_statuses')
-          .select('*')
-          .eq('tenant_id', currentTenant.id)
-          .in('object_type_id', types.map(t => t.id))
-          .order('display_order', { ascending: true });
-
-        if (statusesError) throw statusesError;
+        const statusesData = await api.get<ObjectStatus[]>(`/object-statuses`);
 
         const statusesByType: Record<string, ObjectStatus[]> = {};
         (statusesData || []).forEach((status: ObjectStatus) => {

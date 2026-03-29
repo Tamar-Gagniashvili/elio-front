@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { TenantMembership, Profile } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Avatar } from '@/components/Avatar';
@@ -38,32 +38,26 @@ export default function Settings() {
   const fetchTeamMembers = async () => {
     if (!currentTenant) return;
     
-    const { data: memberships, error: membershipsError } = await supabase
-      .from('tenant_memberships')
-      .select('*')
-      .eq('tenant_id', currentTenant.id)
-      .eq('is_active', true);
+    try {
+      const memberships = await api.get<any[]>(`/memberships?is_active=1`);
 
-    if (membershipsError) {
-      console.error('Error fetching team members:', membershipsError);
+      const userIds = memberships.map(m => m.user_id);
+      const profilesData = await Promise.all(
+        userIds.map(id => api.get<any[]>(`/profiles?user_id=${id}`).catch(() => []))
+      );
+      const profiles = profilesData.flat();
+
+      const membersWithProfiles = memberships.map(m => ({
+        ...m,
+        profile: profiles.find(p => p.user_id === m.user_id) as Profile
+      }));
+
+      setTeamMembers(membersWithProfiles as TeamMember[]);
+    } catch(e) {
+      console.error('Failed to load team', e);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Fetch profiles separately
-    const userIds = (memberships || []).map(m => m.user_id);
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('*')
-      .in('user_id', userIds);
-
-    const membersWithProfiles = (memberships || []).map(m => ({
-      ...m,
-      profile: (profiles || []).find(p => p.user_id === m.user_id) as Profile
-    }));
-
-    setTeamMembers(membersWithProfiles as TeamMember[]);
-    setIsLoading(false);
   };
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Contact } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/Avatar';
@@ -47,66 +47,48 @@ export function LinkContactDialog({
     const fetchData = async () => {
       setIsLoading(true);
       
-      // First, check if this contact has a link group
-      const { data: linkData } = await supabase
-        .from('contact_links')
-        .select(`
-          link_group_id,
-          contact_link_groups:link_group_id (
-            id,
-            display_name
-          )
-        `)
-        .eq('contact_id', contact.id)
-        .single();
+      try {
+        const links = await api.get<any[]>(`/contact-links?contact_id=${contact.id}`);
+        const linkData = links[0];
+        const linkGroupId = linkData?.link_group_id || null;
+        setCurrentLinkGroupId(linkGroupId);
+        
+        let group = null;
+        if (linkGroupId) {
+          group = await api.get<any>(`/contact-link-groups/${linkGroupId}`).catch(() => null);
+        }
+        setDisplayName(group?.display_name || contact.name || 'Unknown Contact');
 
-      const linkGroupId = linkData?.link_group_id || null;
-      setCurrentLinkGroupId(linkGroupId);
-      
-      // Set display name from group or default to contact name
-      const group = linkData?.contact_link_groups as unknown as { id: string; display_name?: string } | null;
-      setDisplayName(group?.display_name || contact.name || 'Unknown Contact');
+        let currentLinkedContacts: Contact[] = [];
+        if (linkGroupId) {
+          const linkedData = await api.get<any[]>(`/contact-links?link_group_id=${linkGroupId}`);
+          const otherLinked = linkedData.filter(l => l.contact_id !== contact.id);
 
-      // Fetch all linked contacts in the same group
-      if (linkGroupId) {
-        const { data: linkedData } = await supabase
-          .from('contact_links')
-          .select('contact_id')
-          .eq('link_group_id', linkGroupId)
-          .neq('contact_id', contact.id);
-
-        if (linkedData && linkedData.length > 0) {
-          const contactIds = linkedData.map(l => l.contact_id);
-          const { data: contacts } = await supabase
-            .from('contacts')
-            .select('*')
-            .in('id', contactIds);
-          
-          setLinkedContacts((contacts || []) as Contact[]);
+          if (otherLinked.length > 0) {
+            const contactIds = otherLinked.map(l => l.contact_id);
+            const contacts = await api.get<any[]>(`/contacts`);
+            const filteredContacts = contacts.filter(c => contactIds.includes(c.id));
+            currentLinkedContacts = filteredContacts as Contact[];
+            setLinkedContacts(currentLinkedContacts);
+          } else {
+            setLinkedContacts([]);
+          }
         } else {
           setLinkedContacts([]);
         }
-      } else {
-        setLinkedContacts([]);
+
+        const allContacts = await api.get<any[]>(`/contacts`);
+        const activeContacts = allContacts.filter(c => c.id !== contact.id);
+        activeContacts.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+        const linkedIds = new Set(currentLinkedContacts.map(c => c.id));
+        linkedIds.add(contact.id);
+        
+        const available = activeContacts.filter(c => !linkedIds.has(c.id)) as Contact[];
+        setAvailableContacts(available);
+      } catch (error) {
+        console.error('Error fetching link data:', error);
       }
-
-      // Fetch all contacts that can be linked (not already linked to this contact)
-      const { data: allContacts } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .neq('id', contact.id)
-        .order('name', { ascending: true });
-
-      // Filter out contacts that are already linked to this contact's group
-      const linkedIds = new Set(linkedContacts.map(c => c.id));
-      linkedIds.add(contact.id);
-      
-      const available = (allContacts || []).filter(
-        c => !linkedIds.has(c.id)
-      ) as Contact[];
-      
-      setAvailableContacts(available);
       setIsLoading(false);
     };
 
@@ -130,12 +112,7 @@ export function LinkContactDialog({
     if (!currentLinkGroupId || !displayName.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from('contact_link_groups')
-        .update({ display_name: displayName.trim() })
-        .eq('id', currentLinkGroupId);
-
-      if (error) throw error;
+      await api.put(`/contact-link-groups/${currentLinkGroupId}`, { display_name: displayName.trim() });
 
       setIsEditingName(false);
       toast({
@@ -157,98 +134,62 @@ export function LinkContactDialog({
     if (!user || !currentTenant) return;
 
     try {
-      // Check if target contact already has a link group
-      const { data: targetLink } = await supabase
-        .from('contact_links')
-        .select('link_group_id')
-        .eq('contact_id', targetContact.id)
-        .single();
+      const targetLinks = await api.get<any[]>(`/contact-links?contact_id=${targetContact.id}`);
+      const targetLink = targetLinks[0];
 
       let newGroupId = currentLinkGroupId;
 
       if (!currentLinkGroupId && !targetLink?.link_group_id) {
-        // Neither has a group, create a new one
         const groupName = displayName || contact.name || 'Linked Contact';
         
-        // Create the link group first
-        const { data: newGroup, error: groupError } = await supabase
-          .from('contact_link_groups')
-          .insert({
-            tenant_id: currentTenant.id,
-            display_name: groupName,
-            created_by: user.id,
-          })
-          .select('id')
-          .single();
+        const newGroup = await api.post<any>('/contact-link-groups', {
+          display_name: groupName,
+          created_by: user.id,
+        });
 
-        if (groupError) throw groupError;
         newGroupId = newGroup.id;
         
-        // Insert both contacts into the new group
-        const { error } = await supabase.from('contact_links').insert([
-          {
-            tenant_id: currentTenant.id,
-            contact_id: contact.id,
-            link_group_id: newGroupId,
-            created_by: user.id,
-          },
-          {
-            tenant_id: currentTenant.id,
-            contact_id: targetContact.id,
-            link_group_id: newGroupId,
-            created_by: user.id,
-          },
-        ]);
+        await api.post('/contact-links', {
+          contact_id: contact.id,
+          link_group_id: newGroupId,
+          created_by: user.id,
+        });
+        await api.post('/contact-links', {
+          contact_id: targetContact.id,
+          link_group_id: newGroupId,
+          created_by: user.id,
+        });
 
-        if (error) throw error;
       } else if (currentLinkGroupId && !targetLink?.link_group_id) {
-        // Current contact has a group, add target to it
-        const { error } = await supabase.from('contact_links').insert({
-          tenant_id: currentTenant.id,
+        await api.post('/contact-links', {
           contact_id: targetContact.id,
           link_group_id: currentLinkGroupId,
           created_by: user.id,
         });
-
-        if (error) throw error;
         newGroupId = currentLinkGroupId;
+
       } else if (!currentLinkGroupId && targetLink?.link_group_id) {
-        // Target has a group, add current to it
-        const { error } = await supabase.from('contact_links').insert({
-          tenant_id: currentTenant.id,
+        await api.post('/contact-links', {
           contact_id: contact.id,
           link_group_id: targetLink.link_group_id,
           created_by: user.id,
         });
-
-        if (error) throw error;
         newGroupId = targetLink.link_group_id;
         
-        // Fetch display name from target's group
-        const { data: groupData } = await supabase
-          .from('contact_link_groups')
-          .select('display_name')
-          .eq('id', targetLink.link_group_id)
-          .single();
-        
-        if (groupData?.display_name) {
-          setDisplayName(groupData.display_name);
-        }
-      } else if (currentLinkGroupId && targetLink?.link_group_id && currentLinkGroupId !== targetLink.link_group_id) {
-        // Both have different groups, merge them into current group
-        const { error } = await supabase
-          .from('contact_links')
-          .update({ link_group_id: currentLinkGroupId })
-          .eq('link_group_id', targetLink.link_group_id);
+        try {
+          const groupData = await api.get<any>(`/contact-link-groups/${targetLink.link_group_id}`);
+          if (groupData?.display_name) {
+            setDisplayName(groupData.display_name);
+          }
+        } catch (e) {}
 
-        if (error) throw error;
+      } else if (currentLinkGroupId && targetLink?.link_group_id && currentLinkGroupId !== targetLink.link_group_id) {
+        const linksToMove = await api.get<any[]>(`/contact-links?link_group_id=${targetLink.link_group_id}`);
+        for (const link of linksToMove) {
+          await api.put(`/contact-links/${link.id}`, { link_group_id: currentLinkGroupId });
+        }
         
-        // Delete the old group
-        await supabase
-          .from('contact_link_groups')
-          .delete()
-          .eq('id', targetLink.link_group_id);
-          
+        await api.delete(`/contact-link-groups/${targetLink.link_group_id}`);
         newGroupId = currentLinkGroupId;
       }
 
@@ -276,31 +217,20 @@ export function LinkContactDialog({
     if (!currentLinkGroupId) return;
 
     try {
-      const { error } = await supabase
-        .from('contact_links')
-        .delete()
-        .eq('contact_id', targetContact.id)
-        .eq('link_group_id', currentLinkGroupId);
+      const targetLinks = await api.get<any[]>(`/contact-links?contact_id=${targetContact.id}&link_group_id=${currentLinkGroupId}`);
+      for (const link of targetLinks) {
+        if (link.link_group_id === currentLinkGroupId) {
+          await api.delete(`/contact-links/${link.id}`);
+        }
+      }
 
-      if (error) throw error;
+      const remainingLinks = await api.get<any[]>(`/contact-links?link_group_id=${currentLinkGroupId}`);
 
-      // Check if current contact is now alone in the group
-      const { data: remainingLinks } = await supabase
-        .from('contact_links')
-        .select('id')
-        .eq('link_group_id', currentLinkGroupId);
-
-      if (remainingLinks && remainingLinks.length <= 1) {
-        // Only current contact left, remove their link and the group
-        await supabase
-          .from('contact_links')
-          .delete()
-          .eq('link_group_id', currentLinkGroupId);
-          
-        await supabase
-          .from('contact_link_groups')
-          .delete()
-          .eq('id', currentLinkGroupId);
+      if (remainingLinks.length <= 1) {
+        for (const link of remainingLinks) {
+          await api.delete(`/contact-links/${link.id}`);
+        }
+        await api.delete(`/contact-link-groups/${currentLinkGroupId}`);
           
         setCurrentLinkGroupId(null);
         setDisplayName(contact.name || 'Unknown Contact');

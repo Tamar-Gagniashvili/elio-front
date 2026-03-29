@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Image, Paperclip, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -48,7 +48,7 @@ export function ChatMediaUpload({ tenantId, conversationId, onUploadComplete, di
       formData.append('tenant_id', tenantId);
       formData.append('conversation_id', conversationId);
 
-      const { data: funcData } = await supabase.functions.invoke('upload-chat-attachment', {
+      const { data: funcData } = await api.invoke<any>('upload-chat-attachment', {
         body: formData,
       });
 

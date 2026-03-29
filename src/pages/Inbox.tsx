@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { echo } from '@/lib/echo';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Conversation, Message, Contact, ConversationStatus, ChannelType, Profile } from '@/lib/types';
 import { useUnifiedContacts, GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { useContactStatuses } from '@/hooks/useContactStatuses';
@@ -40,10 +41,13 @@ function InboxContent() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Use unified contacts hook
-  const { groupedConversations, refreshLinks } = useUnifiedContacts({
+  const { groupedConversations, refreshLinks, isLoading: linksLoading } = useUnifiedContacts({
     conversations,
     tenantId: currentTenant?.id,
   });
+
+  // Combined loading: wait for both conversations AND contact-link groups
+  const isDataLoading = isLoading || linksLoading;
 
   // Get all contact IDs from conversations for status fetching
   const allContactIds = conversations.map(c => c.contact_id).filter(Boolean);
@@ -86,20 +90,20 @@ function InboxContent() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', allUserIds);
-
-      if (!error && data) {
+      try {
+        const allProfiles = await api.get<Profile[]>('/profiles');
+        const data = allProfiles.filter(p => allUserIds.includes(p.user_id));
+        
         const profileMap: Record<string, Profile> = {};
         const reassignerMap: Record<string, Profile> = {};
         data.forEach(p => {
-          profileMap[p.user_id] = p as Profile;
-          reassignerMap[p.user_id] = p as Profile;
+          profileMap[p.user_id] = p;
+          reassignerMap[p.user_id] = p;
         });
         setProfiles(profileMap);
         setReassignerProfiles(reassignerMap);
+      } catch (error) {
+        console.error('Error fetching profiles', error);
       }
     };
 
@@ -114,14 +118,12 @@ function InboxContent() {
     }
 
     const fetchContactsWithStatus = async () => {
-      const { data, error } = await supabase
-        .from('contact_statuses')
-        .select('contact_id')
-        .eq('tenant_id', currentTenant.id)
-        .eq('status_id', currentFilter.statusId);
-
-      if (!error && data) {
-        setContactsWithStatus(new Set(data.map(cs => cs.contact_id)));
+      try {
+        const data = await api.get<any[]>(`/contact-statuses`);
+        const filtered = data.filter(cs => cs.status_id === currentFilter.statusId);
+        setContactsWithStatus(new Set(filtered.map(cs => cs.contact_id)));
+      } catch (error) {
+        console.error('Error fetching filtered contact statuses', error);
       }
     };
 
@@ -143,16 +145,15 @@ function InboxContent() {
       const unrepliedIds = new Set<string>();
       
       for (const conv of conversations) {
-        const { data } = await supabase
-          .from('messages')
-          .select('sender_type')
-          .eq('conversation_id', conv.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (data?.sender_type === 'contact') {
-          unrepliedIds.add(conv.id);
+        try {
+          const msgs = await api.get<any[]>(`/messages?conversation_id=${conv.id}`);
+          msgs.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          
+          if (msgs[0]?.sender_type === 'contact') {
+            unrepliedIds.add(conv.id);
+          }
+        } catch (error) {
+          console.error('Error fetching messages for unreplied conversations', error);
         }
       }
       
@@ -212,58 +213,47 @@ function InboxContent() {
     if (!currentTenant || !user) return;
 
     const fetchConversations = async () => {
-      setIsLoading(true);
-      
-      let query = supabase
-        .from('conversations')
-        .select(`
-          *,
-          contact:contacts(*)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .order('last_message_at', { ascending: false, nullsFirst: false });
+      try {
+        let convsData = await api.get<any[]>(`/conversations`);
 
-      // Sales users only see their assigned conversations
-      if (!isAdmin) {
-        query = query.eq('assigned_to', user.id);
-      }
+        // Sales users only see their assigned conversations
+        if (!isAdmin) {
+          convsData = convsData.filter(c => c.assigned_to === user.id);
+        }
+        
+        // Contacts injection lookup
+        const contactsData = await api.get<any[]>(`/contacts`);
+        
+        const mergedData = convsData.map(c => ({
+          ...c,
+          contact: contactsData.find(con => con.id === c.contact_id)
+        }));
 
-      const { data, error } = await query;
+        mergedData.sort((a,b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
 
-      if (error) {
-        console.error('Error fetching conversations:', error);
-      } else {
         // Filter out offline contacts - they belong in the Contacts workspace
-        const onlineConversations = (data || []).filter(
+        const onlineConversations = mergedData.filter(
           (conv: any) => conv.contact?.channel_type !== 'offline'
         );
         setConversations(onlineConversations as unknown as Conversation[]);
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
       }
       setIsLoading(false);
     };
 
     fetchConversations();
 
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel('conversations-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-          filter: `tenant_id=eq.${currentTenant.id}`,
-        },
-        () => {
-          fetchConversations();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Listen for real-time conversation updates via Laravel Reverb
+    if (currentTenant?.id) {
+      const tenantChannel = echo.channel(`tenant.${currentTenant.id}`);
+      tenantChannel.listen('ConversationUpdated', () => {
+        fetchConversations();
+      });
+      return () => {
+        echo.leaveChannel(`tenant.${currentTenant.id}`);
+      };
+    }
   }, [currentTenant, user, isAdmin]);
 
   // Handle conversation query parameter from reminder notifications
@@ -295,34 +285,29 @@ function InboxContent() {
 
     const contactId = selectedConversation.contact.id;
 
-    // First, check if this contact has a link group
-    const { data: linkData } = await supabase
-      .from('contact_links')
-      .select('link_group_id')
-      .eq('contact_id', contactId)
-      .maybeSingle();
+    try {
+      // First, check if this contact has a link group
+      const allLinks = await api.get<any[]>('/contact-links');
+      const linkData = allLinks.find(l => l.contact_id === contactId);
 
-    if (!linkData?.link_group_id) {
-      setLinkedContacts([]);
-      return;
-    }
+      if (!linkData?.link_group_id) {
+        setLinkedContacts([]);
+        return;
+      }
 
-    // Fetch all linked contacts in the same group (excluding current)
-    const { data: linkedData } = await supabase
-      .from('contact_links')
-      .select('contact_id')
-      .eq('link_group_id', linkData.link_group_id)
-      .neq('contact_id', contactId);
+      // Fetch all linked contacts in the same group (excluding current)
+      const linkedData = allLinks.filter(l => l.link_group_id === linkData.link_group_id && l.contact_id !== contactId);
 
-    if (linkedData && linkedData.length > 0) {
-      const contactIds = linkedData.map(l => l.contact_id);
-      const { data: contacts } = await supabase
-        .from('contacts')
-        .select('*')
-        .in('id', contactIds);
-      
-      setLinkedContacts((contacts || []) as Contact[]);
-    } else {
+      if (linkedData && linkedData.length > 0) {
+        const contactIds = linkedData.map(l => l.contact_id);
+        const allContacts = await api.get<any[]>('/contacts');
+        const contacts = allContacts.filter(c => contactIds.includes(c.id));
+        setLinkedContacts((contacts || []) as Contact[]);
+      } else {
+        setLinkedContacts([]);
+      }
+    } catch(e) {
+      console.error(e);
       setLinkedContacts([]);
     }
   }, [selectedConversation?.contact?.id]);
@@ -336,46 +321,39 @@ function InboxContent() {
     }
 
     const fetchMessages = async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', selectedConversation.id)
-        .order('created_at', { ascending: true });
-
-      if (error) {
+      try {
+        const data = await api.get<Message[]>(`/messages?conversation_id=${selectedConversation.id}`);
+        data.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        setMessages(data);
+      } catch (error) {
         console.error('Error fetching messages:', error);
-      } else {
-        setMessages(data as Message[]);
       }
     };
 
     const markAsRead = async () => {
-      // Reset unread count on conversation
-      await supabase
-        .from('conversations')
-        .update({ unread_count: 0 })
-        .eq('id', selectedConversation.id);
-
-      // Update local state
-      setSelectedConversation((prev) => prev ? { ...prev, unread_count: 0 } : null);
-      setConversations((prev) => 
-        prev.map((c) => c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c)
-      );
+      try {
+        await api.put(`/conversations/${selectedConversation.id}`, { unread_count: 0 });
+        // Update local state
+        setSelectedConversation((prev) => prev ? { ...prev, unread_count: 0 } : null);
+        setConversations((prev) => 
+          prev.map((c) => c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c)
+        );
+      } catch (error) {
+        console.error('Failed to mark unread messages');
+      }
     };
 
     const markAssignmentAsSeen = async () => {
       // Mark assignment as seen when the assignee opens the conversation
       if (selectedConversation.assigned_to === user?.id && !selectedConversation.assignment_seen_by_assignee) {
-        await supabase
-          .from('conversations')
-          .update({ assignment_seen_by_assignee: true })
-          .eq('id', selectedConversation.id);
-
-        // Update local state
-        setSelectedConversation((prev) => prev ? { ...prev, assignment_seen_by_assignee: true } : null);
-        setConversations((prev) => 
-          prev.map((c) => c.id === selectedConversation.id ? { ...c, assignment_seen_by_assignee: true } : c)
-        );
+        try {
+          await api.put(`/conversations/${selectedConversation.id}`, { assignment_seen_by_assignee: true });
+          // Update local state
+          setSelectedConversation((prev) => prev ? { ...prev, assignment_seen_by_assignee: true } : null);
+          setConversations((prev) => 
+            prev.map((c) => c.id === selectedConversation.id ? { ...c, assignment_seen_by_assignee: true } : c)
+          );
+        } catch(e) {}
       }
     };
 
@@ -390,25 +368,29 @@ function InboxContent() {
     // Mark assignment as seen
     markAssignmentAsSeen();
 
-    // Subscribe to new messages
-    const channel = supabase
-      .channel(`messages-${selectedConversation.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${selectedConversation.id}`,
-        },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
-        }
-      )
-      .subscribe();
+    // Listen for real-time messages via Laravel Reverb
+    const channelName = `conversation.${selectedConversation.id}`;
+    const channel = echo.channel(channelName);
+
+    channel.listen('MessageSent', (e: { message: Message }) => {
+      setMessages(prev => {
+        if (prev.some(m => m.id === e.message.id)) return prev;
+        return [...prev, e.message].sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      });
+      
+      // Automatically mark as read if contact sends a message while we are looking at it
+      if (e.message.sender_type !== 'agent') {
+        markAsRead();
+      }
+    });
+
+    // Re-fetch once after Echo connects to catch any messages that arrived
+    // before the WebSocket handshake completed (guards against refresh gaps).
+    const safetyCatchTimeout = setTimeout(fetchMessages, 2000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearTimeout(safetyCatchTimeout);
+      echo.leaveChannel(channelName);
     };
   }, [selectedConversation?.id, fetchLinkedContacts]);
 
@@ -445,7 +427,7 @@ function InboxContent() {
 
     // If this is a Telegram conversation, send via Telegram API first
     if (channelType === 'telegram') {
-      const { error: telegramError } = await supabase.functions.invoke('send-telegram', {
+      const { error: telegramError } = await api.invoke('send-telegram', {
         body: { conversation_id: selectedConversation.id, content }
       });
       if (telegramError) {
@@ -457,7 +439,7 @@ function InboxContent() {
 
     // If this is a Messenger conversation, send via Messenger API first
     if (channelType === 'messenger') {
-      const { error: messengerError } = await supabase.functions.invoke('send-messenger', {
+      const { error: messengerError } = await api.invoke('send-messenger', {
         body: { conversation_id: selectedConversation.id, content }
       });
       if (messengerError) {
@@ -484,9 +466,37 @@ function InboxContent() {
       media_filename: media?.filename ?? null,
     };
 
-    const { error } = await supabase.from('messages').insert(messageInsert);
+    try {
+      // Optimistic UI update: Instantly show the message in the chat
+      const tempMessage = {
+        id: crypto.randomUUID(),
+        ...messageInsert,
+        is_read: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as unknown as Message;
+      
+      setMessages(prev => [...prev, tempMessage]);
 
-    if (error) {
+      const previewText = (content || (media?.filename ? `📎 ${media.filename}` : '')).substring(0, 100);
+      
+      // Optimistic UI update: Instantly show conversation list preview
+      setConversations(prev => prev.map(c => 
+        c.id === selectedConversation.id ? { 
+          ...c, 
+          last_message_at: new Date().toISOString(),
+          last_message_preview: previewText
+        } : c
+      ));
+
+      await api.post('/messages', messageInsert);
+      
+      // Update conversation last message on server
+      await api.put(`/conversations/${selectedConversation.id}`, {
+        last_message_at: new Date().toISOString(),
+        last_message_preview: previewText,
+      });
+    } catch (error) {
       console.error('Error sending message:', error);
       toast({
         title: 'Error',
@@ -495,37 +505,24 @@ function InboxContent() {
       });
       return;
     }
-
-    // Update conversation last message
-    await supabase
-      .from('conversations')
-      .update({
-        last_message_at: new Date().toISOString(),
-        last_message_preview: (content || (media?.filename ? `📎 ${media.filename}` : '')).substring(0, 100),
-      })
-      .eq('id', selectedConversation.id);
   };
 
   const handleStatusChange = async (status: ConversationStatus) => {
     if (!selectedConversation) return;
 
-    const { error } = await supabase
-      .from('conversations')
-      .update({ status })
-      .eq('id', selectedConversation.id);
-
-    if (error) {
+    try {
+      await api.put(`/conversations/${selectedConversation.id}`, { status });
+      setSelectedConversation((prev) => prev ? { ...prev, status } : null);
+      toast({
+        title: 'Status updated',
+        description: `Conversation marked as ${status}`,
+      });
+    } catch (error) {
       console.error('Error updating status:', error);
       toast({
         title: 'Error',
         description: 'Failed to update conversation status',
         variant: 'destructive',
-      });
-    } else {
-      setSelectedConversation((prev) => prev ? { ...prev, status } : null);
-      toast({
-        title: 'Status updated',
-        description: `Conversation marked as ${status}`,
       });
     }
   };
@@ -538,17 +535,13 @@ function InboxContent() {
   const handleDismissReason = async () => {
     if (!selectedConversation) return;
     
-    const { error } = await supabase
-      .from('conversations')
-      .update({ assignment_reason: null, reassigned_by: null })
-      .eq('id', selectedConversation.id);
-
-    if (!error) {
+    try {
+      await api.put(`/conversations/${selectedConversation.id}`, { assignment_reason: null, reassigned_by: null });
       setSelectedConversation((prev) => prev ? { ...prev, assignment_reason: null, reassigned_by: null } : null);
       setConversations((prev) => 
         prev.map((c) => c.id === selectedConversation.id ? { ...c, assignment_reason: null, reassigned_by: null } : c)
       );
-    }
+    } catch(e) {}
   };
 
   // Get reassigner name for current conversation

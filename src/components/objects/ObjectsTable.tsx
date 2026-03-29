@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { ObjectType, ObjectTypeField, ObjectStatus, BusinessObject } from '@/lib/objectTypes';
 import {
   Table,
@@ -77,25 +77,17 @@ export function ObjectsTable({
 
     setLoading(true);
     try {
-      let query = supabase
-        .from('objects')
-        .select('*, object_statuses(*)')
-        .eq('tenant_id', currentTenant.id)
-        .eq('object_type_id', selectedTypeId)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false });
-
+      let url = `/relink-objects?object_type_id=${selectedTypeId}&is_archived=0`;
+      
       if (statusFilter) {
-        query = query.eq('status_id', statusFilter);
+        url += `&status_id=${statusFilter}`;
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
+      const data = await api.get<any[]>(url);
 
       const fetchedObjects = (data || []).map((obj: any) => ({
         ...obj,
-        status: obj.object_statuses,
+        status: typeStatuses.find(s => s.id === obj.status_id),
       }));
       
       setObjects(fetchedObjects);
@@ -114,15 +106,17 @@ export function ObjectsTable({
         });
 
         if (relatedIds.size > 0) {
-          const { data: relatedData } = await supabase
-            .from('objects')
-            .select('id, display_name')
-            .in('id', Array.from(relatedIds));
-
           const nameMap: Record<string, string> = {};
-          (relatedData || []).forEach((obj: any) => {
-            nameMap[obj.id] = obj.display_name;
-          });
+          await Promise.all(
+            Array.from(relatedIds).map(async (id) => {
+              try {
+                const relatedObj = await api.get<any>(`/relink-objects/${id}`);
+                if (relatedObj) nameMap[id] = relatedObj.display_name;
+              } catch (e) {
+                console.error("Failed to fetch related block", e);
+              }
+            })
+          );
           setRelatedObjectsMap(nameMap);
         }
       }
@@ -135,12 +129,7 @@ export function ObjectsTable({
 
   const handleStatusChange = async (objectId: string, statusId: string) => {
     try {
-      const { error } = await supabase
-        .from('objects')
-        .update({ status_id: statusId })
-        .eq('id', objectId);
-
-      if (error) throw error;
+      await api.put(`/relink-objects/${objectId}`, { status_id: statusId });
 
       setObjects((prev) =>
         prev.map((obj) =>
@@ -166,12 +155,7 @@ export function ObjectsTable({
 
   const handleArchive = async (objectId: string) => {
     try {
-      const { error } = await supabase
-        .from('objects')
-        .update({ is_archived: true })
-        .eq('id', objectId);
-
-      if (error) throw error;
+      await api.put(`/relink-objects/${objectId}`, { is_archived: 1 });
 
       setObjects((prev) => prev.filter((obj) => obj.id !== objectId));
 

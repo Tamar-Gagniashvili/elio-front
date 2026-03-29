@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Contact } from '@/lib/types';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
@@ -69,125 +69,93 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
     
     let allowedContactIds: string[] | null = null;
     
-    if (!isAdmin) {
-      const { data: assignedConversations } = await supabase
-        .from('conversations')
-        .select('contact_id')
-        .eq('tenant_id', currentTenant.id)
-        .eq('assigned_to', user.id);
-      
-      allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
-      
-      if (allowedContactIds.length === 0) {
-        setContacts([]);
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    let contactsQuery = supabase
-      .from('contacts')
-      .select('*')
-      .eq('tenant_id', currentTenant.id)
-      .eq('channel_type', 'offline')
-      .order('created_at', { ascending: false });
-    
-    if (allowedContactIds !== null) {
-      contactsQuery = contactsQuery.in('id', allowedContactIds);
-    }
-
-    const { data: contactsData, error: contactsError } = await contactsQuery;
-
-    if (contactsError) {
-      console.error('Error fetching contacts:', contactsError);
-    } else {
-      setContacts(contactsData as Contact[]);
-      
-      if (contactsData && contactsData.length > 0 && !selectedContact) {
-        setSelectedContact(contactsData[0] as Contact);
-      }
-    }
-
-    const { data: conversations } = await supabase
-      .from('conversations')
-      .select('contact_id, assigned_to, assignment_reason, reassigned_by')
-      .eq('tenant_id', currentTenant.id);
-
-    if (conversations) {
-      const assignedToIds = [...new Set(conversations.map(c => c.assigned_to).filter(Boolean))];
-      const reassignedByIds = [...new Set(conversations.map(c => c.reassigned_by).filter(Boolean))];
-      const allUserIds = [...new Set([...assignedToIds, ...reassignedByIds])];
-      
-      if (allUserIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', allUserIds);
-
-        const assignmentMap = new Map<string, { name: string; id: string }>();
-        const reasonsMap = new Map<string, { reason: string; reassignedBy: string | null }>();
-        const reassignerMap = new Map<string, string>();
+    try {
+      if (!isAdmin) {
+        const assignedConversations = await api.get<any[]>(`/conversations?assigned_to=${user.id}`);
+        allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
         
-        profiles?.forEach(p => {
-          reassignerMap.set(p.user_id, p.full_name || p.email || 'Unknown');
-        });
-        
-        conversations.forEach(conv => {
-          if (conv.assigned_to) {
-            const profile = profiles?.find(p => p.user_id === conv.assigned_to);
-            assignmentMap.set(conv.contact_id, {
-              id: conv.assigned_to,
-              name: profile?.full_name || profile?.email || 'Unknown'
-            });
-          }
-          if (conv.assignment_reason) {
-            reasonsMap.set(conv.contact_id, {
-              reason: conv.assignment_reason,
-              reassignedBy: conv.reassigned_by
-            });
-          }
-        });
-        
-        setAssignedUsers(assignmentMap);
-        setAssignmentReasons(reasonsMap);
-        setReassignerProfiles(reassignerMap);
+        if (allowedContactIds.length === 0) {
+          setContacts([]);
+          setIsLoading(false);
+          return;
+        }
       }
-    }
 
-    const { data: statusesData } = await supabase
-      .from('lead_statuses')
-      .select('id, name, color')
-      .eq('tenant_id', currentTenant.id)
-      .order('created_at');
+      let contactsData = await api.get<Contact[]>(`/contacts`);
+      contactsData = contactsData.filter(c => c.channel_type === 'offline');
+      contactsData.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      if (allowedContactIds !== null) {
+        contactsData = contactsData.filter(c => allowedContactIds!.includes(c.id));
+      }
 
-    setAvailableStatuses(statusesData || []);
+      setContacts(contactsData);
+      
+      if (contactsData.length > 0 && !selectedContact) {
+        setSelectedContact(contactsData[0]);
+      }
 
-    const { data: contactStatusData } = await supabase
-      .from('contact_statuses')
-      .select(`
-        contact_id,
-        lead_statuses:status_id (
-          id,
-          name,
-          color
-        )
-      `)
-      .eq('tenant_id', currentTenant.id);
+      const conversations = await api.get<any[]>(`/conversations`);
 
-    const statusMap = new Map<string, LeadStatus[]>();
-    
-    if (contactStatusData) {
+      if (conversations) {
+        const assignedToIds = [...new Set(conversations.map(c => c.assigned_to).filter(Boolean))];
+        const reassignedByIds = [...new Set(conversations.map(c => c.reassigned_by).filter(Boolean))];
+        const allUserIds = [...new Set([...assignedToIds, ...reassignedByIds])];
+        
+        if (allUserIds.length > 0) {
+          const profiles = await api.get<any[]>(`/profiles`);
+
+          const assignmentMap = new Map<string, { name: string; id: string }>();
+          const reasonsMap = new Map<string, { reason: string; reassignedBy: string | null }>();
+          const reassignerMap = new Map<string, string>();
+          
+          profiles?.forEach(p => {
+            if (allUserIds.includes(p.user_id)) {
+              reassignerMap.set(p.user_id, p.full_name || p.email || 'Unknown');
+            }
+          });
+          
+          conversations.forEach(conv => {
+            if (conv.assigned_to) {
+              const profile = profiles?.find(p => p.user_id === conv.assigned_to);
+              assignmentMap.set(conv.contact_id, {
+                id: conv.assigned_to,
+                name: profile?.full_name || profile?.email || 'Unknown'
+              });
+            }
+            if (conv.assignment_reason) {
+              reasonsMap.set(conv.contact_id, {
+                reason: conv.assignment_reason,
+                reassignedBy: conv.reassigned_by
+              });
+            }
+          });
+          
+          setAssignedUsers(assignmentMap);
+          setAssignmentReasons(reasonsMap);
+          setReassignerProfiles(reassignerMap);
+        }
+      }
+
+      const statusesData = await api.get<LeadStatus[]>(`/lead-statuses`);
+      setAvailableStatuses(statusesData);
+
+      const contactStatusData = await api.get<any[]>(`/contact-statuses`);
+      const statusMap = new Map<string, LeadStatus[]>();
+      
       for (const cs of contactStatusData) {
-        const status = cs.lead_statuses as unknown as LeadStatus | null;
+        const status = statusesData.find(s => s.id === cs.status_id);
         if (status) {
           const existing = statusMap.get(cs.contact_id) || [];
           existing.push(status);
           statusMap.set(cs.contact_id, existing);
         }
       }
+      
+      setContactStatuses(statusMap);
+    } catch (e) {
+      console.error(e);
     }
-    
-    setContactStatuses(statusMap);
     setIsLoading(false);
   };
 

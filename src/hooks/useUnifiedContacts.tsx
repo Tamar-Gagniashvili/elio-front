@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Conversation, Contact, UnifiedContact, ChannelType } from '@/lib/types';
 
 interface UseUnifiedContactsProps {
@@ -24,37 +24,34 @@ export function useUnifiedContacts({ conversations, tenantId }: UseUnifiedContac
 
   // Fetch all contact links for the tenant
   useEffect(() => {
-    if (!tenantId) return;
+    if (!tenantId) {
+      setIsLoading(false); // Don't block the memo if tenant isn't resolved yet
+      return;
+    }
 
     const fetchLinks = async () => {
       setIsLoading(true);
       
-      // Fetch all contact_links with their groups
-      const { data: links } = await supabase
-        .from('contact_links')
-        .select(`
-          contact_id,
-          link_group_id,
-          contact_link_groups:link_group_id (
-            id,
-            display_name
-          )
-        `)
-        .eq('tenant_id', tenantId);
+      try {
+        const links = await api.get<any[]>(`/contact-links`);
+        const groups = await api.get<any[]>(`/contact-link-groups`);
 
-      const groupMap = new Map<string, { groupId: string; displayName?: string }>();
-      
-      if (links) {
-        for (const link of links) {
-          const group = link.contact_link_groups as unknown as { id: string; display_name?: string } | null;
-          groupMap.set(link.contact_id, {
-            groupId: link.link_group_id,
-            displayName: group?.display_name || undefined,
-          });
+        const groupMap = new Map<string, { groupId: string; displayName?: string }>();
+        
+        if (links) {
+          for (const link of links) {
+            const group = groups.find(g => g.id === link.link_group_id);
+            groupMap.set(link.contact_id, {
+              groupId: link.link_group_id,
+              displayName: group?.display_name || undefined,
+            });
+          }
         }
+        
+        setLinkGroups(groupMap);
+      } catch (error) {
+        console.error('Error fetching unified contacts:', error);
       }
-      
-      setLinkGroups(groupMap);
       setIsLoading(false);
     };
 
@@ -147,31 +144,26 @@ export function useUnifiedContacts({ conversations, tenantId }: UseUnifiedContac
   const refreshLinks = async () => {
     if (!tenantId) return;
     
-    const { data: links } = await supabase
-      .from('contact_links')
-      .select(`
-        contact_id,
-        link_group_id,
-        contact_link_groups:link_group_id (
-          id,
-          display_name
-        )
-      `)
-      .eq('tenant_id', tenantId);
+    try {
+      const links = await api.get<any[]>(`/contact-links`);
+      const groups = await api.get<any[]>(`/contact-link-groups`);
 
-    const groupMap = new Map<string, { groupId: string; displayName?: string }>();
-    
-    if (links) {
-      for (const link of links) {
-        const group = link.contact_link_groups as unknown as { id: string; display_name?: string } | null;
-        groupMap.set(link.contact_id, {
-          groupId: link.link_group_id,
-          displayName: group?.display_name || undefined,
-        });
+      const groupMap = new Map<string, { groupId: string; displayName?: string }>();
+      
+      if (links) {
+        for (const link of links) {
+          const group = groups.find(g => g.id === link.link_group_id);
+          groupMap.set(link.contact_id, {
+            groupId: link.link_group_id,
+            displayName: group?.display_name || undefined,
+          });
+        }
       }
+      
+      setLinkGroups(groupMap);
+    } catch (error) {
+      console.error('Error refreshing links:', error);
     }
-    
-    setLinkGroups(groupMap);
   };
 
   return {

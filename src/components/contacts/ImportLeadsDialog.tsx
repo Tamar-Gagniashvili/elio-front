@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -126,53 +126,28 @@ export function ImportLeadsDialog({
 
   const fetchRoutingRules = async () => {
     if (!currentTenant) return;
-    const { data } = await supabase
-      .from('routing_rules')
-      .select('id, name, description')
-      .eq('tenant_id', currentTenant.id)
-      .eq('is_active', true)
-      .order('priority');
-    setRoutingRules(data || []);
+    const data = await api.get<any[]>(`/routing-rules`);
+    const activeRules = data.filter(r => r.is_active);
+    activeRules.sort((a,b) => a.priority - b.priority);
+    setRoutingRules(activeRules);
   };
 
   const fetchTeamMembers = async () => {
     if (!currentTenant) return;
-    const { data: memberships, error: membershipError } = await supabase
-      .from('tenant_memberships')
-      .select('user_id, role')
-      .eq('tenant_id', currentTenant.id)
-      .eq('is_active', true)
-      .eq('role', 'sales');
-
-    if (membershipError) {
-      console.error('Error fetching memberships:', membershipError);
-      return;
-    }
-
-    if (!memberships || memberships.length === 0) {
-      setTeamMembers([]);
-      return;
-    }
-
-    const userIds = memberships.map(m => m.user_id);
-    const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
-      .select('user_id, full_name, email')
-      .in('user_id', userIds);
-
-    if (profileError) {
-      console.error('Error fetching profiles:', profileError);
-    }
-
-    const members: TeamMember[] = memberships.map((m) => {
-      const profile = profiles?.find(p => p.user_id === m.user_id);
-      return {
+    try {
+      const memberships = await api.get<any[]>(`/tenant-memberships`);
+      const activeSales = memberships.filter(m => m.is_active && m.role === 'sales');
+      if (activeSales.length === 0) {
+        setTeamMembers([]);
+        return;
+      }
+      const members: TeamMember[] = activeSales.map((m) => ({
         id: m.user_id,
-        name: profile?.full_name || profile?.email || 'Unknown',
+        name: m.profile?.full_name || m.profile?.email || 'Unknown',
         role: m.role,
-      };
-    });
-    setTeamMembers(members);
+      }));
+      setTeamMembers(members);
+    } catch(e) {}
   };
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,22 +207,17 @@ export function ImportLeadsDialog({
     setIsImporting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('import-leads', {
-        body: {
-          tenant_id: currentTenant.id,
-          rows: allRows,
-          column_mapping: columnMapping,
-          assignment_strategy: assignmentStrategy,
-          assignment_config: {
-            user_ids: assignmentStrategy === 'round_robin' || assignmentStrategy === 'single_user' 
-              ? selectedUserIds 
-              : undefined,
-            rule_id: assignmentStrategy === 'routing_rule' ? selectedRuleId : undefined,
-          },
+      const data = await api.post<any>(`/functions/import-leads`, {
+        rows: allRows,
+        column_mapping: columnMapping,
+        assignment_strategy: assignmentStrategy,
+        assignment_config: {
+          user_ids: assignmentStrategy === 'round_robin' || assignmentStrategy === 'single_user' 
+            ? selectedUserIds 
+            : undefined,
+          rule_id: assignmentStrategy === 'routing_rule' ? selectedRuleId : undefined,
         },
       });
-
-      if (error) throw error;
 
       setImportResult(data.results);
       setStep(4);

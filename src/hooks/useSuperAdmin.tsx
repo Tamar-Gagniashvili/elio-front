@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useAuth } from './useAuth';
 
 export function useSuperAdmin() {
@@ -15,20 +15,16 @@ export function useSuperAdmin() {
     }
 
     const checkSuperAdmin = async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'super_admin')
-        .maybeSingle();
-
-      if (error) {
+      try {
+        // Fetch the user from the Laravel API
+        const userData: any = await api.get('/user');
+        setIsSuperAdmin(userData && userData.role === 'super_admin');
+      } catch (error) {
         console.error('Error checking super admin status:', error);
         setIsSuperAdmin(false);
-      } else {
-        setIsSuperAdmin(!!data);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkSuperAdmin();

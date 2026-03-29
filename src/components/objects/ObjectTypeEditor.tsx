@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { ObjectType, ObjectTypeField, ObjectStatus, OBJECT_TYPE_ICONS } from '@/lib/objectTypes';
 import {
   Dialog,
@@ -108,31 +108,20 @@ export function ObjectTypeEditor({
 
       if (isEditing) {
         // Update existing type
-        const { error } = await supabase
-          .from('object_types')
-          .update({
-            name: name.trim(),
-            name_plural: namePlural.trim(),
-            icon,
-          })
-          .eq('id', objectType.id);
-
-        if (error) throw error;
+        await api.put(`/object-types/${objectType.id}`, {
+          name: name.trim(),
+          name_plural: namePlural.trim(),
+          icon,
+        });
       } else {
         // Create new type
-        const { data, error } = await supabase
-          .from('object_types')
-          .insert({
-            tenant_id: currentTenant.id,
-            name: name.trim(),
-            name_plural: namePlural.trim(),
-            icon,
-            created_by: user?.id,
-          })
-          .select()
-          .single();
+        const data = await api.post<any>(`/object-types`, {
+          name: name.trim(),
+          name_plural: namePlural.trim(),
+          icon,
+          created_by: user?.id,
+        });
 
-        if (error) throw error;
         typeId = data.id;
       }
 
@@ -145,10 +134,9 @@ export function ObjectTypeEditor({
           const deletedIds = existingIds.filter(id => !newIds.includes(id));
 
           if (deletedIds.length > 0) {
-            await supabase
-              .from('object_type_fields')
-              .delete()
-              .in('id', deletedIds);
+            for (const id of deletedIds) {
+              await api.delete(`/object-type-fields/${id}`);
+            }
           }
         }
 
@@ -156,7 +144,6 @@ export function ObjectTypeEditor({
         for (let i = 0; i < fields.length; i++) {
           const field = fields[i];
           const fieldData = {
-            tenant_id: currentTenant.id,
             object_type_id: typeId,
             name: field.name?.toLowerCase().replace(/\s+/g, '_') || '',
             label: field.label || field.name || '',
@@ -168,14 +155,9 @@ export function ObjectTypeEditor({
           };
 
           if (field.id) {
-            await supabase
-              .from('object_type_fields')
-              .update(fieldData as any)
-              .eq('id', field.id);
+            await api.put(`/object-type-fields/${field.id}`, fieldData);
           } else {
-            await supabase
-              .from('object_type_fields')
-              .insert(fieldData as any);
+            await api.post(`/object-type-fields`, fieldData);
           }
         }
 
@@ -186,10 +168,9 @@ export function ObjectTypeEditor({
           const deletedStatusIds = existingStatusIds.filter(id => !newStatusIds.includes(id));
 
           if (deletedStatusIds.length > 0) {
-            await supabase
-              .from('object_statuses')
-              .delete()
-              .in('id', deletedStatusIds);
+            for (const id of deletedStatusIds) {
+              await api.delete(`/object-statuses/${id}`);
+            }
           }
         }
 
@@ -197,7 +178,6 @@ export function ObjectTypeEditor({
         for (let i = 0; i < statuses.length; i++) {
           const status = statuses[i];
           const statusData = {
-            tenant_id: currentTenant.id,
             object_type_id: typeId,
             name: status.name || '',
             color: status.color || 'gray',
@@ -206,14 +186,9 @@ export function ObjectTypeEditor({
           };
 
           if (status.id) {
-            await supabase
-              .from('object_statuses')
-              .update(statusData)
-              .eq('id', status.id);
+            await api.put(`/object-statuses/${status.id}`, statusData);
           } else {
-            await supabase
-              .from('object_statuses')
-              .insert(statusData);
+            await api.post(`/object-statuses`, statusData);
           }
         }
       }
@@ -242,12 +217,7 @@ export function ObjectTypeEditor({
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('object_types')
-        .update({ is_archived: true })
-        .eq('id', objectType.id);
-
-      if (error) throw error;
+      await api.put(`/object-types/${objectType.id}`, { is_archived: true });
 
       toast({
         title: 'Object Type Archived',

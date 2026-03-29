@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -60,26 +60,23 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
   const fetchUsersAndStatuses = async () => {
     if (!currentTenant) return;
     
-    const [usersRes, statusesRes] = await Promise.all([
-      supabase
-        .from('tenant_memberships')
-        .select('user_id, profiles!inner(full_name, email)')
-        .eq('tenant_id', currentTenant.id)
-        .eq('is_active', true),
-      supabase
-        .from('lead_statuses')
-        .select('id, name')
-        .eq('tenant_id', currentTenant.id),
-    ]);
+    try {
+      const [usersRes, statusesRes] = await Promise.all([
+        api.get<any[]>(`/tenant-memberships`),
+        api.get<any[]>(`/lead-statuses`),
+      ]);
 
-    if (usersRes.data) {
-      setUsers(usersRes.data.map((m: any) => ({
-        id: m.user_id,
-        name: m.profiles.full_name || m.profiles.email,
-      })));
-    }
-    if (statusesRes.data) {
-      setStatuses(statusesRes.data);
+      if (usersRes) {
+        setUsers(usersRes.filter(m => m.is_active).map((m: any) => ({
+          id: m.user_id,
+          name: m.profile?.full_name || m.profile?.email || 'Unknown',
+        })));
+      }
+      if (statusesRes) {
+        setStatuses(statusesRes);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -99,50 +96,41 @@ export function RuleEditor({ open, onOpenChange, rule, onSave }: RuleEditorProps
     setSaving(true);
 
     if (rule) {
-      const { error } = await supabase
-        .from('routing_rules')
-        .update({
+      try {
+        await api.put(`/routing-rules/${rule.id}`, {
           name: name.trim(),
           description: description.trim() || null,
           conditions: JSON.parse(JSON.stringify(conditions)),
           actions: JSON.parse(JSON.stringify(actions)),
-        })
-        .eq('id', rule.id);
-
-      if (error) {
+        });
+        toast({ title: t('rules.ruleUpdated') });
+      } catch (error: any) {
         toast({ title: t('rules.errorUpdating'), description: error.message, variant: 'destructive' });
         setSaving(false);
         return;
       }
-      toast({ title: t('rules.ruleUpdated') });
     } else {
-      const { data: existingRules } = await supabase
-        .from('routing_rules')
-        .select('priority')
-        .eq('tenant_id', currentTenant.id)
-        .order('priority', { ascending: false })
-        .limit(1);
+      try {
+        const existingRules = await api.get<any[]>(`/routing-rules`);
+        // Descending order sort by priority
+        existingRules.sort((a,b) => b.priority - a.priority);
+        const nextPriority = existingRules.length > 0 ? existingRules[0].priority + 1 : 0;
 
-      const nextPriority = existingRules && existingRules.length > 0 ? existingRules[0].priority + 1 : 0;
-
-      const { error } = await supabase
-        .from('routing_rules')
-        .insert([{
-          tenant_id: currentTenant.id,
+        await api.post(`/routing-rules`, {
           name: name.trim(),
           description: description.trim() || null,
           priority: nextPriority,
           conditions: JSON.parse(JSON.stringify(conditions)),
           actions: JSON.parse(JSON.stringify(actions)),
           created_by: user?.id,
-        }]);
-
-      if (error) {
+          is_active: true,
+        });
+        toast({ title: t('rules.ruleCreated') });
+      } catch (error: any) {
         toast({ title: t('rules.errorCreating'), description: error.message, variant: 'destructive' });
         setSaving(false);
         return;
       }
-      toast({ title: t('rules.ruleCreated') });
     }
 
     setSaving(false);

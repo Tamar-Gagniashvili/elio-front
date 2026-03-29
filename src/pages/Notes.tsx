@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -99,59 +99,53 @@ export default function Notes() {
   const fetchNotes = async () => {
     if (!currentTenant) return;
     
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('contact_notes')
-      .select(`
-        *,
-        contact:contacts(id, name, avatar_url, channel_type)
-      `)
-      .eq('tenant_id', currentTenant.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      setIsLoading(true);
+      const data = await api.get<any[]>(`/contact-notes`);
+      
+      const mappedNotes = await Promise.all(data.map(async (note) => {
+        if (!note.contact_id) return note;
+        try {
+          const contact = await api.get<any>(`/contacts/${note.contact_id}`);
+          return { ...note, contact };
+        } catch { return note; }
+      }));
+      
+      mappedNotes.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setNotes(mappedNotes as ContactNote[]);
+    } catch(error) {
       console.error('Error fetching notes:', error);
-    } else {
-      setNotes(data as ContactNote[]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const fetchContacts = async () => {
     if (!currentTenant) return;
     
-    const { data, error } = await supabase
-      .from('contacts')
-      .select('*')
-      .eq('tenant_id', currentTenant.id)
-      .order('name');
-
-    if (error) {
+    try {
+      const data = await api.get<Contact[]>(`/contacts`);
+      data.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      setContacts(data);
+    } catch (error) {
       console.error('Error fetching contacts:', error);
-    } else {
-      setContacts(data as Contact[]);
     }
   };
 
   const fetchConversations = async () => {
     if (!currentTenant) return;
     
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('id, contact_id')
-      .eq('tenant_id', currentTenant.id);
-
-    if (error) {
-      console.error('Error fetching conversations:', error);
-    } else {
-      // Map contact_id -> conversation_id for quick lookup
+    try {
+      const data = await api.get<any[]>(`/conversations`);
       const convMap: Record<string, string> = {};
-      data?.forEach(conv => {
+      data.forEach(conv => {
         if (conv.contact_id) {
           convMap[conv.contact_id] = conv.id;
         }
       });
       setConversations(convMap);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
     }
   };
 
@@ -176,22 +170,18 @@ export default function Notes() {
       reminderAt = addMinutes(new Date(), mins).toISOString();
     }
 
-    const { error } = await supabase
-      .from('contact_notes')
-      .insert({
+    try {
+      await api.post('/contact-notes', {
         contact_id: selectedContactId === 'none' ? null : selectedContactId,
-        tenant_id: currentTenant.id,
         created_by: user.id,
         content: newNote.trim(),
         color: selectedColor,
         reminder_at: reminderAt,
       });
-
-    if (error) {
-      console.error('Error adding note:', error);
-    } else {
       resetForm();
       fetchNotes();
+    } catch (error) {
+      console.error('Error adding note:', error);
     }
     
     setIsSaving(false);
@@ -211,36 +201,28 @@ export default function Notes() {
       reminderAt = addMinutes(new Date(), mins).toISOString();
     }
 
-    const { error } = await supabase
-      .from('contact_notes')
-      .update({
+    try {
+      await api.put(`/contact-notes/${editingNote.id}`, {
         content: newNote.trim(),
         color: selectedColor,
         reminder_at: reminderAt,
         contact_id: selectedContactId === 'none' ? null : selectedContactId,
-      })
-      .eq('id', editingNote.id);
-
-    if (error) {
-      console.error('Error updating note:', error);
-    } else {
+      });
       resetForm();
       fetchNotes();
+    } catch(error) {
+      console.error('Error updating note:', error);
     }
     
     setIsSaving(false);
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    const { error } = await supabase
-      .from('contact_notes')
-      .delete()
-      .eq('id', noteId);
-
-    if (error) {
-      console.error('Error deleting note:', error);
-    } else {
+    try {
+      await api.delete(`/contact-notes/${noteId}`);
       setNotes(notes.filter(n => n.id !== noteId));
+    } catch(error) {
+      console.error('Error deleting note:', error);
     }
   };
 

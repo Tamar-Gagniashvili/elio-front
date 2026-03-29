@@ -6,8 +6,8 @@
   var tenantId = config.tenantId;
   var position = config.position || 'bottom-right';
   var primaryColor = config.primaryColor || '#8B5CF6';
-  var apiUrl = config.apiUrl || 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1/webchat';
-  var uploadUrl = config.uploadUrl || 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1/upload-chat-attachment';
+  var apiUrl = config.apiUrl || 'http://localhost:8000/api/functions/webchat';
+  var uploadUrl = config.uploadUrl || 'http://localhost:8000/api/functions/upload-chat-attachment';
 
   if (!tenantId) {
     console.error('ChatFlow: Missing tenantId in configuration');
@@ -563,7 +563,7 @@
         }
       }
       
-      var contentHtml = m.content ? escapeHtml(m.content) : '';
+      var contentHtml = m.content ? linkify(m.content) : '';
       // Don't show the placeholder text if we have actual media
       if (mediaHtml && contentHtml.match(/^\[(Image|File):/)) {
         contentHtml = '';
@@ -579,6 +579,15 @@
     var div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  function linkify(text) {
+    if (!text) return '';
+    var escaped = escapeHtml(text);
+    var urlRegex = /(https?:\/\/[^\s]+)/g;
+    return escaped.replace(urlRegex, function(url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: inherit; word-break: break-all;">' + url + '</a>';
+    });
   }
 
   // Initialize

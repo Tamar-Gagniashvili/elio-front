@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api, getTenantDomain } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import Landing from './Landing';
 
@@ -19,14 +19,13 @@ export default function Index() {
     }
 
     const checkRole = async () => {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'super_admin')
-        .maybeSingle();
-
-      setIsSuperAdmin(!!data);
+      try {
+        const roles = await api.get<any[]>(`/user-roles?user_id=${user.id}`);
+        const isSuper = roles.some((r: any) => r.role === 'super_admin');
+        setIsSuperAdmin(isSuper);
+      } catch (e) {
+        setIsSuperAdmin(false);
+      }
       setRoleChecked(true);
     };
 
@@ -35,26 +34,34 @@ export default function Index() {
 
   // Second effect: Handle redirects after role is checked
   useEffect(() => {
-    if (loading) return;
+    if (loading || !user || !dataLoaded || !roleChecked) return;
 
-    // If no user and not loading, we show the landing page (handled in render)
-    if (!user) return;
-
-    // Wait for both data loaded AND role check to complete
-    if (!dataLoaded || !roleChecked) return;
+    const tenantDomain = getTenantDomain();
 
     if (isSuperAdmin) {
       navigate('/admin', { replace: true });
       return;
     }
 
-    // Not super admin - check tenant memberships
+    // If on a subdomain, we expect a currentTenant to be resolved
+    if (tenantDomain) {
+      if (currentTenant) {
+        navigate('/inbox', { replace: true });
+      } else if (dataLoaded) {
+        // Logged in on a subdomain but has no access to it
+        navigate('/onboarding', { replace: true });
+      }
+      return;
+    }
+
+    // Root domain - only allow Landlord/Admin access
     if (memberships.length === 0) {
       navigate('/onboarding', { replace: true });
-    } else if (currentTenant) {
-      navigate('/inbox', { replace: true });
+    } else {
+      // User has memberships but is on root domain. 
+      // We don't auto-redirect to inbox here because no tenant is active on root.
+      // They stay on the landing page or a "Select Tenant" view could be shown.
     }
-    // If memberships exist but no currentTenant yet, wait for useAuth to auto-select
   }, [user, loading, dataLoaded, roleChecked, isSuperAdmin, memberships, currentTenant, navigate]);
 
   // Show landing page for non-authenticated users

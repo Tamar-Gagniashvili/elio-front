@@ -206,7 +206,7 @@ const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
 };
 
 const getWebhookUrl = (channelType: ChannelType, tenantId: string): string | null => {
-  const baseUrl = 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1';
+  const baseUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/functions`;
   
   switch (channelType) {
     case 'telegram':
@@ -278,10 +278,14 @@ export function ChannelConfigDialog({
 
   const getEmbedCode = (tenantId: string): string => {
     const baseUrl = window.location.origin;
+    const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/functions/webchat`;
+    const uploadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/functions/upload-chat-attachment`;
     return `<!-- ChatFlow Widget -->
 <script>
   window.ChatFlowConfig = {
     tenantId: '${tenantId}',
+    apiUrl: '${apiUrl}',
+    uploadUrl: '${uploadUrl}',
     position: 'bottom-right',
     primaryColor: '#6366f1'
   };

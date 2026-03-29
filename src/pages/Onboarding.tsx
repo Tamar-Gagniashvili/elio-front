@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,45 +34,31 @@ export default function Onboarding() {
 
     try {
       // Create tenant
-      const { data: tenant, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({
-          name: companyName.trim(),
-          slug: generateSlug(companyName.trim()),
-        })
-        .select()
-        .single();
-
-      if (tenantError) throw tenantError;
+      const tenant = await api.post<any>('/tenants', {
+        name: companyName.trim(),
+        slug: generateSlug(companyName.trim()),
+      });
 
       // Create membership as owner
-      const { error: membershipError } = await supabase
-        .from('tenant_memberships')
-        .insert({
-          tenant_id: tenant.id,
-          user_id: user.id,
-          role: 'owner',
-        });
-
-      if (membershipError) throw membershipError;
+      await api.post('/memberships', {
+        tenant_id: tenant.id,
+        user_id: user.id,
+        role: 'owner',
+      });
 
       // Create default chat distribution
-      await supabase
-        .from('chat_distribution')
-        .insert({
-          tenant_id: tenant.id,
-          assignment_index: 0,
-        });
+      await api.post('/chat-distributions', {
+        tenant_id: tenant.id,
+        assignment_index: 0,
+      });
 
       // Create default web chat channel
-      await supabase
-        .from('channels')
-        .insert({
-          tenant_id: tenant.id,
-          channel_type: 'web_chat',
-          name: 'Website Chat',
-          is_active: true,
-        });
+      await api.post('/channels', {
+        tenant_id: tenant.id,
+        channel_type: 'web_chat',
+        name: 'Website Chat',
+        is_active: true,
+      });
 
       setCurrentTenant(tenant as unknown as import('@/lib/types').Tenant);
       

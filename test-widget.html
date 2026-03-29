@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webchat Widget Test Page</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; }
+        h1 { color: #333; }
+        p { color: #666; max-width: 600px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <h1>Testing Your Custom Webchat</h1>
+    <p>This is a completely independent generic HTML file acting as a test website. 
+    It embeds the vanilla JavaScript widget script exactly how a client would via unpkg or script tags, 
+    and hooks up to your active Laravel backend to initialize, send, and poll for messages!</p>
+
+    <!-- ChatFlow Widget -->
+    <script>
+      window.ChatFlowConfig = {
+        tenantId: '019d364f-f22f-719a-ad65-4679621c136d',
+        apiUrl: 'http://localhost:8000/api/functions/webchat',
+        uploadUrl: 'http://localhost:8000/api/functions/upload-chat-attachment',
+        position: 'bottom-right',
+        primaryColor: '#6366f1'
+      };
+    </script>
+    <script src="http://tenant.localhost:8080/chat-widget.js" defer></script>
+</body>
+</html>

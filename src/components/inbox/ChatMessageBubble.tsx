@@ -73,6 +73,20 @@ export function ChatMessageBubble({
     return null;
   };
 
+  const renderTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.split(urlRegex).map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline hover:opacity-80 break-all">
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
     <div
       className={cn(
@@ -98,7 +112,7 @@ export function ChatMessageBubble({
         {renderMedia()}
         {message.content && !message.content.match(/^\[(Image|File):/) && (
           <p className={cn('text-sm whitespace-pre-wrap break-words', mediaUrl && 'mt-2')}>
-            {message.content}
+            {renderTextWithLinks(message.content)}
           </p>
         )}
         <span className="text-[10px] opacity-70 mt-1 block">

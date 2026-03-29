@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeamPresence } from '@/hooks/useTeamPresence';
 import { TenantMembership, Profile } from '@/lib/types';
@@ -44,7 +44,7 @@ export function ReassignDialog({
   onReassigned,
 }: ReassignDialogProps) {
   const { t } = useTranslation();
-  const { currentTenant, user } = useAuth();
+  const { currentTenant, user, profile } = useAuth();
   const { isOnline, onlineUsers } = useTeamPresence();
   const { toast } = useToast();
 
@@ -74,80 +74,52 @@ export function ReassignDialog({
     const fetchTeamMembers = async () => {
       setIsLoading(true);
 
-      // Fetch team members - sales can only assign to other sales, admins can assign to anyone
-      const { data: currentUserMembership } = await supabase
-        .from('tenant_memberships')
-        .select('role')
-        .eq('tenant_id', currentTenant.id)
-        .eq('user_id', user?.id || '')
-        .single();
-      
-      const isSalesRole = currentUserMembership?.role === 'sales';
-      
-      // Sales users can only assign to other sales members
-      // Admins/Owners can assign to anyone (sales, admin, owner)
-      const rolesToFetch: ('sales' | 'admin' | 'owner')[] = isSalesRole 
-        ? ['sales'] 
-        : ['sales', 'admin', 'owner'];
-      
-      const { data: memberships, error: membershipError } = await supabase
-        .from('tenant_memberships')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .eq('is_active', true)
-        .in('role', rolesToFetch);
+      try {
+        const allMemberships = await api.get<TenantMembership[]>(`/tenant-memberships`);
+        const currentUserMembership = allMemberships.find(m => m.user_id === user?.id);
+        
+        const isSalesRole = currentUserMembership?.role === 'sales';
+        
+        const rolesToFetch = isSalesRole 
+          ? ['sales'] 
+          : ['sales', 'admin', 'owner'];
+        
+        const memberships = allMemberships.filter(m => m.is_active && rolesToFetch.includes(m.role as any));
 
-      if (membershipError) {
-        console.error('Error fetching memberships:', membershipError);
-        setIsLoading(false);
-        return;
+        if (!memberships || memberships.length === 0) {
+          setTeamMembers([]);
+          setPositions([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const profiles = await api.get<Profile[]>(`/profiles`);
+
+        const profileMap = new Map<string, Profile>();
+        profiles?.forEach((p) => {
+          profileMap.set(p.user_id, p as Profile);
+        });
+
+        const members: TeamMember[] = memberships
+          .filter((m) => profileMap.has(m.user_id))
+          .map((m) => ({
+            membership: m as TenantMembership,
+            profile: profileMap.get(m.user_id)!,
+          }));
+
+        setTeamMembers(members);
+
+        const uniquePositions = [
+          ...new Set(
+            memberships
+              .map((m) => m.position)
+              .filter((p): p is string => !!p && p.trim() !== '')
+          ),
+        ];
+        setPositions(uniquePositions);
+      } catch (error) {
+        console.error('Error fetching memberships:', error);
       }
-
-      if (!memberships || memberships.length === 0) {
-        setTeamMembers([]);
-        setPositions([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Fetch profiles for members
-      const userIds = memberships.map((m) => m.user_id);
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', userIds);
-
-      if (profileError) {
-        console.error('Error fetching profiles:', profileError);
-        setIsLoading(false);
-        return;
-      }
-
-      // Create a map of profiles
-      const profileMap = new Map<string, Profile>();
-      profiles?.forEach((p) => {
-        profileMap.set(p.user_id, p as Profile);
-      });
-
-      // Combine memberships with profiles
-      const members: TeamMember[] = memberships
-        .filter((m) => profileMap.has(m.user_id))
-        .map((m) => ({
-          membership: m as TenantMembership,
-          profile: profileMap.get(m.user_id)!,
-        }));
-
-      setTeamMembers(members);
-
-      // Extract unique positions
-      const uniquePositions = [
-        ...new Set(
-          memberships
-            .map((m) => m.position)
-            .filter((p): p is string => !!p && p.trim() !== '')
-        ),
-      ];
-      setPositions(uniquePositions);
       setIsLoading(false);
     };
 
@@ -202,49 +174,35 @@ export function ReassignDialog({
       // Get contact name for notification
       let contactName = 'Unknown Contact';
       if (conversationId) {
-        const { data: conv } = await supabase
-          .from('conversations')
-          .select('contact:contacts(name)')
-          .eq('id', conversationId)
-          .single();
-        contactName = (conv?.contact as { name?: string })?.name || 'Unknown Contact';
-
-        const { error } = await supabase
-          .from('conversations')
-          .update(updateData)
-          .eq('id', conversationId);
-
-        if (error) throw error;
+        const convs = await api.get<any[]>(`/conversations?id=${conversationId}`);
+        const conv = convs[0];
+        if (conv) {
+          const contacts = await api.get<any[]>(`/contacts?id=${conv.contact_id}`);
+          contactName = contacts[0]?.name || 'Unknown Contact';
+        }
+        await api.put(`/conversations/${conversationId}`, updateData);
       } else if (contactId) {
-        const { data: contact } = await supabase
-          .from('contacts')
-          .select('name')
-          .eq('id', contactId)
-          .single();
-        contactName = contact?.name || 'Unknown Contact';
+        const contacts = await api.get<any[]>(`/contacts?id=${contactId}`);
+        contactName = contacts[0]?.name || 'Unknown Contact';
 
-        const { error } = await supabase
-          .from('conversations')
-          .update(updateData)
-          .eq('contact_id', contactId);
-
-        if (error) throw error;
+        const convs = await api.get<any[]>(`/conversations?contact_id=${contactId}`);
+        if (convs[0]) {
+          await api.put(`/conversations/${convs[0].id}`, updateData);
+        }
       }
 
       const assignee = teamMembers.find((m) => m.membership.user_id === userId);
-      const assignerName = user?.user_metadata?.full_name || 'A team member';
+      const assignerName = profile?.full_name || user?.name || 'A team member';
       
       // Send push notification to the assignee (fire and forget)
-      supabase.functions.invoke('send-push-notification', {
-        body: {
-          userId,
-          title: `New contact assigned: ${contactName}`,
-          body: reassignReason.trim() 
-            ? `${assignerName}: ${reassignReason.trim()}`
-            : `${assignerName} assigned you a contact`,
-          url: '/inbox?filter=newly_assigned',
-          conversationId,
-        }
+      api.post('/functions/send-push-notification', {
+        userId,
+        title: `New contact assigned: ${contactName}`,
+        body: reassignReason.trim() 
+          ? `${assignerName}: ${reassignReason.trim()}`
+          : `${assignerName} assigned you a contact`,
+        url: '/inbox?filter=newly_assigned',
+        conversationId,
       }).catch(err => console.error('Failed to send push notification:', err));
 
       toast({
@@ -274,19 +232,12 @@ export function ReassignDialog({
 
     try {
       if (conversationId) {
-        const { error } = await supabase
-          .from('conversations')
-          .update({ assigned_to: null, status: 'open' })
-          .eq('id', conversationId);
-
-        if (error) throw error;
+        await api.put(`/conversations/${conversationId}`, { assigned_to: null, status: 'open' });
       } else if (contactId) {
-        const { error } = await supabase
-          .from('conversations')
-          .update({ assigned_to: null, status: 'open' })
-          .eq('contact_id', contactId);
-
-        if (error) throw error;
+        const convs = await api.get<any[]>(`/conversations?contact_id=${contactId}`);
+        if (convs[0]) {
+          await api.put(`/conversations/${convs[0].id}`, { assigned_to: null, status: 'open' });
+        }
       }
 
       toast({
