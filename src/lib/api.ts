@@ -1,23 +1,22 @@
 export const getTenantDomain = () => {
     const hostname = window.location.hostname;
     
-    // Ignore IP addresses
+    // Ignore IP addresses and base domains
     if (/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname)) return null;
-    if (hostname === 'localhost') return null;
+    if (hostname === 'localhost' || hostname === 'relink.app' || hostname === 'relink.ge' || hostname === 'api.relink.ge') return null;
 
-    const parts = hostname.split('.');
-    
-    // Check for subdomain (e.g., acme.relink.app or acme.localhost)
-    if (parts.length >= 2) {
-      // If it's something like acme.localhost, return acme
-      if (parts[parts.length - 1] === 'localhost') {
-        return parts.slice(0, -1).join('.');
-      }
-      // If it's acme.relink.app, return acme
-      if (parts.length >= 3) {
-        return parts.slice(0, -2).join('.');
-      }
+    if (hostname.endsWith('.relink.ge')) {
+      return hostname.replace('.relink.ge', '');
     }
+    
+    if (hostname.endsWith('.relink.app')) {
+      return hostname.replace('.relink.app', '');
+    }
+
+    if (hostname.endsWith('.localhost')) {
+       return hostname.replace('.localhost', '');
+    }
+
     return null;
 };
 
@@ -30,11 +29,14 @@ const getApiUrl = () => {
 
     try {
         const url = new URL(baseApiUrl);
-        // Prepend subdomain. Handle case where hostname might be localhost or an IP
+        // Prepend subdomain.
         if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
             url.hostname = `${tenantDomain}.localhost`;
         } else {
-            url.hostname = `${tenantDomain}.${url.hostname}`;
+            // Ensure we don't double-prepend if it's already there
+            if (!url.hostname.startsWith(`${tenantDomain}.`)) {
+                url.hostname = `${tenantDomain}.${url.hostname}`;
+            }
         }
         return url.toString().replace(/\/$/, '');
     } catch (e) {
