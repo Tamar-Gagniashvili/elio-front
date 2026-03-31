@@ -12,12 +12,12 @@ import { ChatView, ContactDetails } from '@/components/inbox/ChatView';
 import { InboxSubNav, InboxFilter } from '@/components/inbox/InboxSubNav';
 import { NotificationBanner } from '@/components/notifications/NotificationBanner';
 import { Input } from '@/components/ui/input';
-import { Search, MessageSquare } from 'lucide-react';
+import { Search, MessageSquare, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 
 function InboxContent() {
-  const { currentTenant, user, currentMembership } = useAuth();
+  const { currentTenant, user, currentMembership, loading: authLoading } = useAuth();
   const { collapsed: sidebarCollapsed } = useSidebarState();
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
   
@@ -46,8 +46,8 @@ function InboxContent() {
     tenantId: currentTenant?.id,
   });
 
-  // Combined loading: wait for both conversations AND contact-link groups
-  const isDataLoading = isLoading || linksLoading;
+  // Combined loading: wait for auth, conversations AND contact-link groups
+  const isDataLoading = authLoading || isLoading || linksLoading;
 
   // Get all contact IDs from conversations for status fetching
   const allContactIds = conversations.map(c => c.contact_id).filter(Boolean);
@@ -548,6 +548,17 @@ function InboxContent() {
   const reassignerName = selectedConversation?.reassigned_by 
     ? reassignerProfiles[selectedConversation.reassigned_by]?.full_name 
     : undefined;
+
+  if (isDataLoading) {
+    return (
+      <div className="flex h-full items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground animate-pulse">Loading your inbox...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full">

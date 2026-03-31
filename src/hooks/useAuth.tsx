@@ -92,7 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Handle Subdomain-based Tenant selection
       if (tenantDomain) {
         // Find the membership for this specific subdomain
-        const resolvedMembership = typedMemberships.find(m => m.tenant?.domain === `${tenantDomain}.localhost` || m.tenant?.domain === tenantDomain);
+        const resolvedMembership = typedMemberships.find(m => 
+          m.tenant?.domain === tenantDomain || 
+          m.tenant?.slug === tenantDomain || 
+          m.tenant?.domain === `${tenantDomain}.localhost`
+        );
         
         if (resolvedMembership) {
           setCurrentTenant(resolvedMembership.tenant || null);
