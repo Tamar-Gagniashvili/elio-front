@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { Contact, ChannelType } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Avatar } from '@/components/Avatar';
@@ -67,68 +67,117 @@ export default function Contacts() {
   const fetchData = async () => {
     if (!currentTenant || !user) return;
     
-    try {
-      let allowedContactIds: string[] | null = null;
-      if (!isAdmin) {
-        const assignedConversations = await api.get<any[]>(`/conversations?assigned_to=${user.id}`);
-        allowedContactIds = assignedConversations.map(c => c.contact_id);
+    // For sales users, first get their assigned contact IDs
+    let allowedContactIds: string[] | null = null;
+    
+    if (!isAdmin) {
+      const { data: assignedConversations } = await supabase
+        .from('conversations')
+        .select('contact_id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('assigned_to', user.id);
       
-        if (allowedContactIds.length === 0) {
-          setContacts([]);
-          setLinkGroups(new Map());
-          setContactStatuses(new Map());
-          setIsLoading(false);
-          return;
-        }
+      allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
+      
+      // If sales user has no assigned contacts, set empty and return early
+      if (allowedContactIds.length === 0) {
+        setContacts([]);
+        setLinkGroups(new Map());
+        setContactStatuses(new Map());
+        setIsLoading(false);
+        return;
       }
+    }
 
-      let allContacts = await api.get<Contact[]>(`/contacts`);
-      if (allowedContactIds !== null) {
-        allContacts = allContacts.filter(c => allowedContactIds?.includes(c.id));
-      }
-      allContacts.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    // Fetch ALL contacts first to count offline ones
+    let contactsQuery = supabase
+      .from('contacts')
+      .select('*')
+      .eq('tenant_id', currentTenant.id)
+      .order('created_at', { ascending: false });
+    
+    if (allowedContactIds !== null) {
+      contactsQuery = contactsQuery.in('id', allowedContactIds);
+    }
 
+    const { data: contactsData, error: contactsError } = await contactsQuery;
+
+    if (contactsError) {
+      console.error('Error fetching contacts:', contactsError);
+    } else {
+      const allContacts = contactsData as Contact[];
+      // Count offline contacts
       const offlineContacts = allContacts.filter(c => c.channel_type === 'offline');
       setOfflineCount(offlineContacts.length);
+      // Only show online contacts in this tab
       const onlineContacts = allContacts.filter(c => c.channel_type !== 'offline');
       setContacts(onlineContacts);
+    }
 
-      const links = await api.get<any[]>(`/contact-links`);
-      const groupIds = Array.from(new Set(links.map(l => l.link_group_id)));
-      const groupsData = await Promise.all(groupIds.map((id: any) => api.get<any>(`/contact-link-groups/${id}`).catch(()=>null)));
+    // Fetch link groups
+    const { data: links } = await supabase
+      .from('contact_links')
+      .select(`
+        contact_id,
+        link_group_id,
+        contact_link_groups:link_group_id (
+          id,
+          display_name
+        )
+      `)
+      .eq('tenant_id', currentTenant.id);
 
-      const groupMap = new Map<string, { groupId: string; displayName?: string }>();
+    const groupMap = new Map<string, { groupId: string; displayName?: string }>();
+    
+    if (links) {
       for (const link of links) {
-        const group = groupsData.find(g => g && g.id === link.link_group_id);
+        const group = link.contact_link_groups as unknown as { id: string; display_name?: string } | null;
         groupMap.set(link.contact_id, {
           groupId: link.link_group_id,
           displayName: group?.display_name || undefined,
         });
       }
-      setLinkGroups(groupMap);
+    }
+    
+    setLinkGroups(groupMap);
 
-      const statusesData = await api.get<LeadStatus[]>(`/lead-statuses`);
-      statusesData.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      setAvailableStatuses(statusesData);
+    // Fetch available statuses
+    const { data: statusesData } = await supabase
+      .from('lead_statuses')
+      .select('id, name, color')
+      .eq('tenant_id', currentTenant.id)
+      .order('created_at');
 
-      const contactStatusData = await api.get<any[]>(`/contact-statuses`);
-      const statusMap = new Map<string, LeadStatus[]>();
-      
+    setAvailableStatuses(statusesData || []);
+
+    // Fetch contact statuses
+    const { data: contactStatusData } = await supabase
+      .from('contact_statuses')
+      .select(`
+        contact_id,
+        lead_statuses:status_id (
+          id,
+          name,
+          color
+        )
+      `)
+      .eq('tenant_id', currentTenant.id);
+
+    const statusMap = new Map<string, LeadStatus[]>();
+    
+    if (contactStatusData) {
       for (const cs of contactStatusData) {
-        const status = statusesData.find(s => s.id === cs.status_id);
+        const status = cs.lead_statuses as unknown as LeadStatus | null;
         if (status) {
           const existing = statusMap.get(cs.contact_id) || [];
           existing.push(status);
           statusMap.set(cs.contact_id, existing);
         }
       }
-      setContactStatuses(statusMap);
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setIsLoading(false);
     }
+    
+    setContactStatuses(statusMap);
+    setIsLoading(false);
   };
 
   useEffect(() => {

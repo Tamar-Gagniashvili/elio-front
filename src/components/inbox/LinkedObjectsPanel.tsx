@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { LinkedObject } from '@/hooks/useConversationObjects';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -99,21 +99,21 @@ export function LinkedObjectsPanel({
     if (objectTypeIds.length === 0) return;
 
     const fetchFields = async () => {
-      try {
-        const data = await api.get<any[]>('/object-type-fields');
-        const filtered = data.filter(f => objectTypeIds.includes(f.object_type_id));
-        filtered.sort((a,b) => a.display_order - b.display_order);
+      const { data } = await supabase
+        .from('object_type_fields')
+        .select('name, label, field_type, object_type_id')
+        .in('object_type_id', objectTypeIds)
+        .order('display_order');
 
+      if (data) {
         const grouped: Record<string, FieldDef[]> = {};
-        filtered.forEach((f: any) => {
+        data.forEach((f: any) => {
           if (f.field_type !== 'relation' && f.field_type !== 'object') {
             if (!grouped[f.object_type_id]) grouped[f.object_type_id] = [];
             grouped[f.object_type_id].push({ name: f.name, label: f.label, field_type: f.field_type });
           }
         });
         setFieldsByType(grouped);
-      } catch (e) {
-        console.error(e);
       }
     };
 

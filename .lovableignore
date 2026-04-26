@@ -1,0 +1,10 @@
+# Lovable Ignore
+# Add files here that you don't want Lovable's AI to edit or overwrite.
+
+# Custom Assets
+src/assets/relink-logo.png
+src/assets/relink-logo-3d.png
+
+# Core Integration
+src/lib/api.ts
+.env

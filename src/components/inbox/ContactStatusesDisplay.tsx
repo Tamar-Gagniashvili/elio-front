@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { useLinkedContacts } from '@/hooks/useLinkedContacts';
 import { Badge } from '@/components/ui/badge';
 import { Tag, Link2 } from 'lucide-react';
@@ -31,27 +31,28 @@ export function ContactStatusesDisplay({ contactId, tenantId }: ContactStatusesD
   const fetchContactStatuses = async () => {
     setIsLoading(true);
     
-    try {
-      const contactStatusData = await api.get<any[]>(`/contact-statuses`);
-      const filteredCs = contactStatusData.filter(cs => linkedContactIds.includes(cs.contact_id));
+    // Get status IDs assigned to ALL linked contacts
+    const { data: contactStatusData } = await supabase
+      .from('contact_statuses')
+      .select('status_id')
+      .in('contact_id', linkedContactIds);
 
-      if (filteredCs.length === 0) {
-        setStatuses([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const uniqueStatusIds = [...new Set(filteredCs.map(cs => cs.status_id))];
-
-      const statusData = await api.get<LeadStatus[]>(`/lead-statuses`);
-      const filteredStatuses = statusData.filter(s => uniqueStatusIds.includes(s.id));
-
-      setStatuses(filteredStatuses);
-    } catch (e) {
-      console.error(e);
+    if (!contactStatusData || contactStatusData.length === 0) {
       setStatuses([]);
+      setIsLoading(false);
+      return;
     }
-    
+
+    // Get unique status IDs
+    const uniqueStatusIds = [...new Set(contactStatusData.map(cs => cs.status_id))];
+
+    // Fetch the status details
+    const { data: statusData } = await supabase
+      .from('lead_statuses')
+      .select('id, name, color')
+      .in('id', uniqueStatusIds);
+
+    setStatuses(statusData || []);
     setIsLoading(false);
   };
 

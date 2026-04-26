@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLinkedContacts } from '@/hooks/useLinkedContacts';
 import { Contact } from '@/lib/types';
@@ -58,25 +58,27 @@ export function ManageStatusDialog({
     
     setIsLoading(true);
     
-    try {
-      const statusesData = await api.get<LeadStatus[]>(`/lead-statuses`);
-      statusesData.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    // Fetch available statuses
+    const { data: statusesData } = await supabase
+      .from('lead_statuses')
+      .select('id, name, color, icon')
+      .eq('tenant_id', currentTenant.id)
+      .order('created_at');
 
-      const assignedDataRaw = await api.get<any[]>(`/contact-statuses`);
-      const assignedData = assignedDataRaw.filter(cs => linkedContactIds.includes(cs.contact_id));
+    // Fetch assigned statuses for ALL linked contacts
+    const { data: assignedData } = await supabase
+      .from('contact_statuses')
+      .select('status_id')
+      .in('contact_id', linkedContactIds);
 
-      setAvailableStatuses(statusesData);
-      
-      const assignedIds = new Set<string>();
-      assignedData.forEach((cs) => {
-        assignedIds.add(cs.status_id);
-      });
-      
-      setAssignedStatusIds(assignedIds);
-    } catch(e) {
-      console.error(e);
-    }
+    setAvailableStatuses(statusesData || []);
     
+    const assignedIds = new Set<string>();
+    (assignedData || []).forEach((cs) => {
+      assignedIds.add(cs.status_id);
+    });
+    
+    setAssignedStatusIds(assignedIds);
     setIsLoading(false);
   };
 
@@ -88,43 +90,49 @@ export function ManageStatusDialog({
     const isAssigned = assignedStatusIds.has(statusId);
     
     if (isAssigned) {
-      try {
-        const assignedDataRaw = await api.get<any[]>(`/contact-statuses`);
-        const toDelete = assignedDataRaw.filter(cs => cs.status_id === statusId && linkedContactIds.includes(cs.contact_id));
-        
-        await Promise.all(toDelete.map(cs => api.delete(`/contact-statuses/${cs.id}`)));
+      // Remove status from ALL linked contacts
+      const { error } = await supabase
+        .from('contact_statuses')
+        .delete()
+        .eq('status_id', statusId)
+        .in('contact_id', linkedContactIds);
 
-        const newAssigned = new Set(assignedStatusIds);
-        newAssigned.delete(statusId);
-        setAssignedStatusIds(newAssigned);
-        onStatusesChanged?.();
-      } catch (error) {
+      if (error) {
         toast({
           title: 'Error',
           description: 'Failed to remove status',
           variant: 'destructive',
         });
-      }
-    } else {
-      try {
-        await Promise.all(linkedContactIds.map(contactId => 
-          api.post('/contact-statuses', {
-            contact_id: contactId,
-            status_id: statusId,
-            created_by: user.id,
-          })
-        ));
-
+      } else {
         const newAssigned = new Set(assignedStatusIds);
-        newAssigned.add(statusId);
+        newAssigned.delete(statusId);
         setAssignedStatusIds(newAssigned);
         onStatusesChanged?.();
-      } catch (error) {
+      }
+    } else {
+      // Add status to ALL linked contacts
+      const inserts = linkedContactIds.map(contactId => ({
+        tenant_id: currentTenant.id,
+        contact_id: contactId,
+        status_id: statusId,
+        created_by: user.id,
+      }));
+
+      const { error } = await supabase
+        .from('contact_statuses')
+        .upsert(inserts, { onConflict: 'contact_id,status_id' });
+
+      if (error) {
         toast({
           title: 'Error',
           description: 'Failed to add status',
           variant: 'destructive',
         });
+      } else {
+        const newAssigned = new Set(assignedStatusIds);
+        newAssigned.add(statusId);
+        setAssignedStatusIds(newAssigned);
+        onStatusesChanged?.();
       }
     }
     

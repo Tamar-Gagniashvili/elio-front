@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { Channel, ChannelType, CHANNEL_CONFIG } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ChannelBadge } from '@/components/ChannelBadge';
@@ -35,11 +35,16 @@ export default function Channels() {
       setEnabledChannelTypes(enabledTypes);
 
       // Fetch existing channel configurations
-      try {
-        const data = await api.get<Channel[]>(`/channels`);
-        setChannels(data);
-      } catch (error) {
+      const { data, error } = await supabase
+        .from('channels')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
         console.error('Error fetching channels:', error);
+      } else {
+        setChannels(data as Channel[]);
       }
       setIsLoading(false);
     };
@@ -70,16 +75,19 @@ export default function Channels() {
     
     // If channel doesn't exist, create it first
     if (!channel) {
-      try {
-        const data = await api.post<Channel>('/channels', {
+      const { data, error } = await supabase
+        .from('channels')
+        .insert({
+          tenant_id: currentTenant.id,
           channel_type: type,
           name: CHANNEL_CONFIG[type].label,
           is_active: false,
           config: {},
-        });
-        channel = data;
-        setChannels((prev) => [channel!, ...prev]);
-      } catch (error) {
+        })
+        .select()
+        .single();
+
+      if (error) {
         toast({
           title: t('common.error'),
           description: t('channels.failedToCreate'),
@@ -87,6 +95,8 @@ export default function Channels() {
         });
         return;
       }
+      channel = data as Channel;
+      setChannels((prev) => [channel!, ...prev]);
     }
 
     setSelectedChannel(channel);
@@ -100,7 +110,7 @@ export default function Channels() {
     
     try {
       // Encrypt sensitive credentials before saving
-      const { data: encryptResult, error: encryptError } = await api.invoke<any>(
+      const { data: encryptResult, error: encryptError } = await supabase.functions.invoke(
         'encrypt-channel-config',
         {
           body: {
@@ -125,8 +135,18 @@ export default function Channels() {
 
       const encryptedConfig = encryptResult?.config || config;
 
-      try {
-        await api.put(`/channels/${selectedChannel.id}`, { config: encryptedConfig });
+      const { error } = await supabase
+        .from('channels')
+        .update({ config: encryptedConfig })
+        .eq('id', selectedChannel.id);
+
+      if (error) {
+        toast({
+          title: t('common.error'),
+          description: t('channels.failedToSave'),
+          variant: 'destructive',
+        });
+      } else {
         setChannels((prev) =>
           prev.map((c) =>
             c.id === selectedChannel.id ? { ...c, config: encryptedConfig } : c
@@ -137,12 +157,6 @@ export default function Channels() {
           description: t('channels.configSavedDesc', { channel: CHANNEL_CONFIG[selectedChannel.channel_type].label }),
         });
         setConfigDialogOpen(false);
-      } catch (error) {
-        toast({
-          title: t('common.error'),
-          description: t('channels.failedToSave'),
-          variant: 'destructive',
-        });
       }
     } catch (err) {
       console.error('Save error:', err);
@@ -168,19 +182,23 @@ export default function Channels() {
       return;
     }
 
-    try {
-      await api.put(`/channels/${channel.id}`, { is_active: !channel.is_active });
-      setChannels((prev) =>
-        prev.map((c) =>
-          c.id === channel.id ? { ...c, is_active: !c.is_active } : c
-        )
-      );
-    } catch (error) {
+    const { error } = await supabase
+      .from('channels')
+      .update({ is_active: !channel.is_active })
+      .eq('id', channel.id);
+
+    if (error) {
       toast({
         title: t('common.error'),
         description: t('channels.failedToUpdate'),
         variant: 'destructive',
       });
+    } else {
+      setChannels((prev) =>
+        prev.map((c) =>
+          c.id === channel.id ? { ...c, is_active: !c.is_active } : c
+        )
+      );
     }
   };
 

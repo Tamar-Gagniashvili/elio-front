@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Plus, GripVertical, Pencil, Trash2, Zap, GitBranch, Play } from 'lucide-react';
 import { RuleEditor } from '@/components/rules/RuleEditor';
@@ -55,29 +55,36 @@ export default function Rules() {
     if (!currentTenant) return;
 
     setLoading(true);
-    try {
-      const data = await api.get<any[]>(`/routing-rules`);
-      data.sort((a, b) => a.priority - b.priority);
+    const { data, error } = await supabase
+      .from('routing_rules')
+      .select('*')
+      .eq('tenant_id', currentTenant.id)
+      .order('priority', { ascending: true });
 
+    if (error) {
+      toast({ title: t('rules.errorUpdating'), description: error.message, variant: 'destructive' });
+    } else {
       const typedRules: RoutingRule[] = (data || []).map((rule) => ({
         ...rule,
-        conditions: typeof rule.conditions === 'string' ? JSON.parse(rule.conditions) : rule.conditions,
-        actions: typeof rule.actions === 'string' ? JSON.parse(rule.actions) : rule.actions,
+        conditions: rule.conditions as unknown as ConditionGroup,
+        actions: rule.actions as unknown as ActionsGroup,
       }));
       setRules(typedRules);
-    } catch (error: any) {
-      toast({ title: t('rules.errorUpdating'), description: error.message, variant: 'destructive' });
     }
     setLoading(false);
   };
 
   const handleToggleActive = async (rule: RoutingRule) => {
-    try {
-      await api.put(`/routing-rules/${rule.id}`, { is_active: !rule.is_active });
+    const { error } = await supabase
+      .from('routing_rules')
+      .update({ is_active: !rule.is_active })
+      .eq('id', rule.id);
+
+    if (error) {
+      toast({ title: t('errors.failedToUpdate'), description: error.message, variant: 'destructive' });
+    } else {
       setRules(rules.map(r => r.id === rule.id ? { ...r, is_active: !r.is_active } : r));
       toast({ title: rule.is_active ? t('rules.ruleDisabled') : t('rules.ruleEnabled') });
-    } catch (error: any) {
-      toast({ title: t('errors.failedToUpdate'), description: error.message, variant: 'destructive' });
     }
   };
 
@@ -99,12 +106,16 @@ export default function Rules() {
   const handleDeleteConfirm = async () => {
     if (!ruleToDelete) return;
 
-    try {
-      await api.delete(`/routing-rules/${ruleToDelete.id}`);
+    const { error } = await supabase
+      .from('routing_rules')
+      .delete()
+      .eq('id', ruleToDelete.id);
+
+    if (error) {
+      toast({ title: t('errors.failedToDelete'), description: error.message, variant: 'destructive' });
+    } else {
       setRules(rules.filter(r => r.id !== ruleToDelete.id));
       toast({ title: t('success.deleted') });
-    } catch (error: any) {
-      toast({ title: t('errors.failedToDelete'), description: error.message, variant: 'destructive' });
     }
     setDeleteDialogOpen(false);
     setRuleToDelete(null);

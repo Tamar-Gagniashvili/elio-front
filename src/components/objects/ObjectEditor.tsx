@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { ObjectType, ObjectTypeField, ObjectStatus, BusinessObject } from '@/lib/objectTypes';
 import {
   Dialog,
@@ -103,6 +103,7 @@ export function ObjectEditor({
     setSaving(true);
     try {
       const objectData = {
+        tenant_id: currentTenant.id,
         object_type_id: objectType.id,
         display_name: displayName.trim(),
         status_id: statusId || defaultStatus?.id || null,
@@ -111,9 +112,16 @@ export function ObjectEditor({
       };
 
       if (isEditing) {
-        await api.put(`/relink-objects/${object.id}`, objectData);
+        const { error } = await supabase
+          .from('objects')
+          .update(objectData as any)
+          .eq('id', object.id);
+
+        if (error) throw error;
       } else {
-        await api.post(`/relink-objects`, objectData);
+        const { error } = await supabase.from('objects').insert(objectData as any);
+
+        if (error) throw error;
       }
 
       toast({

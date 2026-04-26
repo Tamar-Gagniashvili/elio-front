@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { LeadStatus, Conversation } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { cn } from '@/lib/utils';
@@ -57,12 +57,14 @@ export function InboxSubNav({
     if (!tenantId) return;
 
     const fetchStatuses = async () => {
-      try {
-        const data = await api.get<LeadStatus[]>(`/lead-statuses`);
-        data.sort((a,b) => a.name.localeCompare(b.name));
-        setStatuses(data);
-      } catch (e) {
-        console.error('Error fetching lead statuses', e);
+      const { data, error } = await supabase
+        .from('lead_statuses')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('name');
+
+      if (!error && data) {
+        setStatuses(data as LeadStatus[]);
       }
     };
 
@@ -94,17 +96,23 @@ export function InboxSubNav({
         return;
       }
 
-      try {
-        const contactStatusData = await api.get<any[]>(`/contact-statuses`);
-        const filteredCs = contactStatusData.filter(cs => allContactIds.has(cs.contact_id));
+      // Fetch contact statuses for all contacts
+      const { data: contactStatusData } = await supabase
+        .from('contact_statuses')
+        .select('contact_id, status_id')
+        .eq('tenant_id', tenantId)
+        .in('contact_id', Array.from(allContactIds));
 
-        const contactStatusMap = new Map<string, Set<string>>();
-        for (const cs of filteredCs) {
+      // Create a map of contact_id -> Set of status_ids
+      const contactStatusMap = new Map<string, Set<string>>();
+      if (contactStatusData) {
+        for (const cs of contactStatusData) {
           if (!contactStatusMap.has(cs.contact_id)) {
             contactStatusMap.set(cs.contact_id, new Set());
           }
           contactStatusMap.get(cs.contact_id)!.add(cs.status_id);
         }
+      }
 
       // Count grouped conversations (treating linked contacts as 1)
       for (const status of statuses) {
@@ -126,29 +134,36 @@ export function InboxSubNav({
       }
 
       setStatusCounts(counts);
-      } catch (e) {
-        console.error('Error fetching status counts', e);
-      }
     };
 
     fetchStatusCounts();
   }, [tenantId, statuses, groupedConversations, statusCountsTrigger]);
 
+  // Separate effect for realtime subscription
   useEffect(() => {
-    const echo = (window as any).Echo;
-    if (!tenantId || !echo) return;
+    if (!tenantId) return;
 
-    const channelName = `tenant.${tenantId}`;
-    const channel = echo.private(channelName);
-    
-    channel.listen('.ContactStatusUpdated', () => {
-      setTimeout(() => {
-        setStatusCountsTrigger(prev => prev + 1);
-      }, 100);
-    });
+    const channel = supabase
+      .channel(`subnav-contact-statuses-${tenantId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_statuses',
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        () => {
+          // Add small delay to ensure DB change is fully propagated
+          setTimeout(() => {
+            setStatusCountsTrigger(prev => prev + 1);
+          }, 100);
+        }
+      )
+      .subscribe();
 
     return () => {
-      echo?.leaveChannel(channelName);
+      supabase.removeChannel(channel);
     };
   }, [tenantId]);
 

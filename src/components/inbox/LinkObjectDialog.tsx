@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -150,17 +150,16 @@ export function LinkObjectDialog({
     if (!open || !tenantId) return;
 
     const fetchTypes = async () => {
-      try {
-        const data = await api.get<ObjectType[]>(`/object-types`);
-        const activeTypes = data.filter(t => !t.is_archived);
-        activeTypes.sort((a,b) => a.name.localeCompare(b.name));
+      const { data } = await supabase
+        .from('object_types')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('is_archived', false)
+        .order('name');
 
-        setObjectTypes(activeTypes);
-        if (activeTypes.length > 0 && !selectedTypeId) {
-          setSelectedTypeId(activeTypes[0].id);
-        }
-      } catch (e) {
-        console.error(e);
+      setObjectTypes(data || []);
+      if (data && data.length > 0 && !selectedTypeId) {
+        setSelectedTypeId(data[0].id);
       }
     };
 
@@ -180,25 +179,32 @@ export function LinkObjectDialog({
       setLoading(true);
       try {
         const [objectsRes, fieldsRes, statusesRes] = await Promise.all([
-          api.get<any[]>(`/relink-objects?object_type_id=${selectedTypeId}`),
-          api.get<any[]>(`/object-type-fields?object_type_id=${selectedTypeId}`),
-          api.get<any[]>(`/object-statuses?object_type_id=${selectedTypeId}`),
+          supabase
+            .from('objects')
+            .select('*, object_statuses(*)')
+            .eq('tenant_id', tenantId)
+            .eq('object_type_id', selectedTypeId)
+            .eq('is_archived', false)
+            .order('display_name'),
+          supabase
+            .from('object_type_fields')
+            .select('*')
+            .eq('object_type_id', selectedTypeId)
+            .order('display_order'),
+          supabase
+            .from('object_statuses')
+            .select('*')
+            .eq('object_type_id', selectedTypeId)
+            .order('display_order'),
         ]);
 
-        const activeObjects = objectsRes.filter(o => !o.is_archived);
-        activeObjects.sort((a,b) => a.display_name.localeCompare(b.display_name));
-        
-        statusesRes.sort((a,b) => a.display_order - b.display_order);
-
-        const mapped = activeObjects.map((obj: any) => ({
+        const mapped = (objectsRes.data || []).map((obj: any) => ({
           ...obj,
-          status: statusesRes.find(s => s.id === obj.status_id)
+          status: obj.object_statuses,
         }));
         setObjects(mapped);
-        setStatuses(statusesRes || []);
-        
-        fieldsRes.sort((a,b) => a.display_order - b.display_order);
-        setFields(fieldsRes as ObjectTypeField[]);
+        setStatuses(statusesRes.data || []);
+        setFields((fieldsRes.data || []) as ObjectTypeField[]);
       } finally {
         setLoading(false);
       }
@@ -226,24 +232,35 @@ export function LinkObjectDialog({
         const relatedTypeId = config.related_object_type_id;
         if (!relatedTypeId) continue;
         
+        // Fetch the related object, its type, fields, and status
         const [objRes, typeRes, fieldsRes] = await Promise.all([
-          api.get<any>(`/relink-objects/${relatedObjectId}`),
-          api.get<any>(`/object-types/${relatedTypeId}`),
-          api.get<any[]>(`/object-type-fields?object_type_id=${relatedTypeId}`),
+          supabase
+            .from('objects')
+            .select('*, object_statuses(*)')
+            .eq('id', relatedObjectId)
+            .single(),
+          supabase
+            .from('object_types')
+            .select('*')
+            .eq('id', relatedTypeId)
+            .single(),
+          supabase
+            .from('object_type_fields')
+            .select('*')
+            .eq('object_type_id', relatedTypeId)
+            .order('display_order'),
         ]);
         
-        const statusRes = objRes.status_id ? await api.get<any>(`/object-statuses/${objRes.status_id}`) : undefined;
-        
-        if (objRes && typeRes) {
-          const objData = objRes;
+        if (objRes.data && typeRes.data) {
+          const objData = objRes.data as any;
           const relatedItem = {
             object: { 
               ...objData, 
               metadata: (objData.metadata || {}) as Record<string, unknown>,
-              status: statusRes 
+              status: objData.object_statuses 
             },
-            objectType: typeRes as ObjectType,
-            fields: (fieldsRes || []).sort((a: any, b: any) => a.display_order - b.display_order) as ObjectTypeField[],
+            objectType: typeRes.data as ObjectType,
+            fields: (fieldsRes.data || []) as ObjectTypeField[],
             relationLabel: field.label,
           };
           related.push(relatedItem);

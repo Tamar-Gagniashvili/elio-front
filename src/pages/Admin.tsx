@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSuperAdmin } from '@/hooks/useSuperAdmin';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { Tenant, TenantMembership, Profile, ChannelType, ALL_CHANNELS, CHANNEL_CONFIG } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Building2, Users, DollarSign, LogOut, Settings, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Plus, Building2, Users, DollarSign, LogOut, Settings, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTenantDialog } from '@/components/admin/CreateTenantDialog';
 import { TenantDetailsDialog } from '@/components/admin/TenantDetailsDialog';
@@ -43,34 +43,41 @@ export default function Admin() {
 
   const fetchTenants = async () => {
     setIsLoading(true);
-    try {
-      const data = await api.get<Tenant[]>('/tenants');
-      setTenants(data);
-    } catch (error) {
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
       console.error('Error fetching tenants:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch tenants',
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
+    } else {
+      setTenants((data || []) as Tenant[]);
     }
+    setIsLoading(false);
   };
 
   const handleToggleTenantStatus = async (tenant: Tenant) => {
-    try {
-      await api.put(`/tenants/${tenant.id}`, { is_active: !tenant.is_active });
-      fetchTenants();
-      toast({
-        title: 'Success',
-        description: `Tenant ${tenant.is_active ? 'deactivated' : 'activated'}`,
-      });
-    } catch (error) {
+    const { error } = await supabase
+      .from('tenants')
+      .update({ is_active: !tenant.is_active })
+      .eq('id', tenant.id);
+
+    if (error) {
       toast({
         title: 'Error',
         description: 'Failed to update tenant status',
         variant: 'destructive',
+      });
+    } else {
+      fetchTenants();
+      toast({
+        title: 'Success',
+        description: `Tenant ${tenant.is_active ? 'deactivated' : 'activated'}`,
       });
     }
   };
@@ -119,9 +126,9 @@ export default function Admin() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{Array.isArray(tenants) ? tenants.length : 0}</div>
+              <div className="text-2xl font-bold">{tenants.length}</div>
               <p className="text-xs text-muted-foreground">
-                {Array.isArray(tenants) ? tenants.filter(t => t.is_active !== false).length : 0} active
+                {tenants.filter(t => t.is_active !== false).length} active
               </p>
             </CardContent>
           </Card>
@@ -132,7 +139,7 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${Array.isArray(tenants) ? tenants.reduce((sum, t) => sum + (Number(t.pricing_monthly) || 0), 0).toFixed(2) : '0.00'}
+                ${tenants.reduce((sum, t) => sum + (t.pricing_monthly || 0), 0).toFixed(2)}
               </div>
               <p className="text-xs text-muted-foreground">From all active tenants</p>
             </CardContent>
@@ -172,7 +179,7 @@ export default function Admin() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Array.isArray(tenants) && tenants.map((tenant) => (
+            {tenants.map((tenant) => (
               <Card 
                 key={tenant.id} 
                 className={`cursor-pointer hover:shadow-md transition-shadow ${!tenant.is_active ? 'opacity-60' : ''}`}
@@ -215,12 +222,12 @@ export default function Admin() {
                     >
                       {tenant.is_active !== false ? (
                         <>
-                          <EyeOff className="h-4 w-4 mr-2" />
+                          <ToggleRight className="h-4 w-4 mr-2" />
                           Deactivate
                         </>
                       ) : (
                         <>
-                          <Eye className="h-4 w-4 mr-2" />
+                          <ToggleLeft className="h-4 w-4 mr-2" />
                           Activate
                         </>
                       )}

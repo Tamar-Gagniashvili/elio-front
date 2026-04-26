@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 interface DynamicFieldInputProps {
@@ -31,11 +31,15 @@ export function DynamicFieldInput({ field, value, onChange }: DynamicFieldInputP
   useEffect(() => {
     if (field.field_type === 'object' && field.field_config?.related_object_type_id && currentTenant?.id) {
       setLoadingObjects(true);
-      api.get<any[]>(`/relink-objects`)
-        .then((data) => {
-          const filtered = data.filter(o => o.object_type_id === field.field_config.related_object_type_id && !o.is_archived);
-          filtered.sort((a,b) => String(a.display_name).localeCompare(String(b.display_name)));
-          setRelatedObjects(filtered);
+      supabase
+        .from('objects')
+        .select('id, display_name')
+        .eq('tenant_id', currentTenant.id)
+        .eq('object_type_id', field.field_config.related_object_type_id)
+        .eq('is_archived', false)
+        .order('display_name')
+        .then(({ data }) => {
+          setRelatedObjects((data || []) as BusinessObject[]);
           setLoadingObjects(false);
         });
     }

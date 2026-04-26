@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import relinkLogo from '@/assets/relink-logo.png';
+import relinkLogo from '@/assets/logo.png';
 
 export default function LandingHeader() {
   return (

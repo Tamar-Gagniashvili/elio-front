@@ -1,45 +1,33 @@
-import { useRef, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Mail } from 'lucide-react';
-import Starfield from '@/components/landing/Starfield';
-import relinkLogo from '@/assets/relink-logo-3d.png';
+import relinkLogo from '@/assets/logo.png';
 import cosmonautHolding from '@/assets/landing/cosmonaut-holding.png';
 
 export default function Scene5CTA() {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start end', 'end end'],
-  });
-
-  const opacity = useTransform(scrollYProgress, [0, 0.3], [0, 1]);
-  const y = useTransform(scrollYProgress, [0, 0.3], [60, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.4], [0.95, 1]);
-
-  // Cosmonaut flies in from right
-  const cosmonautX = useTransform(scrollYProgress, [0.1, 0.5], [300, 0]);
-  const cosmonautOpacity = useTransform(scrollYProgress, [0.1, 0.35], [0, 1]);
-  const cosmonautRotate = useTransform(scrollYProgress, [0.1, 0.5], [-20, 5]);
+  const isInView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
-    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden">
-
+    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden z-10">
       <motion.div
         className="container max-w-screen-xl relative z-10"
-        style={{ opacity, y, scale }}
+        initial={{ opacity: 0, y: 40 }}
+        animate={isInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.7 }}
       >
         <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-6">
-          {/* Left: Text + Get Started */}
           <div className="flex-1 text-center lg:text-left">
             <h2 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none" style={{ color: '#f0f0f0' }}>
-              READY TO{' '}
-              <span style={{ color: '#99FFCC' }}>LINK</span>{' '}
-              IT ALL?
+              {t('landing.ctaTitle')}{' '}
+              <span style={{ color: '#99FFCC' }}>{t('landing.ctaTitleHighlight')}</span>{' '}
+              {t('landing.ctaTitleEnd')}
             </h2>
             <p className="mt-4 md:mt-5 text-base md:text-xl max-w-md font-light mx-auto lg:mx-0" style={{ color: '#666' }}>
-              Start managing conversations, objects, and teams in one unified platform.
+              {t('landing.ctaDesc')}
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row items-center lg:items-start gap-4">
@@ -47,34 +35,19 @@ export default function Scene5CTA() {
                 to="/auth"
                 className="inline-flex items-center gap-2 h-12 md:h-14 px-8 md:px-10 text-base md:text-lg font-bold rounded-full transition-all duration-200 hover:scale-105"
                 style={{ background: '#99FFCC', color: '#0a0a0a' }}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
               >
-                Get Started Free
+                {t('landing.getStartedFree')}
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </div>
 
-            <div className="mt-10 flex items-center gap-6 text-sm justify-center lg:justify-start" style={{ color: '#555' }}>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full" style={{ background: '#99FFCC' }} />
-                <span>No credit card required</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full" style={{ background: '#99FFCC' }} />
-                <span>5-minute setup</span>
-              </div>
-            </div>
           </div>
 
-          {/* Right: Cosmonaut holding Contact Us */}
           <motion.div
             className="relative flex-shrink-0 flex flex-col items-center"
-            style={{
-              x: cosmonautX,
-              opacity: cosmonautOpacity,
-              rotate: cosmonautRotate,
-            }}
+            initial={{ opacity: 0, x: 60 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.8, delay: 0.3 }}
           >
             <motion.img
               src={cosmonautHolding}
@@ -87,7 +60,6 @@ export default function Scene5CTA() {
                 maskImage: 'radial-gradient(ellipse 70% 70% at 50% 45%, black 40%, transparent 75%)',
               }}
             />
-            {/* Contact Us button between the cosmonaut's hands */}
             <motion.a
               href="mailto:contact@relink.io"
               className="absolute inline-flex items-center gap-2 h-11 md:h-14 px-6 md:px-10 text-sm md:text-lg font-bold rounded-full transition-colors duration-200 hover:scale-105"
@@ -102,13 +74,12 @@ export default function Scene5CTA() {
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             >
               <Mail className="h-5 w-5" />
-              Contact Us
+              {t('landing.contactUs')}
             </motion.a>
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Footer */}
       <div className="container max-w-screen-xl mt-24 pt-8" style={{ borderTop: '1px solid #1e1e1e' }}>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -116,11 +87,11 @@ export default function Scene5CTA() {
             <span className="font-bold" style={{ color: '#e0e0e0' }}>ReLink</span>
           </div>
           <div className="flex items-center gap-6 text-sm" style={{ color: '#555' }}>
-            <Link to="/auth" className="hover:text-[#99FFCC] transition-colors">Login</Link>
-            <a href="mailto:contact@relink.io" className="hover:text-[#99FFCC] transition-colors">Contact</a>
+            <Link to="/auth" className="hover:text-[#99FFCC] transition-colors">{t('landing.login')}</Link>
+            <a href="mailto:contact@relink.io" className="hover:text-[#99FFCC] transition-colors">{t('landing.contactUs')}</a>
           </div>
           <p className="text-sm" style={{ color: '#444' }}>
-            © {new Date().getFullYear()} ReLink. All rights reserved.
+            © {new Date().getFullYear()} ReLink. {t('landing.allRightsReserved')}
           </p>
         </div>
       </div>

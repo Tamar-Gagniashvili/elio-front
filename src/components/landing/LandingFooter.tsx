@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import relinkLogo from '@/assets/relink-logo.png';
+import relinkLogo from '@/assets/logo.png';
 
 export default function LandingFooter() {
   return (

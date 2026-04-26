@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { ChannelType, ALL_CHANNELS, CHANNEL_CONFIG } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
   
   const [tenantName, setTenantName] = useState('');
   const [tenantSlug, setTenantSlug] = useState('');
-  const [tenantDomain, setTenantDomain] = useState('');
   const [pricingMonthly, setPricingMonthly] = useState('0');
   const [enabledChannels, setEnabledChannels] = useState<ChannelType[]>(['web_chat']);
   
@@ -45,7 +44,7 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!tenantName || !tenantSlug || !tenantDomain || !adminEmail || !adminPassword || !adminName) {
+    if (!tenantName || !tenantSlug || !adminEmail || !adminPassword || !adminName) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields',
@@ -58,17 +57,22 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
 
     try {
       // 1. Create the tenant
-      const tenantData = await api.post<any>('/tenants', {
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .insert({
           name: tenantName,
           slug: tenantSlug,
-          domain: tenantDomain,
           pricing_monthly: parseFloat(pricingMonthly) || 0,
           enabled_channels: enabledChannels,
           is_active: true,
-      });
+        })
+        .select()
+        .single();
+
+      if (tenantError) throw tenantError;
 
       // 2. Create the admin user via edge function
-      const { data: userData, error: userError } = await api.invoke('create-user', {
+      const { data: userData, error: userError } = await supabase.functions.invoke('create-user', {
         body: {
           email: adminEmail,
           password: adminPassword,
@@ -80,7 +84,7 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
 
       if (userError) {
         // Rollback tenant creation
-        await api.delete(`/tenants/${tenantData.id}`);
+        await supabase.from('tenants').delete().eq('id', tenantData.id);
         throw userError;
       }
 
@@ -92,7 +96,6 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
       // Reset form
       setTenantName('');
       setTenantSlug('');
-      setTenantDomain('');
       setPricingMonthly('0');
       setEnabledChannels(['web_chat']);
       setAdminEmail('');
@@ -136,9 +139,7 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
                   value={tenantName}
                   onChange={(e) => {
                     setTenantName(e.target.value);
-                    const slug = generateSlug(e.target.value);
-                    setTenantSlug(slug);
-                    setTenantDomain(slug);
+                    setTenantSlug(generateSlug(e.target.value));
                   }}
                   placeholder="Acme Corp"
                   disabled={isLoading}
@@ -154,20 +155,6 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
                   placeholder="acme-corp"
                   disabled={isLoading}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tenantDomain">Domain Prefix (Subdomain) *</Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    id="tenantDomain"
-                    value={tenantDomain}
-                    onChange={(e) => setTenantDomain(e.target.value)}
-                    placeholder="acme"
-                    disabled={isLoading}
-                  />
-                  <span className="text-muted-foreground text-sm">.relink.app</span>
-                </div>
               </div>
             </div>
 

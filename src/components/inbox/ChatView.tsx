@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Conversation, Message, Contact } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { useAuth } from '@/hooks/useAuth';
-// Removed unused Supabase import
+import { supabase } from '@/integrations/supabase/client';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
 import { Button } from '@/components/ui/button';

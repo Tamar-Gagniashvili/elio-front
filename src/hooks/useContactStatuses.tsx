@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { LeadStatus } from '@/lib/types';
 
 interface ContactStatusInfo {
@@ -23,52 +23,53 @@ export function useContactStatuses(
 
     setIsLoading(true);
 
-    try {
-      const allContactStatuses = await api.get<any[]>(`/contact-statuses`);
-      const contactStatusData = allContactStatuses.filter(cs => contactIds.includes(cs.contact_id));
+    // Fetch all contact_statuses for the given contacts
+    const { data: contactStatusData, error: csError } = await supabase
+      .from('contact_statuses')
+      .select('contact_id, status_id')
+      .eq('tenant_id', tenantId)
+      .in('contact_id', contactIds);
 
-      if (contactStatusData.length === 0) {
-        setStatusesByContact({});
-        setIsLoading(false);
-        return;
-      }
-
-      // Get unique status IDs
-      const uniqueStatusIds = [...new Set(contactStatusData.map(cs => cs.status_id))];
-
-      // Fetch the status details
-      const allStatuses = await api.get<any[]>(`/lead-statuses`);
-      const statusData = allStatuses.filter(s => uniqueStatusIds.includes(s.id));
-
-      if (statusData.length === 0) {
-        setStatusesByContact({});
-        setIsLoading(false);
-        return;
-      }
-
-      // Build a map of status_id -> status
-      const statusMap: Record<string, LeadStatus> = {};
-      statusData.forEach(s => {
-        statusMap[s.id] = s as LeadStatus;
-      });
-
-      // Build the result grouped by contact
-      const result: Record<string, LeadStatus[]> = {};
-      contactStatusData.forEach(cs => {
-        if (!result[cs.contact_id]) {
-          result[cs.contact_id] = [];
-        }
-        const status = statusMap[cs.status_id];
-        if (status && !result[cs.contact_id].find(s => s.id === status.id)) {
-          result[cs.contact_id].push(status);
-        }
-      });
-
-      setStatusesByContact(result);
-    } catch (e) {
+    if (csError || !contactStatusData || contactStatusData.length === 0) {
       setStatusesByContact({});
+      setIsLoading(false);
+      return;
     }
-    
+
+    // Get unique status IDs
+    const uniqueStatusIds = [...new Set(contactStatusData.map(cs => cs.status_id))];
+
+    // Fetch the status details
+    const { data: statusData, error: sError } = await supabase
+      .from('lead_statuses')
+      .select('id, name, color, icon, tenant_id, created_at, created_by')
+      .in('id', uniqueStatusIds);
+
+    if (sError || !statusData) {
+      setStatusesByContact({});
+      setIsLoading(false);
+      return;
+    }
+
+    // Build a map of status_id -> status
+    const statusMap: Record<string, LeadStatus> = {};
+    statusData.forEach(s => {
+      statusMap[s.id] = s as LeadStatus;
+    });
+
+    // Build the result grouped by contact
+    const result: Record<string, LeadStatus[]> = {};
+    contactStatusData.forEach(cs => {
+      if (!result[cs.contact_id]) {
+        result[cs.contact_id] = [];
+      }
+      const status = statusMap[cs.status_id];
+      if (status && !result[cs.contact_id].find(s => s.id === status.id)) {
+        result[cs.contact_id].push(status);
+      }
+    });
+
+    setStatusesByContact(result);
     setIsLoading(false);
   }, [tenantId, contactIds.join(','), enabled, refreshTrigger]);
 
@@ -76,10 +77,30 @@ export function useContactStatuses(
     fetchStatuses();
   }, [fetchStatuses]);
 
-  // Subscribe to realtime changes (disabled)
+  // Subscribe to realtime changes
   useEffect(() => {
     if (!tenantId || !enabled) return;
-    return () => {};
+
+    const channel = supabase
+      .channel('contact-statuses-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_statuses',
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        () => {
+          // Trigger a refresh when statuses change
+          setRefreshTrigger(prev => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [tenantId, enabled]);
 
   const refresh = useCallback(() => {

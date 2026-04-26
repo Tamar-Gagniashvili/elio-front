@@ -112,6 +112,7 @@ export function usePushNotifications() {
       // Save subscription to database
       const { error } = await supabase.from('push_subscriptions').upsert({
         user_id: user.id,
+        tenant_id: currentTenant.id,
         endpoint: subscriptionJson.endpoint!,
         p256dh: subscriptionJson.keys!.p256dh,
         auth: subscriptionJson.keys!.auth,

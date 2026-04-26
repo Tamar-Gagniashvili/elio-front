@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { Tenant, TenantMembership, Profile, ChannelType, ALL_CHANNELS, CHANNEL_CONFIG, AppRole } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,6 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
   
   // Editable fields
   const [name, setName] = useState('');
-  const [domain, setDomain] = useState('');
   const [pricingMonthly, setPricingMonthly] = useState('0');
   const [enabledChannels, setEnabledChannels] = useState<ChannelType[]>([]);
   
@@ -46,7 +45,6 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
   useEffect(() => {
     if (tenant) {
       setName(tenant.name);
-      setDomain(tenant.domain || '');
       setPricingMonthly(String(tenant.pricing_monthly || 0));
       setEnabledChannels((tenant.enabled_channels as ChannelType[]) || ['web_chat']);
       fetchMembers();
@@ -58,31 +56,36 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
     
     setIsLoading(true);
     
-    try {
-      // Fetch memberships
-      const memberships = await api.get<any[]>(`/memberships`);
+    // Fetch memberships
+    const { data: memberships, error: membershipsError } = await supabase
+      .from('tenant_memberships')
+      .select('*')
+      .eq('tenant_id', tenant.id)
+      .order('created_at', { ascending: true });
 
-      if (memberships && memberships.length > 0) {
-        // Fetch profiles separately
-        const userIds = memberships.map(m => m.user_id);
-        const profilesData = await Promise.all(
-          userIds.map(id => api.get<any[]>(`/profiles?user_id=${id}`).catch(() => []))
-        );
-        const profiles = profilesData.flat();
+    if (membershipsError) {
+      console.error('Error fetching members:', membershipsError);
+      setIsLoading(false);
+      return;
+    }
+
+    if (memberships && memberships.length > 0) {
+      // Fetch profiles separately
+      const userIds = memberships.map(m => m.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', userIds);
       
       const membersWithProfiles = memberships.map(m => ({
         ...m,
         profile: profiles?.find(p => p.user_id === m.user_id) as Profile | undefined
       }));
       setMembers(membersWithProfiles);
-      } else {
-        setMembers([]);
-      }
-    } catch (error) {
-      console.error('Error fetching members:', error);
-    } finally {
-      setIsLoading(false);
+    } else {
+      setMembers([]);
     }
+    setIsLoading(false);
   };
 
   const handleChannelToggle = (channel: ChannelType) => {
@@ -97,25 +100,27 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
     if (!tenant) return;
     
     setIsSaving(true);
-    try {
-      await api.put(`/tenants/${tenant.id}`, {
+    const { error } = await supabase
+      .from('tenants')
+      .update({
         name,
-        domain,
         pricing_monthly: parseFloat(pricingMonthly) || 0,
         enabled_channels: enabledChannels,
-      });
+      })
+      .eq('id', tenant.id);
 
-      toast({
-        title: 'Success',
-        description: 'Tenant updated successfully',
-      });
-      onUpdate();
-    } catch (error) {
+    if (error) {
       toast({
         title: 'Error',
         description: 'Failed to update tenant',
         variant: 'destructive',
       });
+    } else {
+      toast({
+        title: 'Success',
+        description: 'Tenant updated successfully',
+      });
+      onUpdate();
     }
     setIsSaving(false);
   };
@@ -126,7 +131,7 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
 
     setIsAddingMember(true);
     try {
-      const { data, error } = await api.invoke('create-user', {
+      const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
           email: newMemberEmail,
           password: newMemberPassword,
@@ -186,20 +191,6 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
                   onChange={(e) => setName(e.target.value)}
                   disabled={isSaving}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="domain">Domain / Subdomain</Label>
-                <Input
-                  id="domain"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  placeholder="acme.localhost"
-                  disabled={isSaving}
-                />
-                <p className="text-xs text-muted-foreground">
-                  The host used to identify this tenant (e.g. acme.relink.app)
-                </p>
               </div>
 
               <div className="space-y-2">

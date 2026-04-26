@@ -3,7 +3,6 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import cosmonautSitting from '@/assets/landing/cosmonaut-left.png';
-import cosmonautStanding from '@/assets/landing/cosmonaut-standing.png';
 
 /* ── Per-pose hand anchor positions ── */
 export const POSE_ANCHORS: [number, number, number][] = [
@@ -51,7 +50,7 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
     const t = state.clock.elapsedTime;
     const floatY = Math.sin(t * 0.35) * 0.05;
 
-    // Responsive base position: move cosmonaut more centered on smaller viewports
+    // Responsive base position
     const vw = state.gl.domElement.clientWidth;
     const baseX = vw < 768 ? 0.5 : 2.2;
     const baseY = vw < 768 ? -1.5 : -1;
@@ -65,28 +64,16 @@ export default function AnimatedCosmonaut({ scrollProgress, onHandAnchorUpdate }
     const entranceOffsetY = (1 - entranceEased) * -2;
     const entranceOpacity = entranceEased;
 
-    // Slide to the right on scroll
-    const flyStart = 0.10;
-    const flyEnd = 0.22;
-    const flyT = THREE.MathUtils.clamp((scrollProgress - flyStart) / (flyEnd - flyStart), 0, 1);
-    const flyEased = flyT * flyT * (3 - 2 * flyT);
-
-    const posX = baseX + entranceOffsetX + flyEased * 12;
-    const posY = baseY + entranceOffsetY + floatY + flyEased * 1.5;
+    const posX = baseX + entranceOffsetX;
+    const posY = baseY + entranceOffsetY + floatY;
 
     if (meshRef.current) {
       meshRef.current.position.set(posX, posY, 3);
       material.uniforms.opacity.value = entranceOpacity;
-      // Update plane size for mobile
       const geo = meshRef.current.geometry as THREE.PlaneGeometry;
       if (geo.parameters.width !== planeSize) {
         meshRef.current.geometry = new THREE.PlaneGeometry(planeSize, planeSize);
       }
-    }
-
-    if (meshRef.current) {
-      meshRef.current.position.set(posX, posY, 3);
-      material.uniforms.opacity.value = entranceOpacity;
     }
 
     onHandAnchorUpdate?.(POSE_ANCHORS[0]);

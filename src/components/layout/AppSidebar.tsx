@@ -19,7 +19,7 @@ import {
   PanelLeft,
   Package,
 } from 'lucide-react';
-import relinkLogo from '@/assets/relink-logo.png';
+import relinkLogo from '@/assets/logo.png';
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -10,59 +10,42 @@ const SOCIAL_ICONS = [
   {
     name: 'WhatsApp',
     color: '#25D366',
-    offset: [-1.8, 1.2, 0.3] as [number, number, number],
-    svg: `<svg viewBox="0 0 24 24" fill="#25D366" width="32" height="32"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`,
+    offset: [-2.0, 2.6, 0.3] as [number, number, number],
+    svg: `<svg viewBox="0 0 24 24" fill="#25D366" width="18" height="18"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`,
   },
   {
     name: 'Telegram',
     color: '#26A5E4',
-    offset: [0.3, 2.2, 0.1] as [number, number, number],
-    svg: `<svg viewBox="0 0 24 24" fill="#26A5E4" width="32" height="32"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>`,
+    offset: [0.4, 3.4, 0.1] as [number, number, number],
+    svg: `<svg viewBox="0 0 24 24" fill="#26A5E4" width="18" height="18"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>`,
   },
   {
     name: 'Instagram',
     color: '#E4405F',
-    offset: [2.2, 1.5, -0.2] as [number, number, number],
-    svg: `<svg viewBox="0 0 24 24" fill="#E4405F" width="32" height="32"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 100-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 11-2.882 0 1.441 1.441 0 012.882 0z"/></svg>`,
+    offset: [2.4, 2.8, -0.2] as [number, number, number],
+    svg: `<svg viewBox="0 0 24 24" fill="#E4405F" width="18" height="18"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 100-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 11-2.882 0 1.441 1.441 0 012.882 0z"/></svg>`,
   },
   {
     name: 'Messenger',
     color: '#0084FF',
-    offset: [-0.8, 0.4, 0.4] as [number, number, number],
-    svg: `<svg viewBox="0 0 24 24" fill="#0084FF" width="28" height="28"><path d="M.001 11.639C.001 4.949 5.241 0 12.001 0S24 4.95 24 11.639c0 6.689-5.24 11.638-12 11.638-1.21 0-2.38-.16-3.47-.46a.96.96 0 00-.64.05l-2.39 1.05a.96.96 0 01-1.35-.85l-.07-2.14a.97.97 0 00-.32-.68A11.39 11.389 0 01.002 11.64zm8.32-2.19l-3.52 5.6c-.35.53.32 1.139.82.75l3.79-2.87c.26-.2.6-.2.87 0l2.8 2.1c.84.63 2.04.4 2.6-.48l3.52-5.6c.35-.53-.32-1.13-.82-.75l-3.79 2.87c-.25.2-.6.2-.86 0l-2.8-2.1a1.8 1.8 0 00-2.61.48z"/></svg>`,
+    offset: [-0.8, 3.0, 0.4] as [number, number, number],
+    svg: `<svg viewBox="0 0 24 24" fill="#0084FF" width="16" height="16"><path d="M.001 11.639C.001 4.949 5.241 0 12.001 0S24 4.95 24 11.639c0 6.689-5.24 11.638-12 11.638-1.21 0-2.38-.16-3.47-.46a.96.96 0 00-.64.05l-2.39 1.05a.96.96 0 01-1.35-.85l-.07-2.14a.97.97 0 00-.32-.68A11.39 11.389 0 01.002 11.64zm8.32-2.19l-3.52 5.6c-.35.53.32 1.139.82.75l3.79-2.87c.26-.2.6-.2.87 0l2.8 2.1c.84.63 2.04.4 2.6-.48l3.52-5.6c.35-.53-.32-1.13-.82-.75l-3.79 2.87c-.25.2-.6.2-.86 0l-2.8-2.1a1.8 1.8 0 00-2.61.48z"/></svg>`,
   },
   {
     name: 'Email',
     color: '#99FFCC',
-    offset: [1.4, 2.8, 0] as [number, number, number],
-    svg: `<svg viewBox="0 0 24 24" fill="#99FFCC" width="28" height="28"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>`,
+    offset: [1.5, 3.8, 0] as [number, number, number],
+    svg: `<svg viewBox="0 0 24 24" fill="#99FFCC" width="16" height="16"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>`,
   },
   {
     name: 'Phone',
     color: '#99FFCC',
-    offset: [-2.2, 2.0, 0.2] as [number, number, number],
-    svg: `<svg viewBox="0 0 24 24" fill="#99FFCC" width="26" height="26"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>`,
+    offset: [-2.4, 3.4, 0.2] as [number, number, number],
+    svg: `<svg viewBox="0 0 24 24" fill="#99FFCC" width="14" height="14"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>`,
   },
 ];
 
-/* ── Scroll-driven camera ── */
-function CameraRig({ scrollProgress }: { scrollProgress: number }) {
-  const { camera } = useThree();
-
-  useFrame(() => {
-    const targetZ = 8 - scrollProgress * 6;
-    const targetX = scrollProgress * 1.5;
-    const targetY = scrollProgress * -0.5;
-    camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetZ, 0.06);
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX, 0.06);
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetY, 0.06);
-    camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, scrollProgress * -0.04, 0.06);
-  });
-
-  return null;
-}
-
-/* ── Glowing neon string (from icon to hand) with animated glow ── */
+/* ── Glowing neon string ── */
 const neonStringVertexShader = `
   varying vec2 vUv;
   void main() {
@@ -122,8 +105,8 @@ function NeonString({ from, to, color }: { from: [number, number, number]; to: [
   return <primitive ref={lineRef} object={lineObj} />;
 }
 
-/* ── Spark particles around each node ── */
-function NodeSparks({ position, color, count = 8 }: { position: [number, number, number]; color: string; count?: number }) {
+/* ── Spark particles ── */
+function NodeSparks({ position, color, count = 8, boosted = false }: { position: [number, number, number]; color: string; count?: number; boosted?: boolean }) {
   const pointsRef = useRef<THREE.Points>(null);
 
   const { positions: sparkPositions, velocities } = useMemo(() => {
@@ -146,17 +129,20 @@ function NodeSparks({ position, color, count = 8 }: { position: [number, number,
     if (pointsRef.current) {
       const posAttr = pointsRef.current.geometry.attributes.position;
       const t = state.clock.elapsedTime;
+      const speed = boosted ? 1.6 : 0.8;
+      const spread = boosted ? 0.8 : 0.5;
       for (let i = 0; i < count; i++) {
-        const phase = (t * 0.8 + i * 0.7) % 2.0;
+        const phase = (t * speed + i * 0.7) % 2.0;
         const life = phase / 2.0;
-        const sparkX = velocities[i * 3] * life * 0.5;
-        const sparkY = velocities[i * 3 + 1] * life * 0.4;
-        const sparkZ = velocities[i * 3 + 2] * life * 0.3;
+        const sparkX = velocities[i * 3] * life * spread;
+        const sparkY = velocities[i * 3 + 1] * life * (spread * 0.8);
+        const sparkZ = velocities[i * 3 + 2] * life * (spread * 0.6);
         posAttr.setXYZ(i, sparkX + Math.sin(t * 1.5 + i) * 0.03, sparkY + Math.cos(t * 1.2 + i) * 0.03, sparkZ);
       }
       posAttr.needsUpdate = true;
       const mat = pointsRef.current.material as THREE.PointsMaterial;
-      mat.opacity = 0.5 + Math.sin(t * 3) * 0.3;
+      mat.opacity = boosted ? 0.9 : (0.5 + Math.sin(t * 3) * 0.3);
+      mat.size = boosted ? 0.07 : 0.04;
     }
   });
 
@@ -170,14 +156,102 @@ function NodeSparks({ position, color, count = 8 }: { position: [number, number,
   );
 }
 
-/* ── Balloon bouquet — scatters away on scroll ── */
-const SCATTER_DIRS: [number, number, number][] = [
-  [-8, 6, -3], [5, 8, -2], [9, 4, -4], [-6, -5, -3], [7, 9, -2], [-9, 7, -3],
-];
-
-function BalloonBouquet({ handAnchor, scrollProgress }: { handAnchor: [number, number, number]; scrollProgress: number }) {
+/* ── Interactive icon balloon ── */
+function IconBalloon({ icon, index, handAnchor, onHover }: {
+  icon: typeof SOCIAL_ICONS[0];
+  index: number;
+  handAnchor: [number, number, number];
+  onHover: (index: number | null) => void;
+}) {
   const groupRef = useRef<THREE.Group>(null);
-  const iconRefs = useRef<(THREE.Group | null)[]>([]);
+  const [hovered, setHovered] = useState(false);
+  const targetScale = useRef(0);
+  const currentScale = useRef(0);
+  const hoverScale = useRef(1);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    const entranceDelay = 1.0 + index * 0.25;
+    const entranceT = THREE.MathUtils.clamp((t - entranceDelay) / 1.2, 0, 1);
+    const entranceEased = entranceT === 0 ? 0 : entranceT === 1 ? 1 :
+      Math.pow(2, -10 * entranceT) * Math.sin((entranceT * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+
+    targetScale.current = entranceEased;
+    currentScale.current += (targetScale.current - currentScale.current) * 0.1;
+
+    const hoverTarget = hovered ? 1.35 : 1;
+    hoverScale.current += (hoverTarget - hoverScale.current) * 0.12;
+
+    const offset = index * 1.1;
+    const bobAmount = hovered ? 0.15 : 0.06;
+    const bobSpeed = hovered ? 0.8 : 0.4;
+    const bx = handAnchor[0] + icon.offset[0] + Math.sin(t * bobSpeed + offset) * bobAmount;
+    const by = handAnchor[1] + icon.offset[1] + Math.sin(t * (bobSpeed * 1.5) + offset) * (bobAmount * 1.3);
+    const bz = handAnchor[2] + icon.offset[2] + Math.cos(t * (bobSpeed * 0.875) + offset) * (bobAmount * 0.7);
+
+    groupRef.current.position.set(bx, by, bz);
+    const wobble = hovered ? Math.sin(t * 3 + offset) * 0.1 : Math.sin(t * 0.5 + offset) * 0.04;
+    groupRef.current.rotation.z = wobble;
+    groupRef.current.scale.setScalar(Math.max(currentScale.current * hoverScale.current, 0));
+  });
+
+  return (
+    <group
+      ref={groupRef}
+      position={[
+        handAnchor[0] + icon.offset[0],
+        handAnchor[1] + icon.offset[1],
+        handAnchor[2] + icon.offset[2],
+      ]}
+    >
+      <Html
+        center
+        distanceFactor={6}
+        style={{
+          pointerEvents: 'auto',
+          filter: hovered
+            ? `drop-shadow(0 0 30px ${icon.color}) drop-shadow(0 0 60px ${icon.color}88)`
+            : `drop-shadow(0 0 16px ${icon.color}aa)`,
+          transition: 'filter 0.3s ease',
+          cursor: 'pointer',
+        }}
+      >
+        <div
+          className="rounded-full p-1.5 backdrop-blur-md"
+          style={{
+            background: hovered ? `${icon.color}44` : `${icon.color}22`,
+            border: `1px solid ${hovered ? `${icon.color}aa` : `${icon.color}50`}`,
+            boxShadow: hovered
+              ? `0 0 24px ${icon.color}80, 0 0 10px ${icon.color}40, inset 0 0 12px ${icon.color}30`
+              : `0 0 16px ${icon.color}40, 0 0 6px ${icon.color}20, inset 0 0 8px ${icon.color}15`,
+            transition: 'all 0.3s ease',
+            transform: hovered ? 'rotate(10deg)' : 'rotate(0deg)',
+          }}
+          onMouseEnter={() => { setHovered(true); onHover(index); }}
+          onMouseLeave={() => { setHovered(false); onHover(null); }}
+          dangerouslySetInnerHTML={{ __html: icon.svg }}
+        />
+        {hovered && (
+          <div
+            className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold tracking-wider"
+            style={{
+              color: icon.color,
+              textShadow: `0 0 10px ${icon.color}88`,
+            }}
+          >
+            {icon.name}
+          </div>
+        )}
+      </Html>
+    </group>
+  );
+}
+
+/* ── Balloon bouquet ── */
+function BalloonBouquet({ handAnchor }: { handAnchor: [number, number, number] }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [iconPositions, setIconPositions] = useState<[number, number, number][]>(
     SOCIAL_ICONS.map(icon => [
       handAnchor[0] + icon.offset[0],
@@ -192,62 +266,25 @@ function BalloonBouquet({ handAnchor, scrollProgress }: { handAnchor: [number, n
       groupRef.current.rotation.z = Math.sin(t * 0.3) * 0.025;
     }
 
-    // Entrance: icons pop in staggered over 3 seconds, starting after 1s delay
-    const entranceDelay = 1.0;
-
-    // Scatter progress: icons fly away between 5% and 15% scroll
-    const scatterStart = 0.05;
-    const scatterEnd = 0.15;
-    const scatter = THREE.MathUtils.clamp((scrollProgress - scatterStart) / (scatterEnd - scatterStart), 0, 1);
-    const scatterEased = 1 - Math.pow(1 - scatter, 3);
-
     const newPositions: [number, number, number][] = [];
-    iconRefs.current.forEach((ref, i) => {
-      if (ref) {
-        // Staggered entrance per icon
-        const iconDelay = entranceDelay + i * 0.25;
-        const entranceT = THREE.MathUtils.clamp((t - iconDelay) / 1.2, 0, 1);
-        // Elastic ease-out
-        const entranceEased = entranceT === 0 ? 0 : entranceT === 1 ? 1 :
-          Math.pow(2, -10 * entranceT) * Math.sin((entranceT * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
-
-        const offset = i * 1.1;
-        // Base position
-        let bx = handAnchor[0] + SOCIAL_ICONS[i].offset[0] + Math.sin(t * 0.4 + offset) * 0.06;
-        let by = handAnchor[1] + SOCIAL_ICONS[i].offset[1] + Math.sin(t * 0.6 + offset) * 0.08;
-        let bz = handAnchor[2] + SOCIAL_ICONS[i].offset[2] + Math.cos(t * 0.35 + offset) * 0.04;
-
-        // Apply scatter
-        const dir = SCATTER_DIRS[i % SCATTER_DIRS.length];
-        bx += dir[0] * scatterEased;
-        by += dir[1] * scatterEased;
-        bz += dir[2] * scatterEased;
-
-        ref.position.set(bx, by, bz);
-        ref.rotation.z = Math.sin(t * 0.5 + offset) * 0.04 + scatterEased * (i % 2 === 0 ? 1 : -1) * 0.5;
-
-        // Scale combines entrance pop-in + scatter fade
-        const iconScale = entranceEased * (1 - scatterEased * 0.8);
-        ref.scale.setScalar(Math.max(iconScale, 0));
-
-        newPositions[i] = [bx, by, bz];
-      }
+    SOCIAL_ICONS.forEach((icon, i) => {
+      const offset = i * 1.1;
+      const bobAmount = hoveredIndex === i ? 0.15 : 0.06;
+      const bobSpeed = hoveredIndex === i ? 0.8 : 0.4;
+      const bx = handAnchor[0] + icon.offset[0] + Math.sin(t * bobSpeed + offset) * bobAmount;
+      const by = handAnchor[1] + icon.offset[1] + Math.sin(t * (bobSpeed * 1.5) + offset) * (bobAmount * 1.3);
+      const bz = handAnchor[2] + icon.offset[2] + Math.cos(t * (bobSpeed * 0.875) + offset) * (bobAmount * 0.7);
+      newPositions[i] = [bx, by, bz];
     });
-    if (newPositions.length === SOCIAL_ICONS.length) {
-      setIconPositions(newPositions);
-    }
+    setIconPositions(newPositions);
   });
+
+  const handleHover = useCallback((index: number | null) => {
+    setHoveredIndex(index);
+  }, []);
 
   return (
     <group ref={groupRef}>
-      {SOCIAL_ICONS.map((icon, i) => (
-        <NeonString
-          key={`string-${icon.name}`}
-          from={iconPositions[i] || [handAnchor[0] + icon.offset[0], handAnchor[1] + icon.offset[1], handAnchor[2] + icon.offset[2]]}
-          to={handAnchor}
-          color={icon.color}
-        />
-      ))}
       {SOCIAL_ICONS.map((icon, i) => {
         const pos: [number, number, number] = [
           handAnchor[0] + icon.offset[0],
@@ -256,33 +293,17 @@ function BalloonBouquet({ handAnchor, scrollProgress }: { handAnchor: [number, n
         ];
         return (
           <group key={icon.name}>
-            <group
-              ref={(el) => { iconRefs.current[i] = el; }}
-              position={pos}
-            >
-              <Html
-                center
-                distanceFactor={6}
-                style={{
-                  pointerEvents: 'none',
-                  filter: `drop-shadow(0 0 16px ${icon.color}aa)`,
-                }}
-              >
-                <div
-                  className="rounded-full p-3 backdrop-blur-md"
-                  style={{
-                    background: `${icon.color}22`,
-                    border: `1.5px solid ${icon.color}50`,
-                    boxShadow: `0 0 28px ${icon.color}40, 0 0 8px ${icon.color}20, inset 0 0 14px ${icon.color}15`,
-                  }}
-                  dangerouslySetInnerHTML={{ __html: icon.svg }}
-                />
-              </Html>
-            </group>
+            <IconBalloon
+              icon={icon}
+              index={i}
+              handAnchor={handAnchor}
+              onHover={handleHover}
+            />
             <NodeSparks
               position={iconPositions[i] || pos}
               color={icon.color}
-              count={10}
+              count={hoveredIndex === i ? 20 : 10}
+              boosted={hoveredIndex === i}
             />
           </group>
         );
@@ -349,8 +370,8 @@ function SpaceParticles({ count = 300 }: { count?: number }) {
   );
 }
 
-/* ── Scene contents (inside Canvas) ── */
-function SceneContents({ scrollProgress }: { scrollProgress: number }) {
+/* ── Scene contents ── */
+function SceneContents() {
   const [handAnchor, setHandAnchor] = useState<[number, number, number]>(DEFAULT_ANCHOR);
 
   const handleAnchorUpdate = useCallback((anchor: [number, number, number]) => {
@@ -359,16 +380,15 @@ function SceneContents({ scrollProgress }: { scrollProgress: number }) {
 
   return (
     <>
-      <CameraRig scrollProgress={scrollProgress} />
       <ambientLight intensity={0.15} />
       <directionalLight position={[-5, 5, 8]} intensity={1.5} color="#ffffff" />
       <directionalLight position={[3, 2, 5]} intensity={0.3} color="#99FFCC" />
       <pointLight position={[2, 0, 3]} intensity={0.6} color="#99FFCC" distance={12} />
 
-      <AnimatedCosmonaut scrollProgress={scrollProgress} onHandAnchorUpdate={handleAnchorUpdate} />
+      <AnimatedCosmonaut scrollProgress={0} onHandAnchorUpdate={handleAnchorUpdate} />
       <EnergyRing />
       <EnergyRing2 />
-      <BalloonBouquet handAnchor={handAnchor} scrollProgress={scrollProgress} />
+      
 
       <SpaceParticles count={400} />
       <Stars radius={20} depth={40} count={2500} factor={3} saturation={0.1} fade speed={0.3} />
@@ -391,7 +411,7 @@ export default function HeroScene3D({ scrollProgress, className }: HeroScene3DPr
         style={{ background: 'transparent' }}
         dpr={[1, 1.5]}
       >
-        <SceneContents scrollProgress={scrollProgress} />
+        <SceneContents />
       </Canvas>
     </div>
   );

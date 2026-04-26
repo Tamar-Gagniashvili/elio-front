@@ -1,168 +1,62 @@
-import { useRef, useMemo, Suspense } from 'react';
-import { motion, useScroll, useTransform, useInView, useMotionValueEvent } from 'framer-motion';
-import relinkLogo from '@/assets/relink-logo-3d.png';
+import { useRef, Suspense, useCallback } from 'react';
+import { motion, useInView, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import HeroScene3D from './HeroScene3D';
-import { useState } from 'react';
+import HeroConstellation from './HeroConstellation';
 
-/* ── Deterministic random for SSR-safe positions ── */
-function seededRandom(seed: number) {
-  const x = Math.sin(seed * 9301 + 49297) * 49311;
-  return x - Math.floor(x);
-}
 
-/* ── Node network data ── */
-interface Node {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  delay: number;
-  duration: number;
-  label?: string;
-  color: string;
-}
 
-const CHANNEL_LABELS = [
-  'WhatsApp', 'Telegram', 'Instagram', 'Messenger',
-  'Email', 'Web Chat', 'SMS', 'TikTok',
-];
-const CHANNEL_COLORS = [
-  'hsla(142, 70%, 45%, 0.9)',  // whatsapp
-  'hsla(200, 100%, 50%, 0.9)', // telegram
-  'hsla(330, 80%, 55%, 0.9)',  // instagram
-  'hsla(221, 90%, 55%, 0.9)',  // messenger
-  'hsla(210, 80%, 50%, 0.9)',  // email
-  'hsla(173, 80%, 40%, 0.9)',  // web
-  'hsla(260, 60%, 55%, 0.9)',  // sms
-  'hsla(349, 100%, 50%, 0.9)', // tiktok
-];
-
-function generateNodes(): Node[] {
-  const nodes: Node[] = [];
-  // Channel nodes (labeled, bigger)
-  for (let i = 0; i < 8; i++) {
-    nodes.push({
-      id: i,
-      x: 8 + seededRandom(i * 7 + 1) * 84,
-      y: 8 + seededRandom(i * 7 + 2) * 84,
-      size: 6,
-      delay: seededRandom(i * 7 + 3) * 2,
-      duration: 3 + seededRandom(i * 7 + 4) * 3,
-      label: CHANNEL_LABELS[i],
-      color: CHANNEL_COLORS[i],
-    });
-  }
-  // Extra decorative nodes (smaller, no label)
-  for (let i = 8; i < 30; i++) {
-    nodes.push({
-      id: i,
-      x: 5 + seededRandom(i * 11 + 5) * 90,
-      y: 5 + seededRandom(i * 11 + 6) * 90,
-      size: 2 + seededRandom(i * 11 + 7) * 3,
-      delay: seededRandom(i * 11 + 8) * 3,
-      duration: 2 + seededRandom(i * 11 + 9) * 4,
-      color: `hsla(153, 100%, 80%, ${0.15 + seededRandom(i * 11 + 10) * 0.35})`,
-    });
-  }
-  return nodes;
-}
-
-/* ── Connections between nodes ── */
-function generateEdges(nodes: Node[]) {
-  const edges: { from: Node; to: Node; delay: number }[] = [];
-  // Connect each channel node to 2-3 nearby nodes
-  for (let i = 0; i < 8; i++) {
-    const sorted = [...nodes]
-      .filter((n) => n.id !== i)
-      .sort((a, b) => {
-        const da = Math.hypot(a.x - nodes[i].x, a.y - nodes[i].y);
-        const db = Math.hypot(b.x - nodes[i].x, b.y - nodes[i].y);
-        return da - db;
-      });
-    for (let j = 0; j < 3; j++) {
-      if (sorted[j] && !edges.find(e =>
-        (e.from.id === i && e.to.id === sorted[j].id) ||
-        (e.from.id === sorted[j].id && e.to.id === i)
-      )) {
-        edges.push({ from: nodes[i], to: sorted[j], delay: i * 0.15 + j * 0.1 });
-      }
-    }
-  }
-  return edges;
-}
-
-const letterVariants = {
-  hidden: { opacity: 0, y: 50, scale: 0.5 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      delay: 0.3 + i * 0.1,
-      duration: 0.7,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
-  }),
-};
 
 export default function Scene1TheLink() {
-  const ref = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
   const titleRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(titleRef, { once: true });
-  const [scrollProg, setScrollProg] = useState(0);
-  const hasAutoScrolled = useRef(false);
 
-  const nodes = useMemo(() => generateNodes(), []);
-  const edges = useMemo(() => generateEdges(nodes), [nodes]);
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+  const smoothX = useSpring(mouseX, { stiffness: 50, damping: 20 });
+  const smoothY = useSpring(mouseY, { stiffness: 50, damping: 20 });
 
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start start', 'end start'],
-  });
+  const glowX = useTransform(smoothX, [0, 1], ['10%', '50%']);
+  const glowY = useTransform(smoothY, [0, 1], ['30%', '70%']);
 
-  // Track scroll progress for the 3D scene
-  useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    setScrollProg(v);
-    // Auto-scroll to Scene2 when text is about to fade out
-    if (v >= 0.42 && !hasAutoScrolled.current && ref.current) {
-      hasAutoScrolled.current = true;
-      const sectionBottom = ref.current.offsetTop + ref.current.offsetHeight;
-      window.scrollTo({ top: sectionBottom, behavior: 'smooth' });
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const rect = sectionRef.current?.getBoundingClientRect();
+    if (rect) {
+      mouseX.set((e.clientX - rect.left) / rect.width);
+      mouseY.set((e.clientY - rect.top) / rect.height);
     }
-    // Reset flag when scrolling back up
-    if (v < 0.3) {
-      hasAutoScrolled.current = false;
-    }
-  });
+  }, [mouseX, mouseY]);
 
-  const logoScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.6]);
-  const logoY = useTransform(scrollYProgress, [0, 0.8], [0, -120]);
-  const logoOpacity = useTransform(scrollYProgress, [0.6, 1], [1, 0]);
-  const chainLeftX = useTransform(scrollYProgress, [0.3, 0.8], [0, -80]);
-  const chainRightX = useTransform(scrollYProgress, [0.3, 0.8], [0, 80]);
-  const chainLeftRotate = useTransform(scrollYProgress, [0.3, 0.8], [0, -15]);
-  const chainRightRotate = useTransform(scrollYProgress, [0.3, 0.8], [0, 15]);
-  const taglineOpacity = useTransform(scrollYProgress, [0.1, 0.25], [0, 1]);
-  const taglineY = useTransform(scrollYProgress, [0.1, 0.25], [30, 0]);
-  const subtitleOpacity = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
-  const subtitleY = useTransform(scrollYProgress, [0.15, 0.3], [20, 0]);
-
-  // Text grows huge then collapses to zero — smooth eased curve
-  const textScale = useTransform(scrollYProgress, [0, 0.15, 0.3, 0.42, 0.5], [1, 1, 3, 10, 20]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.3, 0.4, 0.48], [1, 1, 0.6, 0]);
-
-  const titleText = 'RELINK';
+  const taglineWords = [t('landing.taglineWord1'), t('landing.taglineWord2'), t('landing.taglineWord3')];
 
   return (
-    <section ref={ref} className="relative h-[200vh] w-full">
-      <div className="sticky top-0 h-screen w-full flex items-center overflow-hidden">
-
-        {/* ── 3D HERO SCENE (full background, moon + cosmonaut on right) ── */}
+    <section ref={sectionRef} className="relative h-screen w-full" onMouseMove={handleMouseMove}>
+      <div className="relative h-screen w-full flex items-center overflow-hidden">
         <Suspense fallback={<div className="absolute inset-0 bg-black" />}>
-          <HeroScene3D scrollProgress={scrollProg} className="absolute inset-0 z-0" />
+          <HeroScene3D scrollProgress={0} className="absolute inset-0 z-0" />
         </Suspense>
 
-        {/* ── AMBIENT GLOW LAYERS ── */}
+
+        {/* Subtle constellation behind the title (left half only, sits between bg and text) */}
+        <div className="absolute inset-y-0 left-0 w-full md:w-1/2 lg:w-[55%] z-[1] opacity-70 pointer-events-none">
+          <HeroConstellation />
+        </div>
+
+        {/* Mouse-following glow */}
+        <motion.div
+          className="absolute inset-0 z-[3] pointer-events-none"
+          style={{
+            background: useTransform(
+              [glowX, glowY],
+              ([x, y]) => `radial-gradient(600px circle at ${x} ${y}, hsla(153, 100%, 80%, 0.08), transparent 60%)`
+            ),
+          }}
+        />
+
         <div className="absolute inset-0 z-[3] pointer-events-none">
           <motion.div
             className="absolute top-1/2 left-[20%] -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[600px] md:h-[600px] rounded-full"
@@ -172,47 +66,37 @@ export default function Scene1TheLink() {
           />
         </div>
 
-        {/* ── TEXT CONTENT — LEFT SIDE ── */}
         <motion.div
           ref={titleRef}
-          className="relative z-20 flex flex-col items-center md:items-start px-5 md:pl-16 lg:pl-24 max-w-2xl origin-center"
-          style={{ scale: textScale, opacity: textOpacity }}
+          className="relative z-20 flex flex-col items-center md:items-start px-5 md:pl-16 lg:pl-24 max-w-2xl"
         >
-          {/* Letter-by-letter animated title */}
-          <div className="flex overflow-hidden mb-4" style={{ perspective: '600px' }}>
-            {titleText.split('').map((letter, i) => (
-              <motion.span
-                key={i}
-                className="text-4xl sm:text-6xl md:text-8xl lg:text-[9rem] font-black tracking-tighter leading-none"
-                style={{
-                  color: i >= 2 ? '#99FFCC' : '#ffffff',
-                  textShadow: i >= 2
-                    ? '0 0 40px hsla(153, 100%, 80%, 0.6), 0 0 80px hsla(153, 100%, 80%, 0.25), 0 0 120px hsla(153, 100%, 80%, 0.1)'
-                    : '0 0 20px hsla(0, 0%, 100%, 0.15)',
-                  display: 'inline-block',
-                }}
-                variants={letterVariants}
-                initial="hidden"
-                animate={isInView ? 'visible' : 'hidden'}
-                custom={i}
-              >
-                {letter}
-              </motion.span>
-            ))}
-          </div>
-
-          {/* Animated gradient line */}
           <motion.div
             className="h-[3px] rounded-full mb-5"
             style={{ background: 'linear-gradient(90deg, #99FFCC, #00bcd4, transparent)' }}
             initial={{ width: 0, opacity: 0 }}
             animate={isInView ? { width: '160px', opacity: 1 } : {}}
-            transition={{ delay: 1.2, duration: 1, ease: 'easeOut' }}
+            transition={{ delay: 0.4, duration: 1, ease: 'easeOut' }}
           />
 
-          {/* Tagline */}
+          <motion.h1
+            className="leading-[0.95] mb-4 select-none"
+            style={{
+              fontFamily: '"Major Mono Display", "Space Mono", ui-monospace, monospace',
+              fontSize: 'clamp(3.5rem, 11vw, 9rem)',
+              letterSpacing: '0.02em',
+              color: '#f0f0f0',
+              textShadow:
+                '0 0 22px hsla(153, 100%, 80%, 0.45), 0 0 60px hsla(153, 100%, 65%, 0.25)',
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.6, duration: 0.9, ease: 'easeOut' }}
+          >
+            Re<span style={{ color: '#99FFCC' }}>Link</span>
+          </motion.h1>
+
           <div className="flex gap-2 flex-wrap">
-            {'Conversations Become Connections'.split(' ').map((word, i) => (
+            {taglineWords.map((word, i) => (
               <motion.span
                 key={i}
                 className="text-[10px] sm:text-sm md:text-lg tracking-[0.15em] md:tracking-[0.25em] uppercase font-medium"
@@ -226,7 +110,6 @@ export default function Scene1TheLink() {
             ))}
           </div>
 
-          {/* Sub-tagline */}
           <motion.p
             className="mt-4 text-xs md:text-sm tracking-widest max-w-sm"
             style={{ color: '#555' }}
@@ -234,14 +117,59 @@ export default function Scene1TheLink() {
             animate={isInView ? { opacity: 1 } : {}}
             transition={{ delay: 2.2, duration: 0.8 }}
           >
-            The omnichannel system that links it all.
+            {t('landing.subTagline')}
           </motion.p>
+
+          {/* Value proposition */}
+          <motion.p
+            className="mt-3 text-sm md:text-base max-w-md leading-relaxed"
+            style={{ color: '#aaa' }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 2.4, duration: 0.7 }}
+          >
+            {t('landing.heroValueProp')}
+          </motion.p>
+
+          {/* CTA buttons */}
+          <motion.div
+            className="mt-6 md:mt-8 flex flex-col sm:flex-row items-center md:items-start gap-3 sm:gap-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 2.6, duration: 0.6 }}
+          >
+            <Link
+              to="/auth"
+              className="group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold tracking-wide transition-all duration-300 hover:scale-105"
+              style={{
+                background: 'linear-gradient(135deg, #99FFCC, #66E0B0)',
+                color: '#0a0a0a',
+                boxShadow: '0 0 24px hsla(153, 100%, 80%, 0.35), 0 0 48px hsla(153, 100%, 80%, 0.15)',
+              }}
+            >
+              {t('landing.ctaPrimary')}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                const next = sectionRef.current?.nextElementSibling as HTMLElement | null;
+                next?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm font-medium tracking-wide transition-all duration-300 hover:bg-white/5"
+              style={{
+                color: '#cfcfcf',
+                border: '1px solid rgba(153, 255, 204, 0.25)',
+                background: 'rgba(255, 255, 255, 0.02)',
+              }}
+            >
+              {t('landing.ctaSecondary')}
+            </button>
+          </motion.div>
         </motion.div>
 
-        {/* ── SCROLL INDICATOR ── */}
         <motion.div
           className="absolute bottom-10 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-16 lg:left-24 flex flex-col items-center gap-2 z-20"
-          style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
         >
           <motion.span
             className="text-[10px] tracking-[0.3em] uppercase font-medium"
@@ -249,7 +177,7 @@ export default function Scene1TheLink() {
             animate={{ opacity: [0.3, 0.8, 0.3] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            Scroll
+            {t('landing.scroll')}
           </motion.span>
           <motion.div
             className="w-px h-10"

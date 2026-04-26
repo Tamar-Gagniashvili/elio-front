@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ObjectType, ObjectTypeField, ObjectStatus } from '@/lib/objectTypes';
 import {
@@ -186,14 +186,19 @@ export function ImportObjectsDialog({
     setIsImporting(true);
 
     try {
-      const data = await api.post<any>(`/functions/import-objects`, {
-        object_type_id: selectedTypeId,
-        rows: allRows,
-        column_mapping: columnMapping,
-        unique_field: uniqueField,
-        deduplication_strategy: deduplicationStrategy,
-        default_status_id: defaultStatusId,
+      const { data, error } = await supabase.functions.invoke('import-objects', {
+        body: {
+          tenant_id: currentTenant.id,
+          object_type_id: selectedTypeId,
+          rows: allRows,
+          column_mapping: columnMapping,
+          unique_field: uniqueField,
+          deduplication_strategy: deduplicationStrategy,
+          default_status_id: defaultStatusId,
+        },
       });
+
+      if (error) throw error;
 
       setImportResult(data.results);
       setStep(4);

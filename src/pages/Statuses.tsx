@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,44 +96,59 @@ export default function Statuses() {
     
     setIsLoading(true);
     
-    try {
-      const statusesResult = await api.get<any[]>(`/lead-statuses`);
-      statusesResult.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      
-      setStatuses(statusesResult || []);
+    const statusesResult = await supabase
+      .from('lead_statuses')
+      .select('*')
+      .eq('tenant_id', currentTenant.id)
+      .order('created_at', { ascending: true });
 
-      let contactIdsToCount: string[] | null = null;
-      
-      if (!isAdmin) {
-        const assignedConversations = await api.get<any[]>(`/conversations?assigned_to=${user.id}`);
-        contactIdsToCount = assignedConversations?.map(c => c.contact_id) || [];
-      }
-
-      let countsResult = await api.get<any[]>(`/contact-statuses`);
-      
-      if (contactIdsToCount !== null) {
-        if (contactIdsToCount.length === 0) {
-          setStatusCounts({});
-          setIsLoading(false);
-          return;
-        }
-        countsResult = countsResult.filter(c => contactIdsToCount?.includes(c.contact_id));
-      }
-
-      if (countsResult) {
-        const counts: Record<string, number> = {};
-        countsResult.forEach((item) => {
-          counts[item.status_id] = (counts[item.status_id] || 0) + 1;
-        });
-        setStatusCounts(counts);
-      }
-    } catch(error) {
-      console.error('Error fetching statuses:', error);
+    if (statusesResult.error) {
+      console.error('Error fetching statuses:', statusesResult.error);
       toast({
         title: t('common.error'),
         description: t('statuses.failedToFetch'),
         variant: 'destructive',
       });
+      setIsLoading(false);
+      return;
+    }
+    
+    setStatuses(statusesResult.data || []);
+
+    let contactIdsToCount: string[] | null = null;
+    
+    if (!isAdmin) {
+      const { data: assignedConversations } = await supabase
+        .from('conversations')
+        .select('contact_id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('assigned_to', user.id);
+      
+      contactIdsToCount = assignedConversations?.map(c => c.contact_id) || [];
+    }
+
+    let countsQuery = supabase
+      .from('contact_statuses')
+      .select('status_id, contact_id')
+      .eq('tenant_id', currentTenant.id);
+    
+    if (contactIdsToCount !== null) {
+      if (contactIdsToCount.length === 0) {
+        setStatusCounts({});
+        setIsLoading(false);
+        return;
+      }
+      countsQuery = countsQuery.in('contact_id', contactIdsToCount);
+    }
+
+    const countsResult = await countsQuery;
+
+    if (countsResult.data) {
+      const counts: Record<string, number> = {};
+      countsResult.data.forEach((item) => {
+        counts[item.status_id] = (counts[item.status_id] || 0) + 1;
+      });
+      setStatusCounts(counts);
     }
 
     setIsLoading(false);
@@ -142,14 +157,23 @@ export default function Statuses() {
   const handleCreateStatus = async () => {
     if (!newStatusName.trim() || !currentTenant || !user) return;
 
-    try {
-      await api.post('/lead-statuses', {
+    const { error } = await supabase
+      .from('lead_statuses')
+      .insert({
+        tenant_id: currentTenant.id,
         name: newStatusName.trim(),
         color: newStatusColor,
         icon: newIndicatorMode === 'icon' ? newStatusIcon : null,
         created_by: user.id,
       });
 
+    if (error) {
+      toast({
+        title: t('common.error'),
+        description: t('statuses.failedToCreate'),
+        variant: 'destructive',
+      });
+    } else {
       toast({
         title: t('statuses.statusCreated'),
         description: t('statuses.statusCreatedDesc', { name: newStatusName }),
@@ -160,53 +184,55 @@ export default function Statuses() {
       setNewIndicatorMode('color');
       setIsAdding(false);
       fetchStatuses();
-    } catch(error) {
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToCreate'),
-        variant: 'destructive',
-      });
     }
   };
 
   const handleUpdateStatus = async () => {
     if (!editingStatus || !editName.trim()) return;
 
-    try {
-      await api.put(`/lead-statuses/${editingStatus.id}`, {
+    const { error } = await supabase
+      .from('lead_statuses')
+      .update({
         name: editName.trim(),
         color: editColor,
         icon: editIndicatorMode === 'icon' ? editIcon : null,
+      })
+      .eq('id', editingStatus.id);
+
+    if (error) {
+      toast({
+        title: t('common.error'),
+        description: t('statuses.failedToUpdate'),
+        variant: 'destructive',
       });
+    } else {
       toast({
         title: t('statuses.statusUpdated'),
         description: t('statuses.statusUpdatedDesc'),
       });
       setEditingStatus(null);
       fetchStatuses();
-    } catch(e) {
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToUpdate'),
-        variant: 'destructive',
-      });
     }
   };
 
   const handleDeleteStatus = async (statusId: string, statusName: string) => {
-    try {
-      await api.delete(`/lead-statuses/${statusId}`);
-      toast({
-        title: t('statuses.statusDeleted'),
-        description: t('statuses.statusDeletedDesc', { name: statusName }),
-      });
-      fetchStatuses();
-    } catch(e) {
+    const { error } = await supabase
+      .from('lead_statuses')
+      .delete()
+      .eq('id', statusId);
+
+    if (error) {
       toast({
         title: t('common.error'),
         description: t('statuses.failedToDelete'),
         variant: 'destructive',
       });
+    } else {
+      toast({
+        title: t('statuses.statusDeleted'),
+        description: t('statuses.statusDeletedDesc', { name: statusName }),
+      });
+      fetchStatuses();
     }
   };
 

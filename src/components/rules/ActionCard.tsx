@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { RuleAction, ActionType } from '@/lib/ruleTypes';
 
@@ -47,24 +47,39 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
   const fetchUsers = async () => {
     if (!currentTenant) return;
     
-    try {
-      const memberships = await api.get<any[]>(`/tenant-memberships`);
-      const activeSales = memberships.filter(m => m.is_active && m.role === 'sales');
-      if (activeSales.length > 0) {
-        setUsers(activeSales.map(m => ({
-          id: m.user_id,
-          name: m.profile?.full_name || m.profile?.email || 'Unknown',
-        })));
-      }
-    } catch (e) {}
+    const { data: memberships } = await supabase
+      .from('tenant_memberships')
+      .select('user_id')
+      .eq('tenant_id', currentTenant.id)
+      .eq('is_active', true)
+      .eq('role', 'sales');
+
+    if (!memberships || memberships.length === 0) return;
+
+    const userIds = memberships.map(m => m.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, email')
+      .in('user_id', userIds);
+
+    if (profiles) {
+      setUsers(profiles.map((p) => ({
+        id: p.user_id,
+        name: p.full_name || p.email,
+      })));
+    }
   };
 
   const fetchStatuses = async () => {
     if (!currentTenant) return;
-    try {
-      const data = await api.get<any[]>(`/lead-statuses`);
-      if (data) setStatuses(data);
-    } catch (e) {}
+    const { data } = await supabase
+      .from('lead_statuses')
+      .select('id, name, color')
+      .eq('tenant_id', currentTenant.id);
+
+    if (data) {
+      setStatuses(data);
+    }
   };
 
   const renderActionConfig = () => {

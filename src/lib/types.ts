@@ -7,7 +7,6 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
-  domain?: string;
   logo_url?: string;
   pricing_monthly?: number;
   enabled_channels?: ChannelType[];
