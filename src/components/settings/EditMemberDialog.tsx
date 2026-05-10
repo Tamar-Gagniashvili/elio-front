@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { TenantMembership, Profile } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -42,25 +43,22 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdate }: EditM
     if (!member) return;
 
     setIsSaving(true);
-    const { error } = await supabase
-      .from('tenant_memberships')
-      .update({ position: position.trim() || null })
-      .eq('id', member.id);
-
-    if (error) {
-      toast({
-        title: t('common.error'),
-        description: t('settings.positionUpdateFailed'),
-        variant: 'destructive',
-      });
-    } else {
+    try {
+      await api.put(`/memberships/${member.id}`, { position: position.trim() || null });
       toast({
         title: t('settings.success'),
         description: t('settings.positionUpdated'),
       });
       onUpdate();
       onOpenChange(false);
+    } catch (e) {
+      toast({
+        title: t('common.error'),
+        description: t('settings.positionUpdateFailed'),
+        variant: 'destructive',
+      });
     }
+
     setIsSaving(false);
   };
 

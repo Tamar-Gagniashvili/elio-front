@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Tenant, TenantMembership, Profile, ChannelType, ALL_CHANNELS, CHANNEL_CONFIG, AppRole } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -56,34 +57,15 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
     
     setIsLoading(true);
     
-    // Fetch memberships
-    const { data: memberships, error: membershipsError } = await supabase
-      .from('tenant_memberships')
-      .select('*')
-      .eq('tenant_id', tenant.id)
-      .order('created_at', { ascending: true });
-
-    if (membershipsError) {
-      console.error('Error fetching members:', membershipsError);
-      setIsLoading(false);
-      return;
-    }
-
-    if (memberships && memberships.length > 0) {
-      // Fetch profiles separately
-      const userIds = memberships.map(m => m.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', userIds);
-      
-      const membersWithProfiles = memberships.map(m => ({
-        ...m,
-        profile: profiles?.find(p => p.user_id === m.user_id) as Profile | undefined
-      }));
-      setMembers(membersWithProfiles);
-    } else {
-      setMembers([]);
+    try {
+      const data = await api.get<any[]>(`/tenant-memberships?tenant_id=${tenant.id}&sort_by=created_at&sort_direction=asc`);
+      if (data) {
+        setMembers(data);
+      } else {
+        setMembers([]);
+      }
+    } catch (e) {
+      console.error('Error fetching members:', e);
     }
     setIsLoading(false);
   };

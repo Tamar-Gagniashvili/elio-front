@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ObjectType, ObjectTypeField, ObjectStatus, BusinessObject } from '@/lib/objectTypes';
@@ -22,6 +23,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { DynamicFieldInput } from './DynamicFieldInput';
+import { cn } from '@/lib/utils';
+
+const displayNameSchema = z
+  .string()
+  .trim()
+  .min(2, 'Name must be at least 2 characters')
+  .max(120, 'Name must be under 120 characters');
 
 interface ObjectEditorProps {
   open: boolean;
@@ -53,6 +61,8 @@ export function ObjectEditor({
   const isEditing = !!object;
   const defaultStatus = statuses.find((s) => s.is_default);
 
+  const [errors, setErrors] = useState<{ displayName?: string; fields: Record<string, string> }>({ fields: {} });
+
   useEffect(() => {
     if (open) {
       if (object) {
@@ -64,36 +74,45 @@ export function ObjectEditor({
         setStatusId(defaultStatus?.id || '');
         setMetadata({});
       }
+      setErrors({ fields: {} });
     }
   }, [open, object, defaultStatus]);
 
   const updateMetadata = (fieldName: string, value: unknown) => {
     setMetadata((prev) => ({ ...prev, [fieldName]: value }));
+    setErrors((prev) => {
+      const { [fieldName]: _, ...rest } = prev.fields;
+      return { ...prev, fields: rest };
+    });
   };
 
   const validateForm = (): boolean => {
-    if (!displayName.trim()) {
+    const newErrors: { displayName?: string; fields: Record<string, string> } = { fields: {} };
+
+    const nameResult = displayNameSchema.safeParse(displayName);
+    if (!nameResult.success) {
+      newErrors.displayName = nameResult.error.issues[0].message;
+    }
+
+    for (const field of fields.filter((f) => f.is_required)) {
+      const value = metadata[field.name];
+      if (value === undefined || value === null || value === '') {
+        newErrors.fields[field.name] = `${field.label} is required`;
+      } else if (typeof value === 'string' && value.length > 5000) {
+        newErrors.fields[field.name] = `${field.label} is too long (max 5000 chars)`;
+      }
+    }
+
+    setErrors(newErrors);
+
+    if (newErrors.displayName || Object.keys(newErrors.fields).length > 0) {
       toast({
         title: 'Validation Error',
-        description: 'Display name is required.',
+        description: newErrors.displayName || 'Please fix the highlighted fields',
         variant: 'destructive',
       });
       return false;
     }
-
-    // Check required fields
-    for (const field of fields.filter((f) => f.is_required)) {
-      const value = metadata[field.name];
-      if (value === undefined || value === null || value === '') {
-        toast({
-          title: 'Validation Error',
-          description: `${field.label} is required.`,
-          variant: 'destructive',
-        });
-        return false;
-      }
-    }
-
     return true;
   };
 
@@ -177,8 +196,17 @@ export function ObjectEditor({
               id="displayName"
               placeholder={`e.g., ${objectType.name} #1`}
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              maxLength={120}
+              onChange={(e) => {
+                setDisplayName(e.target.value);
+                if (errors.displayName) setErrors((p) => ({ ...p, displayName: undefined }));
+              }}
+              aria-invalid={!!errors.displayName}
+              className={cn(errors.displayName && 'border-destructive')}
             />
+            {errors.displayName && (
+              <p className="text-xs text-destructive">{errors.displayName}</p>
+            )}
           </div>
 
           {statuses.length > 0 && (
@@ -206,12 +234,16 @@ export function ObjectEditor({
             <div className="space-y-4 pt-2 border-t">
               <h4 className="font-medium text-sm text-muted-foreground">Custom Fields</h4>
               {fields.map((field) => (
-                <DynamicFieldInput
-                  key={field.id}
-                  field={field}
-                  value={metadata[field.name]}
-                  onChange={(value) => updateMetadata(field.name, value)}
-                />
+                <div key={field.id} className="space-y-1">
+                  <DynamicFieldInput
+                    field={field}
+                    value={metadata[field.name]}
+                    onChange={(value) => updateMetadata(field.name, value)}
+                  />
+                  {errors.fields[field.name] && (
+                    <p className="text-xs text-destructive">{errors.fields[field.name]}</p>
+                  )}
+                </div>
               ))}
             </div>
           )}

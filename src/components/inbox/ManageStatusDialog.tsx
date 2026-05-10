@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useLinkedContacts } from '@/hooks/useLinkedContacts';
 import { Contact } from '@/lib/types';
@@ -58,27 +58,25 @@ export function ManageStatusDialog({
     
     setIsLoading(true);
     
-    // Fetch available statuses
-    const { data: statusesData } = await supabase
-      .from('lead_statuses')
-      .select('id, name, color, icon')
-      .eq('tenant_id', currentTenant.id)
-      .order('created_at');
+    try {
+      const statusesData = await api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=asc`);
+      setAvailableStatuses(statusesData as LeadStatus[] || []);
 
-    // Fetch assigned statuses for ALL linked contacts
-    const { data: assignedData } = await supabase
-      .from('contact_statuses')
-      .select('status_id')
-      .in('contact_id', linkedContactIds);
-
-    setAvailableStatuses(statusesData || []);
+      const queryParams = new URLSearchParams();
+      linkedContactIds.forEach(id => queryParams.append('contact_id[]', id));
+      
+      const assignedData = await api.get<any[]>(`/contact-statuses?${queryParams.toString()}`);
+      
+      const assignedIds = new Set<string>();
+      (assignedData || []).forEach((cs) => {
+        assignedIds.add(cs.status_id);
+      });
+      
+      setAssignedStatusIds(assignedIds);
+    } catch (e) {
+      console.error('Error fetching data', e);
+    }
     
-    const assignedIds = new Set<string>();
-    (assignedData || []).forEach((cs) => {
-      assignedIds.add(cs.status_id);
-    });
-    
-    setAssignedStatusIds(assignedIds);
     setIsLoading(false);
   };
 
@@ -90,49 +88,41 @@ export function ManageStatusDialog({
     const isAssigned = assignedStatusIds.has(statusId);
     
     if (isAssigned) {
-      // Remove status from ALL linked contacts
-      const { error } = await supabase
-        .from('contact_statuses')
-        .delete()
-        .eq('status_id', statusId)
-        .in('contact_id', linkedContactIds);
+      try {
+        await api.delete('/contact-statuses/bulk', {
+          status_id: statusId,
+          contact_ids: linkedContactIds
+        });
 
-      if (error) {
+        const newAssigned = new Set(assignedStatusIds);
+        newAssigned.delete(statusId);
+        setAssignedStatusIds(newAssigned);
+        onStatusesChanged?.();
+      } catch (error) {
         toast({
           title: 'Error',
           description: 'Failed to remove status',
           variant: 'destructive',
         });
-      } else {
-        const newAssigned = new Set(assignedStatusIds);
-        newAssigned.delete(statusId);
-        setAssignedStatusIds(newAssigned);
-        onStatusesChanged?.();
       }
     } else {
-      // Add status to ALL linked contacts
-      const inserts = linkedContactIds.map(contactId => ({
-        tenant_id: currentTenant.id,
-        contact_id: contactId,
-        status_id: statusId,
-        created_by: user.id,
-      }));
+      try {
+        await api.post('/contact-statuses/bulk', {
+          tenant_id: currentTenant.id,
+          status_id: statusId,
+          contact_ids: linkedContactIds
+        });
 
-      const { error } = await supabase
-        .from('contact_statuses')
-        .upsert(inserts, { onConflict: 'contact_id,status_id' });
-
-      if (error) {
+        const newAssigned = new Set(assignedStatusIds);
+        newAssigned.add(statusId);
+        setAssignedStatusIds(newAssigned);
+        onStatusesChanged?.();
+      } catch (error) {
         toast({
           title: 'Error',
           description: 'Failed to add status',
           variant: 'destructive',
         });
-      } else {
-        const newAssigned = new Set(assignedStatusIds);
-        newAssigned.add(statusId);
-        setAssignedStatusIds(newAssigned);
-        onStatusesChanged?.();
       }
     }
     

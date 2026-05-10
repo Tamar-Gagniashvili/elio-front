@@ -12,7 +12,7 @@ export default function Scene5CTA() {
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
-    <section ref={ref} className="relative py-32 md:py-40 overflow-hidden z-10">
+    <section ref={ref} className="relative py-20 md:py-40 overflow-hidden z-10">
       <motion.div
         className="container max-w-screen-xl relative z-10"
         initial={{ opacity: 0, y: 40 }}
@@ -52,7 +52,7 @@ export default function Scene5CTA() {
             <motion.img
               src={cosmonautHolding}
               alt="Cosmonaut holding contact button"
-              className="w-[240px] sm:w-[340px] md:w-[440px] h-auto"
+              className="w-[220px] sm:w-[340px] md:w-[440px] h-auto"
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
               style={{
@@ -62,7 +62,7 @@ export default function Scene5CTA() {
             />
             <motion.a
               href="mailto:contact@relink.io"
-              className="absolute inline-flex items-center gap-2 h-11 md:h-14 px-6 md:px-10 text-sm md:text-lg font-bold rounded-full transition-colors duration-200 hover:scale-105"
+              className="absolute inline-flex items-center gap-2 h-10 sm:h-11 md:h-14 px-4 sm:px-6 md:px-10 text-xs sm:text-sm md:text-lg font-bold rounded-full transition-colors duration-200 hover:scale-105 whitespace-nowrap"
               style={{
                 bottom: '36%',
                 border: '2px solid #99FFCC',
@@ -73,7 +73,7 @@ export default function Scene5CTA() {
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <Mail className="h-5 w-5" />
+              <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
               {t('landing.contactUs')}
             </motion.a>
           </motion.div>

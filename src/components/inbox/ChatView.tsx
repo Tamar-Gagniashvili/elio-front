@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Conversation, Message, Contact } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
@@ -11,7 +11,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X, ArrowLeft, Info, RefreshCw, Trash2, Loader2, Smile } from 'lucide-react';
+import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ChatMediaUpload } from './ChatMediaUpload';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import {
@@ -49,6 +52,8 @@ interface ChatViewProps {
   reassignerName?: string;
   onDismissReason?: () => void;
   tenantId?: string;
+  onBack?: () => void;
+  showDetailsButton?: boolean;
 }
 
 export function ChatView({ 
@@ -64,6 +69,8 @@ export function ChatView({
   reassignerName,
   onDismissReason,
   tenantId,
+  onBack,
+  showDetailsButton,
 }: ChatViewProps) {
   const { t } = useTranslation();
   const [newMessage, setNewMessage] = useState('');
@@ -71,7 +78,21 @@ export function ChatView({
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [pendingMedia, setPendingMedia] = useState<MediaUpload | null>(null);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+
+  const onEmojiClick = useCallback((emojiData: EmojiClickData) => {
+    setNewMessage(prev => prev + emojiData.emoji);
+    setEmojiPickerOpen(false);
+  }, []);
+  const [failedMessages, setFailedMessages] = useState<Array<{
+    id: string;
+    content: string;
+    media?: MediaUpload;
+    error: string;
+    retrying?: boolean;
+  }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, profile, currentMembership } = useAuth();
   
@@ -85,17 +106,59 @@ export function ChatView({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Clear failed messages when switching conversations
+  useEffect(() => {
+    setFailedMessages([]);
+  }, [conversation.id]);
+
   const handleSend = async () => {
     if ((!newMessage.trim() && !pendingMedia) || isSending) return;
-    
+
+    const content = newMessage.trim();
+    const media = pendingMedia || undefined;
+
     setIsSending(true);
+    // Optimistically clear input
+    setNewMessage('');
+    setPendingMedia(null);
+
     try {
-      await onSendMessage(newMessage.trim(), pendingMedia || undefined);
-      setNewMessage('');
-      setPendingMedia(null);
+      await onSendMessage(content, media);
+    } catch (err: any) {
+      const message = err?.message || t('inbox.sendFailed') || 'Failed to send message';
+      setFailedMessages((prev) => [
+        ...prev,
+        {
+          id: `failed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          content,
+          media,
+          error: message,
+        },
+      ]);
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleRetryFailed = async (id: string) => {
+    const failed = failedMessages.find((f) => f.id === id);
+    if (!failed) return;
+
+    setFailedMessages((prev) => prev.map((f) => (f.id === id ? { ...f, retrying: true } : f)));
+
+    try {
+      await onSendMessage(failed.content, failed.media);
+      setFailedMessages((prev) => prev.filter((f) => f.id !== id));
+    } catch (err: any) {
+      const message = err?.message || 'Failed to send message';
+      setFailedMessages((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, retrying: false, error: message } : f))
+      );
+    }
+  };
+
+  const handleDiscardFailed = (id: string) => {
+    setFailedMessages((prev) => prev.filter((f) => f.id !== id));
   };
 
   const handleMediaUpload = (media: MediaUpload) => {
@@ -114,11 +177,22 @@ export function ChatView({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b bg-card">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="h-9 w-9 flex-shrink-0 -ml-1"
+              aria-label="Back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <div className="relative flex-shrink-0">
             <Avatar
               src={conversation.contact?.avatar_url}
               name={conversation.contact?.name}
@@ -133,29 +207,41 @@ export function ChatView({
               </div>
             )}
           </div>
-        <div>
-            <h2 className="font-semibold text-foreground">
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold text-foreground truncate">
               {conversation.contact?.name || t('inbox.unknownContact')}
             </h2>
             {/* Only show status and assignment info for admins */}
             {isAdmin && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
                 <Badge 
                   variant={conversation.status === 'open' ? 'default' : 'secondary'}
                   className={cn(
-                    'h-5 text-[10px]',
+                    'h-5 text-[10px] flex-shrink-0',
                     conversation.status === 'open' && 'bg-success text-success-foreground'
                   )}
                 >
                   {t(`common.${conversation.status}`)}
                 </Badge>
                 {conversation.assigned_to && (
-                  <span>{t('inbox.assignedTo')} {conversation.assigned_profile?.full_name || 'Agent'}</span>
+                  <span className="truncate hidden sm:inline">{t('inbox.assignedTo')} {conversation.assigned_profile?.full_name || 'Agent'}</span>
                 )}
               </div>
             )}
           </div>
         </div>
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {showDetailsButton && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsDetailsOpen(true)}
+              aria-label="Contact details"
+            >
+              <Info className="h-4 w-4" />
+            </Button>
+          )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -197,6 +283,7 @@ export function ChatView({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       {/* Reassign Dialog */}
@@ -283,6 +370,57 @@ export function ChatView({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Failed messages with retry */}
+      {failedMessages.length > 0 && (
+        <div className="px-4 pt-2 space-y-2">
+          {failedMessages.map((failed) => (
+            <div
+              key={failed.id}
+              className="flex items-start gap-2 p-2 rounded-md border border-destructive/40 bg-destructive/10"
+            >
+              <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-destructive">
+                  {t('inbox.messageNotSent') || 'Message not sent'}
+                </p>
+                <p className="text-sm truncate text-foreground/90">
+                  {failed.content || (failed.media ? `📎 ${failed.media.filename}` : '')}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">{failed.error}</p>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => handleRetryFailed(failed.id)}
+                  disabled={failed.retrying}
+                  aria-label={t('common.retry') || 'Retry'}
+                  title={t('common.retry') || 'Retry'}
+                >
+                  {failed.retrying ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => handleDiscardFailed(failed.id)}
+                  disabled={failed.retrying}
+                  aria-label={t('common.discard') || 'Discard'}
+                  title={t('common.discard') || 'Discard'}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-4 border-t bg-card">
         {/* Pending media preview */}
@@ -315,6 +453,23 @@ export function ChatView({
               disabled={isSending}
             />
           )}
+          <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="flex-shrink-0 h-9 w-9">
+                <Smile className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" className="w-auto p-0 border-0 shadow-xl">
+              <EmojiPicker
+                onEmojiClick={onEmojiClick}
+                theme={Theme.DARK}
+                width={320}
+                height={400}
+                searchPlaceHolder="Search emoji..."
+                lazyLoadEmojis
+              />
+            </PopoverContent>
+          </Popover>
           <Textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -333,6 +488,23 @@ export function ChatView({
           </Button>
         </div>
       </div>
+
+      {/* Mobile/compact contact details drawer */}
+      {showDetailsButton && (
+        <Sheet open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+          <SheetContent side="right" className="p-0 w-[90vw] sm:w-96 max-w-full overflow-y-auto">
+            <ContactDetails
+              conversation={conversation}
+              messages={messages}
+              linkedContacts={linkedContacts}
+              selectedGroup={selectedGroup}
+              onSelectConversation={onSelectConversation}
+              tenantId={tenantId}
+              onSendToChat={(message) => onSendMessage(message)}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }

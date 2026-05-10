@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import {
   Dialog,
   DialogContent,
@@ -81,26 +82,24 @@ export function RuleSimulator({ open, onOpenChange, rules }: RuleSimulatorProps)
   const fetchUsersAndStatuses = async () => {
     if (!currentTenant) return;
     
-    const [usersRes, statusesRes] = await Promise.all([
-      supabase
-        .from('tenant_memberships')
-        .select('user_id, profiles!inner(full_name, email)')
-        .eq('tenant_id', currentTenant.id)
-        .eq('is_active', true),
-      supabase
-        .from('lead_statuses')
-        .select('id, name')
-        .eq('tenant_id', currentTenant.id),
-    ]);
+    try {
+      const [usersData, statusesData] = await Promise.all([
+        api.get<any[]>(`/tenant-memberships?tenant_id=${currentTenant.id}&is_active=1`).catch(() => []),
+        api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}&sort_by=name&sort_direction=asc`).catch(() => [])
+      ]);
 
-    if (usersRes.data) {
-      setUsers(usersRes.data.map((m: any) => ({
-        id: m.user_id,
-        name: m.profiles.full_name || m.profiles.email,
-      })));
-    }
-    if (statusesRes.data) {
-      setStatuses(statusesRes.data);
+      if (usersData && Array.isArray(usersData)) {
+        setUsers(usersData.filter(m => m.profile).map((m: any) => ({
+          id: m.user_id,
+          name: m.profile.full_name || m.profile.email,
+        })));
+      }
+      
+      if (statusesData && Array.isArray(statusesData)) {
+        setStatuses(statusesData);
+      }
+    } catch (e) {
+      console.error('Failed to fetch users or statuses:', e);
     }
   };
 

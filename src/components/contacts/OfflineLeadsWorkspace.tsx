@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Contact } from '@/lib/types';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
@@ -154,40 +155,33 @@ export function OfflineLeadsWorkspace({ onRefresh }: OfflineLeadsWorkspaceProps)
       }
     }
 
-    const { data: statusesData } = await supabase
-      .from('lead_statuses')
-      .select('id, name, color')
-      .eq('tenant_id', currentTenant.id)
-      .order('created_at');
+    try {
+      const statusesData = await api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=asc`);
+      setAvailableStatuses(statusesData as LeadStatus[] || []);
+    } catch (e) {
+      console.error('Error fetching available statuses', e);
+      setAvailableStatuses([]);
+    }
 
-    setAvailableStatuses(statusesData || []);
-
-    const { data: contactStatusData } = await supabase
-      .from('contact_statuses')
-      .select(`
-        contact_id,
-        lead_statuses:status_id (
-          id,
-          name,
-          color
-        )
-      `)
-      .eq('tenant_id', currentTenant.id);
-
-    const statusMap = new Map<string, LeadStatus[]>();
-    
-    if (contactStatusData) {
-      for (const cs of contactStatusData) {
-        const status = cs.lead_statuses as unknown as LeadStatus | null;
-        if (status) {
-          const existing = statusMap.get(cs.contact_id) || [];
-          existing.push(status);
-          statusMap.set(cs.contact_id, existing);
+    try {
+      const contactStatusData = await api.get<any[]>(`/contact-statuses?tenant_id=${currentTenant.id}`);
+      const statusMap = new Map<string, LeadStatus[]>();
+      
+      if (contactStatusData) {
+        for (const cs of contactStatusData) {
+          const status = cs.status as LeadStatus | null;
+          if (status) {
+            const existing = statusMap.get(cs.contact_id) || [];
+            existing.push(status);
+            statusMap.set(cs.contact_id, existing);
+          }
         }
       }
+      setContactStatuses(statusMap);
+    } catch (e) {
+      console.error('Error fetching contact statuses', e);
     }
     
-    setContactStatuses(statusMap);
     setIsLoading(false);
   };
 

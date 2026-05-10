@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Plus, GripVertical, Pencil, Trash2, Zap, GitBranch, Play } from 'lucide-react';
 import { RuleEditor } from '@/components/rules/RuleEditor';
 import { RuleSimulator } from '@/components/rules/RuleSimulator';
+import { CardListSkeleton } from '@/components/skeletons/ListSkeletons';
 import type { RoutingRule, ConditionGroup, ActionsGroup } from '@/lib/ruleTypes';
 import {
   AlertDialog,
@@ -55,36 +56,28 @@ export default function Rules() {
     if (!currentTenant) return;
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from('routing_rules')
-      .select('*')
-      .eq('tenant_id', currentTenant.id)
-      .order('priority', { ascending: true });
-
-    if (error) {
-      toast({ title: t('rules.errorUpdating'), description: error.message, variant: 'destructive' });
-    } else {
+    try {
+      const data = await api.get<any[]>(`/routing-rules?tenant_id=${currentTenant.id}&sort_by=priority&sort_direction=asc`);
+      
       const typedRules: RoutingRule[] = (data || []).map((rule) => ({
         ...rule,
         conditions: rule.conditions as unknown as ConditionGroup,
         actions: rule.actions as unknown as ActionsGroup,
       }));
       setRules(typedRules);
+    } catch (error: any) {
+      toast({ title: t('rules.errorUpdating'), description: error.message, variant: 'destructive' });
     }
     setLoading(false);
   };
 
   const handleToggleActive = async (rule: RoutingRule) => {
-    const { error } = await supabase
-      .from('routing_rules')
-      .update({ is_active: !rule.is_active })
-      .eq('id', rule.id);
-
-    if (error) {
-      toast({ title: t('errors.failedToUpdate'), description: error.message, variant: 'destructive' });
-    } else {
+    try {
+      await api.put(`/routing-rules/${rule.id}`, { is_active: !rule.is_active });
       setRules(rules.map(r => r.id === rule.id ? { ...r, is_active: !r.is_active } : r));
       toast({ title: rule.is_active ? t('rules.ruleDisabled') : t('rules.ruleEnabled') });
+    } catch (error: any) {
+      toast({ title: t('errors.failedToUpdate'), description: error.message, variant: 'destructive' });
     }
   };
 
@@ -106,16 +99,12 @@ export default function Rules() {
   const handleDeleteConfirm = async () => {
     if (!ruleToDelete) return;
 
-    const { error } = await supabase
-      .from('routing_rules')
-      .delete()
-      .eq('id', ruleToDelete.id);
-
-    if (error) {
-      toast({ title: t('errors.failedToDelete'), description: error.message, variant: 'destructive' });
-    } else {
+    try {
+      await api.delete(`/routing-rules/${ruleToDelete.id}`);
       setRules(rules.filter(r => r.id !== ruleToDelete.id));
       toast({ title: t('success.deleted') });
+    } catch (error: any) {
+      toast({ title: t('errors.failedToDelete'), description: error.message, variant: 'destructive' });
     }
     setDeleteDialogOpen(false);
     setRuleToDelete(null);
@@ -146,33 +135,31 @@ export default function Rules() {
     <AppLayout>
       <div className="p-4 space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{t('rules.title')}</h1>
-            <p className="text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold">{t('rules.title')}</h1>
+            <p className="text-sm text-muted-foreground">
               {t('rules.subtitle')}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {rules.length > 0 && (
-              <Button variant="outline" onClick={() => setSimulatorOpen(true)}>
-                <Play className="h-4 w-4 mr-2" />
-                {t('rules.testRules')}
+              <Button variant="outline" size="sm" onClick={() => setSimulatorOpen(true)}>
+                <Play className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('rules.testRules')}</span>
               </Button>
             )}
             {isAdmin && (
-              <Button onClick={handleCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                {t('rules.newRule')}
+              <Button size="sm" onClick={handleCreate}>
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('rules.newRule')}</span>
               </Button>
             )}
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
+          <CardListSkeleton count={4} />
         ) : rules.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -199,35 +186,41 @@ export default function Rules() {
                 className={`transition-all hover:shadow-md ${!rule.is_active ? 'opacity-60' : ''}`}
               >
                 <CardHeader className="py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <GripVertical className="h-4 w-4" />
-                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                        {index + 1}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <GitBranch className="h-4 w-4 text-muted-foreground" />
-                        {rule.name}
-                        {!rule.is_active && (
-                          <Badge variant="secondary">{t('rules.paused')}</Badge>
+                  <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-muted-foreground shrink-0 pt-0.5">
+                        <GripVertical className="h-4 w-4 hidden sm:block" />
+                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                          {index + 1}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base flex flex-wrap items-center gap-2">
+                          <GitBranch className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="break-words">{rule.name}</span>
+                          {!rule.is_active && (
+                            <Badge variant="secondary">{t('rules.paused')}</Badge>
+                          )}
+                          {rule.actions.elseActions && rule.actions.elseActions.length > 0 && (
+                            <Badge variant="outline" className="text-xs">+{t('rules.else').toUpperCase()}</Badge>
+                          )}
+                        </CardTitle>
+                        {rule.description && (
+                          <CardDescription className="mt-1">{rule.description}</CardDescription>
                         )}
-                        {rule.actions.elseActions && rule.actions.elseActions.length > 0 && (
-                          <Badge variant="outline" className="text-xs">+{t('rules.else').toUpperCase()}</Badge>
-                        )}
-                      </CardTitle>
-                      {rule.description && (
-                        <CardDescription className="mt-1">{rule.description}</CardDescription>
-                      )}
+                        <div className="text-xs text-muted-foreground mt-2 space-y-0.5 md:hidden">
+                          <div>{getConditionSummary(rule.conditions)}</div>
+                          <div className="truncate">{getActionSummary(rule.actions)}</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-xs text-muted-foreground text-right space-y-0.5">
+                    <div className="flex items-center justify-between md:justify-end gap-3">
+                      <div className="text-xs text-muted-foreground text-right space-y-0.5 hidden md:block">
                         <div>{getConditionSummary(rule.conditions)}</div>
                         <div>{getActionSummary(rule.actions)}</div>
                       </div>
                       {isAdmin && (
-                        <div className="flex items-center gap-2 pl-3 border-l">
+                        <div className="flex items-center gap-1 sm:gap-2 md:pl-3 md:border-l">
                           <Switch
                             checked={rule.is_active}
                             onCheckedChange={() => handleToggleActive(rule)}

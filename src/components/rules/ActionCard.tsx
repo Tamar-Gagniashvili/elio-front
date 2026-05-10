@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import type { RuleAction, ActionType } from '@/lib/ruleTypes';
 
@@ -20,11 +21,12 @@ interface ActionCardProps {
   action: RuleAction;
   onChange: (updates: Partial<RuleAction>) => void;
   onRemove: () => void;
+  error?: string;
   className?: string;
   style?: React.CSSProperties;
 }
 
-export function ActionCard({ action, onChange, onRemove, className, style }: ActionCardProps) {
+export function ActionCard({ action, onChange, onRemove, error, className, style }: ActionCardProps) {
   const { t } = useTranslation();
   const { currentTenant } = useAuth();
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
@@ -47,38 +49,28 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
   const fetchUsers = async () => {
     if (!currentTenant) return;
     
-    const { data: memberships } = await supabase
-      .from('tenant_memberships')
-      .select('user_id')
-      .eq('tenant_id', currentTenant.id)
-      .eq('is_active', true)
-      .eq('role', 'sales');
-
-    if (!memberships || memberships.length === 0) return;
-
-    const userIds = memberships.map(m => m.user_id);
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('user_id, full_name, email')
-      .in('user_id', userIds);
-
-    if (profiles) {
-      setUsers(profiles.map((p) => ({
-        id: p.user_id,
-        name: p.full_name || p.email,
-      })));
+    try {
+      const memberships = await api.get<any[]>(`/tenant-memberships?tenant_id=${currentTenant.id}&is_active=1&role[]=sales`);
+      if (memberships && Array.isArray(memberships)) {
+        setUsers(memberships.filter(m => m.profile).map((m: any) => ({
+          id: m.user_id,
+          name: m.profile.full_name || m.profile.email,
+        })));
+      }
+    } catch (e) {
+      console.error('Failed to fetch users', e);
     }
   };
 
   const fetchStatuses = async () => {
     if (!currentTenant) return;
-    const { data } = await supabase
-      .from('lead_statuses')
-      .select('id, name, color')
-      .eq('tenant_id', currentTenant.id);
-
-    if (data) {
-      setStatuses(data);
+    try {
+      const data = await api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}`);
+      if (data && Array.isArray(data)) {
+        setStatuses(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch statuses', e);
     }
   };
 
@@ -165,6 +157,7 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
     <div
       className={cn(
         'w-44 p-3 rounded-lg border-2 shadow-md relative group',
+        error && 'ring-2 ring-destructive ring-offset-1',
         className
       )}
       style={style}
@@ -201,6 +194,10 @@ export function ActionCard({ action, onChange, onRemove, className, style }: Act
         </div>
 
         {renderActionConfig()}
+
+        {error && (
+          <p className="text-[10px] text-destructive font-medium leading-tight">{error}</p>
+        )}
       </div>
     </div>
   );

@@ -96,7 +96,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
           value={String(condition.value)}
           onValueChange={(value) => updateCondition(index, { value })}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -116,7 +116,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
           value={String(condition.value)}
           onValueChange={(value) => updateCondition(index, { value })}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -136,7 +136,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
           value={String(condition.value)}
           onValueChange={(value) => updateCondition(index, { value })}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -205,7 +205,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
                     value={condition.field}
                     onValueChange={(value: ConditionField) => updateCondition(index, { field: value, value: '' })}
                   >
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-full sm:w-[160px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -221,7 +221,7 @@ export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps
                     value={condition.operator}
                     onValueChange={(value: ConditionOperator) => updateCondition(index, { operator: value })}
                   >
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-full sm:w-[160px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

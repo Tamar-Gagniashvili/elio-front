@@ -6,8 +6,8 @@
   var tenantId = config.tenantId;
   var position = config.position || 'bottom-right';
   var primaryColor = config.primaryColor || '#8B5CF6';
-  var apiUrl = config.apiUrl || 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1/webchat';
-  var uploadUrl = config.uploadUrl || 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1/upload-chat-attachment';
+  var apiUrl = config.apiUrl || 'http://localhost:8000/api/functions/webchat';
+  var uploadUrl = config.uploadUrl || 'http://localhost:8000/api/functions/upload-chat-attachment';
 
   if (!tenantId) {
     console.error('ChatFlow: Missing tenantId in configuration');

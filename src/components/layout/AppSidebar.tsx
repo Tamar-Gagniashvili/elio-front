@@ -48,9 +48,11 @@ const navItems = [
 interface AppSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  isMobile?: boolean;
+  onNavigate?: () => void;
 }
 
-export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
+export function AppSidebar({ collapsed, onToggle, isMobile = false, onNavigate }: AppSidebarProps) {
   const location = useLocation();
   const { t } = useTranslation();
   const { profile, currentTenant, currentMembership, memberships, signOut, setCurrentTenant } = useAuth();
@@ -68,11 +70,34 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       <div className="p-3 border-b border-sidebar-border">
         <div className={cn(
           "flex items-center gap-3 mb-3",
-          collapsed && "justify-center"
+          collapsed ? "justify-center" : "justify-between"
         )}>
-          <img src={relinkLogo} alt="ReLink" className="h-8 w-auto flex-shrink-0" />
-          {!collapsed && (
-            <span className="font-bold text-lg text-sidebar-foreground">ReLink</span>
+          <Link to="/" className="flex items-center gap-3 min-w-0">
+            <img src={relinkLogo} alt="ReLink" className="h-8 w-auto flex-shrink-0" />
+            {!collapsed && (
+              <span className="font-bold text-lg text-sidebar-foreground truncate">ReLink</span>
+            )}
+          </Link>
+          {!isMobile && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggle}
+                  className="h-7 w-7 flex-shrink-0 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                >
+                  {collapsed ? (
+                    <PanelLeft className="h-4 w-4" />
+                  ) : (
+                    <PanelLeftClose className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {collapsed ? t('nav.expand') : t('nav.collapse')}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
 
@@ -153,6 +178,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               <Link
                 key={item.href}
                 to={item.href}
+                onClick={onNavigate}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   collapsed && 'justify-center px-2',
@@ -183,35 +209,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           })}
       </nav>
 
-      {/* Language Switcher & Collapse Toggle */}
+      {/* Language Switcher */}
       <div className="px-2 py-2 space-y-1">
         <LanguageSwitcher collapsed={collapsed} />
-        
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size={collapsed ? "icon" : "sm"}
-              onClick={onToggle}
-              className={cn(
-                "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                collapsed ? "w-full" : "w-full justify-start gap-2"
-              )}
-            >
-              {collapsed ? (
-                <PanelLeft className="h-4 w-4" />
-              ) : (
-                <>
-                  <PanelLeftClose className="h-4 w-4" />
-                  <span className="text-xs">{t('nav.collapse')}</span>
-                </>
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {collapsed ? t('nav.expand') : t('nav.collapse')}
-          </TooltipContent>
-        </Tooltip>
       </div>
 
       {/* User Profile */}

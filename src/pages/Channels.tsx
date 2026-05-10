@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Channel, ChannelType, CHANNEL_CONFIG } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ChannelBadge } from '@/components/ChannelBadge';
@@ -10,8 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Settings, AlertCircle, CheckCircle2, Radio } from 'lucide-react';
 import { ChannelConfigDialog } from '@/components/channels/ChannelConfigDialog';
+import { EmptyState } from '@/components/EmptyState';
+import { CardListSkeleton, PageHeaderSkeleton } from '@/components/skeletons/ListSkeletons';
 
 export default function Channels() {
   const { t } = useTranslation();
@@ -34,17 +36,11 @@ export default function Channels() {
       const enabledTypes = (currentTenant.enabled_channels || ['web_chat']) as ChannelType[];
       setEnabledChannelTypes(enabledTypes);
 
-      // Fetch existing channel configurations
-      const { data, error } = await supabase
-        .from('channels')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
+      try {
+        const data = await api.get<Channel[]>('/channels?sort_by=created_at&sort_direction=desc');
+        setChannels(data);
+      } catch (error) {
         console.error('Error fetching channels:', error);
-      } else {
-        setChannels(data as Channel[]);
       }
       setIsLoading(false);
     };
@@ -75,19 +71,17 @@ export default function Channels() {
     
     // If channel doesn't exist, create it first
     if (!channel) {
-      const { data, error } = await supabase
-        .from('channels')
-        .insert({
+      try {
+        const data = await api.post<Channel>('/channels', {
           tenant_id: currentTenant.id,
           channel_type: type,
           name: CHANNEL_CONFIG[type].label,
           is_active: false,
           config: {},
-        })
-        .select()
-        .single();
-
-      if (error) {
+        });
+        channel = data;
+        setChannels((prev) => [channel!, ...prev]);
+      } catch (error) {
         toast({
           title: t('common.error'),
           description: t('channels.failedToCreate'),
@@ -95,8 +89,6 @@ export default function Channels() {
         });
         return;
       }
-      channel = data as Channel;
-      setChannels((prev) => [channel!, ...prev]);
     }
 
     setSelectedChannel(channel);
@@ -110,7 +102,7 @@ export default function Channels() {
     
     try {
       // Encrypt sensitive credentials before saving
-      const { data: encryptResult, error: encryptError } = await supabase.functions.invoke(
+      const { data: encryptResult, error: encryptError } = await api.invoke<any>(
         'encrypt-channel-config',
         {
           body: {
@@ -135,18 +127,8 @@ export default function Channels() {
 
       const encryptedConfig = encryptResult?.config || config;
 
-      const { error } = await supabase
-        .from('channels')
-        .update({ config: encryptedConfig })
-        .eq('id', selectedChannel.id);
-
-      if (error) {
-        toast({
-          title: t('common.error'),
-          description: t('channels.failedToSave'),
-          variant: 'destructive',
-        });
-      } else {
+      try {
+        await api.put(`/channels/${selectedChannel.id}`, { config: encryptedConfig });
         setChannels((prev) =>
           prev.map((c) =>
             c.id === selectedChannel.id ? { ...c, config: encryptedConfig } : c
@@ -157,6 +139,12 @@ export default function Channels() {
           description: t('channels.configSavedDesc', { channel: CHANNEL_CONFIG[selectedChannel.channel_type].label }),
         });
         setConfigDialogOpen(false);
+      } catch (error) {
+        toast({
+          title: t('common.error'),
+          description: t('channels.failedToSave'),
+          variant: 'destructive',
+        });
       }
     } catch (err) {
       console.error('Save error:', err);
@@ -182,31 +170,28 @@ export default function Channels() {
       return;
     }
 
-    const { error } = await supabase
-      .from('channels')
-      .update({ is_active: !channel.is_active })
-      .eq('id', channel.id);
-
-    if (error) {
-      toast({
-        title: t('common.error'),
-        description: t('channels.failedToUpdate'),
-        variant: 'destructive',
-      });
-    } else {
+    try {
+      await api.put(`/channels/${channel.id}`, { is_active: !channel.is_active });
       setChannels((prev) =>
         prev.map((c) =>
           c.id === channel.id ? { ...c, is_active: !c.is_active } : c
         )
       );
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: t('channels.failedToUpdate'),
+        variant: 'destructive',
+      });
     }
   };
 
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="p-4 max-w-4xl mx-auto">
+          <PageHeaderSkeleton />
+          <CardListSkeleton count={4} />
         </div>
       </AppLayout>
     );
@@ -224,15 +209,11 @@ export default function Channels() {
 
         <div className="space-y-4">
           {enabledChannelTypes.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold mb-1">{t('channels.noChannels')}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('channels.noChannelsDesc')}
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Radio}
+              title={t('channels.noChannels')}
+              description={t('channels.noChannelsDesc')}
+            />
           ) : (
             enabledChannelTypes.map((type) => {
               const channel = getChannelForType(type);
@@ -242,12 +223,12 @@ export default function Channels() {
               return (
                 <Card key={type}>
                   <CardContent className="py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         <ChannelBadge channelType={type} size="lg" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{CHANNEL_CONFIG[type].label}</h3>
+                        <div className="min-w-0">
+                          <div className="flex items-center flex-wrap gap-2">
+                            <h3 className="font-semibold truncate">{CHANNEL_CONFIG[type].label}</h3>
                             {configured || isWebChat ? (
                               <Badge variant="secondary" className="text-primary">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -260,13 +241,13 @@ export default function Channels() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground truncate">
                             {channel?.name || CHANNEL_CONFIG[type].label}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-end gap-3 sm:gap-4 flex-wrap">
                         {channel && (
                           <Badge variant={channel.is_active ? 'default' : 'secondary'}>
                             {channel.is_active ? t('common.active') : t('common.inactive')}

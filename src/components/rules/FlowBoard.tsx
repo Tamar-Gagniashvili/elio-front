@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, ArrowRight, GitBranch, Trash2 } from 'lucide-react';
+import { Plus, ArrowRight, ArrowDown, GitBranch, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ConditionGroup, ActionsGroup, RuleCondition, RuleAction, ConditionField, ConditionOperator, ActionType } from '@/lib/ruleTypes';
@@ -12,6 +12,9 @@ interface FlowBoardProps {
   actions: ActionsGroup;
   onConditionsChange: (conditions: ConditionGroup) => void;
   onActionsChange: (actions: ActionsGroup) => void;
+  conditionErrors?: Record<number, string>;
+  actionErrors?: Record<number, string>;
+  elseActionErrors?: Record<number, string>;
 }
 
 const STICKY_COLORS = {
@@ -20,7 +23,7 @@ const STICKY_COLORS = {
   else: 'bg-rose-100 border-rose-300 dark:bg-rose-900/30 dark:border-rose-700',
 };
 
-export function FlowBoard({ conditions, actions, onConditionsChange, onActionsChange }: FlowBoardProps) {
+export function FlowBoard({ conditions, actions, onConditionsChange, onActionsChange, conditionErrors = {}, actionErrors = {}, elseActionErrors = {} }: FlowBoardProps) {
   const { t } = useTranslation();
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
 
@@ -112,10 +115,10 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
   };
 
   return (
-    <div className="w-full min-h-[280px] bg-muted/20 rounded-xl border-2 border-dashed border-muted-foreground/20 p-4 relative">
-      <div className="flex items-start justify-center gap-6">
+    <div className="w-full min-h-[280px] bg-muted/20 rounded-xl border-2 border-dashed border-muted-foreground/20 p-3 sm:p-4 relative overflow-x-auto">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-center items-center gap-4 md:gap-6">
         {/* CONDITIONS ZONE */}
-        <div className="flex flex-col items-center gap-2 min-w-[160px]">
+        <div className="flex flex-col items-center gap-2 w-full md:w-auto md:min-w-[160px]">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('rules.if')}</span>
             {conditions.conditions.length > 1 && (
@@ -142,6 +145,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
                   condition={condition}
                   onChange={(updates) => updateCondition(index, updates)}
                   onRemove={() => removeCondition(index)}
+                  error={conditionErrors[index]}
                   className={cn(
                     STICKY_COLORS.condition,
                     'transition-all duration-200 hover:scale-[1.02]'
@@ -165,12 +169,13 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
         </div>
 
         {/* ARROW */}
-        <div className="flex items-center justify-center self-center mt-6">
-          <ArrowRight className="h-5 w-5 text-muted-foreground/50" />
+        <div className="flex items-center justify-center md:self-center md:mt-6">
+          <ArrowDown className="h-5 w-5 text-muted-foreground/50 md:hidden" />
+          <ArrowRight className="h-5 w-5 text-muted-foreground/50 hidden md:block" />
         </div>
 
         {/* THEN ACTIONS ZONE */}
-        <div className="flex flex-col items-center gap-2 min-w-[160px]">
+        <div className="flex flex-col items-center gap-2 w-full md:w-auto md:min-w-[160px]">
           <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
             {t('rules.then').toUpperCase()}
           </div>
@@ -182,6 +187,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
                 action={action}
                 onChange={(updates) => updateAction(index, updates, false)}
                 onRemove={() => removeAction(index, false)}
+                error={actionErrors[index]}
                 className={cn(
                   STICKY_COLORS.action,
                   'transition-all duration-200 hover:scale-[1.02]'
@@ -206,15 +212,15 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
         {/* ELSE ACTIONS ZONE */}
         {hasElseBranch && (
           <>
-            <div className="flex items-center justify-center self-center mt-6">
-              <div className="flex items-center gap-1">
-                <div className="h-px w-3 bg-muted-foreground/30" />
+            <div className="flex items-center justify-center md:self-center md:mt-6">
+              <div className="flex md:flex-row flex-col items-center gap-1">
+                <div className="md:h-px md:w-3 h-3 w-px bg-muted-foreground/30" />
                 <span className="text-[10px] text-muted-foreground uppercase">{t('rules.or')}</span>
-                <div className="h-px w-3 bg-muted-foreground/30" />
+                <div className="md:h-px md:w-3 h-3 w-px bg-muted-foreground/30" />
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2 min-w-[160px]">
+            <div className="flex flex-col items-center gap-2 w-full md:w-auto md:min-w-[160px]">
               <div className="flex items-center gap-1">
                 <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
                   {t('rules.else').toUpperCase()}
@@ -236,6 +242,7 @@ export function FlowBoard({ conditions, actions, onConditionsChange, onActionsCh
                     action={action}
                     onChange={(updates) => updateAction(index, updates, true)}
                     onRemove={() => removeAction(index, true)}
+                    error={elseActionErrors[index]}
                     className={cn(
                       STICKY_COLORS.else,
                       'transition-all duration-200 hover:scale-[1.02]'

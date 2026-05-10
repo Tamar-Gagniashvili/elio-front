@@ -28,7 +28,7 @@ export default function ContactSection() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
               <Button size="lg" asChild className="w-full sm:w-auto h-14 px-8 text-lg gradient-primary hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">
                 <Link to="/auth" className="flex items-center gap-2">
-                  Start Free Trial
+                  Login
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>

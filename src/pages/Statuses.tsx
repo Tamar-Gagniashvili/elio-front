@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,14 +96,11 @@ export default function Statuses() {
     
     setIsLoading(true);
     
-    const statusesResult = await supabase
-      .from('lead_statuses')
-      .select('*')
-      .eq('tenant_id', currentTenant.id)
-      .order('created_at', { ascending: true });
-
-    if (statusesResult.error) {
-      console.error('Error fetching statuses:', statusesResult.error);
+    try {
+      const statusesData = await api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=asc`);
+      setStatuses(statusesData as LeadStatus[]);
+    } catch (error) {
+      console.error('Error fetching statuses:', error);
       toast({
         title: t('common.error'),
         description: t('statuses.failedToFetch'),
@@ -112,43 +109,41 @@ export default function Statuses() {
       setIsLoading(false);
       return;
     }
-    
-    setStatuses(statusesResult.data || []);
 
     let contactIdsToCount: string[] | null = null;
     
     if (!isAdmin) {
-      const { data: assignedConversations } = await supabase
-        .from('conversations')
-        .select('contact_id')
-        .eq('tenant_id', currentTenant.id)
-        .eq('assigned_to', user.id);
-      
-      contactIdsToCount = assignedConversations?.map(c => c.contact_id) || [];
-    }
-
-    let countsQuery = supabase
-      .from('contact_statuses')
-      .select('status_id, contact_id')
-      .eq('tenant_id', currentTenant.id);
-    
-    if (contactIdsToCount !== null) {
-      if (contactIdsToCount.length === 0) {
-        setStatusCounts({});
-        setIsLoading(false);
-        return;
+      try {
+        const assignedConversations = await api.get<any[]>(`/conversations?tenant_id=${currentTenant.id}&assigned_to=${user.id}`);
+        contactIdsToCount = assignedConversations?.map(c => c.contact_id) || [];
+      } catch (e) {
+        console.error(e);
       }
-      countsQuery = countsQuery.in('contact_id', contactIdsToCount);
     }
 
-    const countsResult = await countsQuery;
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('tenant_id', currentTenant.id);
+      
+      if (contactIdsToCount !== null) {
+        if (contactIdsToCount.length === 0) {
+          setStatusCounts({});
+          setIsLoading(false);
+          return;
+        }
+        contactIdsToCount.forEach(id => queryParams.append('contact_id[]', id));
+      }
 
-    if (countsResult.data) {
-      const counts: Record<string, number> = {};
-      countsResult.data.forEach((item) => {
-        counts[item.status_id] = (counts[item.status_id] || 0) + 1;
-      });
-      setStatusCounts(counts);
+      const countsResult = await api.get<any[]>(`/contact-statuses?${queryParams.toString()}`);
+      if (countsResult) {
+        const counts: Record<string, number> = {};
+        countsResult.forEach((item) => {
+          counts[item.status_id] = (counts[item.status_id] || 0) + 1;
+        });
+        setStatusCounts(counts);
+      }
+    } catch (e) {
+      console.error(e);
     }
 
     setIsLoading(false);
@@ -157,23 +152,14 @@ export default function Statuses() {
   const handleCreateStatus = async () => {
     if (!newStatusName.trim() || !currentTenant || !user) return;
 
-    const { error } = await supabase
-      .from('lead_statuses')
-      .insert({
+    try {
+      await api.post('/lead-statuses', {
         tenant_id: currentTenant.id,
         name: newStatusName.trim(),
         color: newStatusColor,
         icon: newIndicatorMode === 'icon' ? newStatusIcon : null,
-        created_by: user.id,
       });
 
-    if (error) {
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToCreate'),
-        variant: 'destructive',
-      });
-    } else {
       toast({
         title: t('statuses.statusCreated'),
         description: t('statuses.statusCreatedDesc', { name: newStatusName }),
@@ -184,55 +170,54 @@ export default function Statuses() {
       setNewIndicatorMode('color');
       setIsAdding(false);
       fetchStatuses();
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: t('statuses.failedToCreate'),
+        variant: 'destructive',
+      });
     }
   };
 
   const handleUpdateStatus = async () => {
     if (!editingStatus || !editName.trim()) return;
 
-    const { error } = await supabase
-      .from('lead_statuses')
-      .update({
+    try {
+      await api.put(`/lead-statuses/${editingStatus.id}`, {
         name: editName.trim(),
         color: editColor,
         icon: editIndicatorMode === 'icon' ? editIcon : null,
-      })
-      .eq('id', editingStatus.id);
-
-    if (error) {
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToUpdate'),
-        variant: 'destructive',
       });
-    } else {
+
       toast({
         title: t('statuses.statusUpdated'),
         description: t('statuses.statusUpdatedDesc'),
       });
       setEditingStatus(null);
       fetchStatuses();
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: t('statuses.failedToUpdate'),
+        variant: 'destructive',
+      });
     }
   };
 
   const handleDeleteStatus = async (statusId: string, statusName: string) => {
-    const { error } = await supabase
-      .from('lead_statuses')
-      .delete()
-      .eq('id', statusId);
-
-    if (error) {
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToDelete'),
-        variant: 'destructive',
-      });
-    } else {
+    try {
+      await api.delete(`/lead-statuses/${statusId}`);
       toast({
         title: t('statuses.statusDeleted'),
         description: t('statuses.statusDeletedDesc', { name: statusName }),
       });
       fetchStatuses();
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: t('statuses.failedToDelete'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -364,14 +349,14 @@ export default function Statuses() {
     <AppLayout>
       <div className="p-4 max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-              <Tag className="h-6 w-6 text-white" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl gradient-primary flex items-center justify-center shadow-lg flex-shrink-0">
+              <Tag className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">{t('statuses.title')}</h1>
-              <p className="text-muted-foreground">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t('statuses.title')}</h1>
+              <p className="text-sm text-muted-foreground">
                 {isAdmin 
                   ? t('statuses.subtitleAdmin')
                   : t('statuses.subtitleUser')}
@@ -379,7 +364,7 @@ export default function Statuses() {
             </div>
           </div>
           {isAdmin && !isAdding && statuses.length > 0 && (
-            <Button onClick={() => setIsAdding(true)} className="gap-2">
+            <Button onClick={() => setIsAdding(true)} size="sm" className="gap-2 self-start sm:self-auto">
               <Plus className="h-4 w-4" />
               {t('statuses.newStatus')}
             </Button>
@@ -388,7 +373,7 @@ export default function Statuses() {
 
         {/* Stats Bar */}
         {statuses.length > 0 && (
-          <div className="mb-6 p-4 rounded-xl bg-muted/50 border flex items-center gap-6">
+          <div className="mb-6 p-3 sm:p-4 rounded-xl bg-muted/50 border flex items-center gap-4 sm:gap-6 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Tag className="h-4 w-4 text-primary" />

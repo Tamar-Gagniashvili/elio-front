@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLinkedContacts } from '@/hooks/useLinkedContacts';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -84,18 +84,12 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
   }, [linkedContactIds, isLoadingLinks, tenantId]);
 
   const fetchNotes = async () => {
-    // Fetch notes for ALL linked contacts
-    const { data, error } = await supabase
-      .from('contact_notes')
-      .select('*')
-      .in('contact_id', linkedContactIds)
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const qs = linkedContactIds.map(id => `contact_id[]=${id}`).join('&');
+      const data = await api.get<ContactNote[]>(`/contact-notes?tenant_id=${tenantId}&${qs}&sort_by=created_at&sort_direction=desc`);
+      setNotes(data || []);
+    } catch (error) {
       console.error('Error fetching notes:', error);
-    } else {
-      setNotes(data as ContactNote[]);
     }
   };
 
@@ -113,9 +107,8 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
       reminderAt = addMinutes(new Date(), minutes).toISOString();
     }
 
-    const { error } = await supabase
-      .from('contact_notes')
-      .insert({
+    try {
+      await api.post('/contact-notes', {
         contact_id: contactId,
         tenant_id: tenantId,
         created_by: user.id,
@@ -124,9 +117,6 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
         reminder_at: reminderAt,
       });
 
-    if (error) {
-      console.error('Error adding note:', error);
-    } else {
       setNewNote('');
       setReminderOption('none');
       setCustomDate(undefined);
@@ -134,21 +124,19 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
       setSelectedColor('yellow');
       setIsAdding(false);
       fetchNotes();
+    } catch (error) {
+      console.error('Error adding note:', error);
     }
     
     setIsSaving(false);
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    const { error } = await supabase
-      .from('contact_notes')
-      .delete()
-      .eq('id', noteId);
-
-    if (error) {
-      console.error('Error deleting note:', error);
-    } else {
+    try {
+      await api.delete(`/contact-notes/${noteId}`);
       setNotes(notes.filter(n => n.id !== noteId));
+    } catch (error) {
+      console.error('Error deleting note:', error);
     }
   };
 
@@ -176,18 +164,13 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
       reminderAt = addMinutes(new Date(), minutes).toISOString();
     }
 
-    const { error } = await supabase
-      .from('contact_notes')
-      .update({
+    try {
+      await api.put(`/contact-notes/${editingNote.id}`, {
         content: newNote.trim(),
         color: selectedColor,
         reminder_at: reminderAt,
-      })
-      .eq('id', editingNote.id);
+      });
 
-    if (error) {
-      console.error('Error updating note:', error);
-    } else {
       setNewNote('');
       setReminderOption('none');
       setCustomDate(undefined);
@@ -195,6 +178,8 @@ export function ContactNotes({ contactId, tenantId }: ContactNotesProps) {
       setSelectedColor('yellow');
       setEditingNote(null);
       fetchNotes();
+    } catch (error) {
+      console.error('Error updating note:', error);
     }
     
     setIsSaving(false);

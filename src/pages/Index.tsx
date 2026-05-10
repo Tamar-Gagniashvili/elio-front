@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import Landing from './Landing';
 
@@ -19,14 +20,14 @@ export default function Index() {
     }
 
     const checkRole = async () => {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'super_admin')
-        .maybeSingle();
-
-      setIsSuperAdmin(!!data);
+      try {
+        const data = await api.get<any[]>(`/user-roles?user_id=${user.id}`);
+        const isSuper = data && data.some(r => r.role === 'super_admin');
+        setIsSuperAdmin(isSuper);
+      } catch (error) {
+        console.error('Error checking role:', error);
+        setIsSuperAdmin(false);
+      }
       setRoleChecked(true);
     };
 

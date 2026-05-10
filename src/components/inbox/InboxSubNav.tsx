@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
+import { echo } from '@/lib/echo';
 import { LeadStatus, Conversation } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
 import { cn } from '@/lib/utils';
@@ -28,6 +30,7 @@ interface InboxSubNavProps {
   groupedConversations: GroupedConversation[];
   userId: string | undefined;
   unrepliedConversationIds: Set<string>;
+  horizontal?: boolean;
 }
 
 const SUB_NAV_COLLAPSED_KEY = 'inbox-subnav-collapsed';
@@ -39,7 +42,8 @@ export function InboxSubNav({
   conversations,
   groupedConversations,
   userId,
-  unrepliedConversationIds
+  unrepliedConversationIds,
+  horizontal = false,
 }: InboxSubNavProps) {
   const { t } = useTranslation();
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
@@ -57,14 +61,11 @@ export function InboxSubNav({
     if (!tenantId) return;
 
     const fetchStatuses = async () => {
-      const { data, error } = await supabase
-        .from('lead_statuses')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('name');
-
-      if (!error && data) {
-        setStatuses(data as LeadStatus[]);
+      try {
+        const data = await api.get<any[]>(`/lead-statuses?tenant_id=${tenantId}&sort_by=name&sort_direction=asc`);
+        setStatuses(data as LeadStatus[] || []);
+      } catch (e) {
+        console.error('Failed to fetch lead statuses', e);
       }
     };
 
@@ -96,23 +97,23 @@ export function InboxSubNav({
         return;
       }
 
-      // Fetch contact statuses for all contacts
-      const { data: contactStatusData } = await supabase
-        .from('contact_statuses')
-        .select('contact_id, status_id')
-        .eq('tenant_id', tenantId)
-        .in('contact_id', Array.from(allContactIds));
-
-      // Create a map of contact_id -> Set of status_ids
-      const contactStatusMap = new Map<string, Set<string>>();
-      if (contactStatusData) {
-        for (const cs of contactStatusData) {
-          if (!contactStatusMap.has(cs.contact_id)) {
-            contactStatusMap.set(cs.contact_id, new Set());
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('tenant_id', tenantId);
+        Array.from(allContactIds).forEach(id => queryParams.append('contact_id[]', id));
+        
+        const contactStatusData = await api.get<any[]>(`/contact-statuses?${queryParams.toString()}`);
+        
+        // Create a map of contact_id -> Set of status_ids
+        const contactStatusMap = new Map<string, Set<string>>();
+        if (contactStatusData) {
+          for (const cs of contactStatusData) {
+            if (!contactStatusMap.has(cs.contact_id)) {
+              contactStatusMap.set(cs.contact_id, new Set());
+            }
+            contactStatusMap.get(cs.contact_id)!.add(cs.status_id);
           }
-          contactStatusMap.get(cs.contact_id)!.add(cs.status_id);
         }
-      }
 
       // Count grouped conversations (treating linked contacts as 1)
       for (const status of statuses) {
@@ -133,37 +134,32 @@ export function InboxSubNav({
         counts[status.id] = count;
       }
 
-      setStatusCounts(counts);
+      } catch (e) {
+        console.error('Failed to fetch contact status counts', e);
+      }
     };
 
     fetchStatusCounts();
   }, [tenantId, statuses, groupedConversations, statusCountsTrigger]);
 
-  // Separate effect for realtime subscription
+  // Separate effect for realtime subscription (currently polling/disabled until backend events)
   useEffect(() => {
     if (!tenantId) return;
 
-    const channel = supabase
-      .channel(`subnav-contact-statuses-${tenantId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'contact_statuses',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        () => {
-          // Add small delay to ensure DB change is fully propagated
-          setTimeout(() => {
-            setStatusCountsTrigger(prev => prev + 1);
-          }, 100);
-        }
-      )
-      .subscribe();
+    // Use Laravel Echo for realtime later when events are configured
+    const channelName = `tenant.${tenantId}`;
+    const channel = echo.channel(channelName);
+    
+    // As a temporary measure, if any conversation updates, we refresh statuses just in case
+    channel.listen('.ConversationUpdated', () => {
+      setTimeout(() => {
+        setStatusCountsTrigger(prev => prev + 1);
+      }, 500);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.stopListening('.ConversationUpdated');
+      echo.leaveChannel(channelName);
     };
   }, [tenantId]);
 
@@ -253,6 +249,86 @@ export function InboxSubNav({
 
     return button;
   };
+
+  // Horizontal (mobile) variant — chip strip
+  if (horizontal) {
+    const HChip = ({
+      filter,
+      icon: Icon,
+      label,
+      color,
+      statusIcon,
+      count,
+    }: {
+      filter: InboxFilter;
+      icon?: React.ComponentType<{ className?: string }>;
+      label: string;
+      color?: string;
+      statusIcon?: string | null;
+      count?: number;
+    }) => (
+      <button
+        onClick={() => onFilterChange(filter)}
+        className={cn(
+          'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap flex-shrink-0 transition-colors border',
+          isActive(filter)
+            ? 'bg-primary text-primary-foreground border-primary'
+            : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted'
+        )}
+      >
+        {Icon && <Icon className="h-3.5 w-3.5" />}
+        {color && !Icon && (
+          <StatusIndicator
+            icon={statusIcon}
+            color={color}
+            colorDotClass="h-2 w-2"
+            iconClass="h-3 w-3"
+          />
+        )}
+        <span>{label}</span>
+        {count !== undefined && count > 0 && (
+          <span
+            className={cn(
+              'tabular-nums text-[10px] rounded-full px-1.5 py-0.5',
+              isActive(filter) ? 'bg-primary-foreground/20' : 'bg-muted'
+            )}
+          >
+            {count}
+          </span>
+        )}
+      </button>
+    );
+
+    return (
+      <div className="border-b bg-card/50 overflow-x-auto scrollbar-thin">
+        <div className="flex items-center gap-2 px-3 py-2 min-w-max">
+          <HChip filter={{ type: 'all' }} icon={Inbox} label={t('inbox.filters.all')} count={allCount} />
+          <HChip filter={{ type: 'mine' }} icon={User} label={t('inbox.filters.mine')} count={mineCount} />
+          <HChip filter={{ type: 'unassigned' }} icon={UserX} label={t('inbox.filters.unassigned')} count={unassignedCount} />
+          <HChip filter={{ type: 'unreplied' }} icon={MessageCircle} label={t('inbox.filters.unreplied')} count={unrepliedCount} />
+          <HChip filter={{ type: 'archived' }} icon={Archive} label={t('inbox.filters.archived')} count={archivedCount} />
+          {newlyAssignedCount > 0 && (
+            <HChip
+              filter={{ type: 'newly_assigned' }}
+              icon={UserPlus}
+              label={t('inbox.filters.newlyAssigned')}
+              count={newlyAssignedCount}
+            />
+          )}
+          {statuses.map((status) => (
+            <HChip
+              key={status.id}
+              filter={{ type: 'status', statusId: status.id, statusName: status.name }}
+              label={status.name}
+              color={getColorHex(status.color)}
+              statusIcon={status.icon}
+              count={statusCounts[status.id] || 0}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(

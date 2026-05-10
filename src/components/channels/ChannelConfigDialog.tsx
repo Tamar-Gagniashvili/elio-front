@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { ChannelType, CHANNEL_CONFIG } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { ChannelBadge } from '@/components/ChannelBadge';
 import { ExternalLink, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ChannelCredentialField {
   key: string;
@@ -206,7 +208,7 @@ const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
 };
 
 const getWebhookUrl = (channelType: ChannelType, tenantId: string): string | null => {
-  const baseUrl = 'https://mnsbodgadunlsqbirevx.supabase.co/functions/v1';
+  const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/functions` : 'http://localhost:8000/api/functions';
   
   switch (channelType) {
     case 'telegram':
@@ -246,21 +248,54 @@ export function ChannelConfigDialog({
   const [config, setConfig] = useState<Record<string, string>>({});
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { currentTenant } = useAuth();
   const { t } = useTranslation();
 
   const fields = CHANNEL_CREDENTIALS[channelType];
   const webhookUrl = currentTenant ? getWebhookUrl(channelType, currentTenant.id) : null;
 
+  // Build dynamic schema for the active channel's credential fields
+  const buildSchema = () => {
+    const shape: Record<string, z.ZodTypeAny> = {};
+    for (const field of fields) {
+      let s = z.string().trim().min(1, `${field.label} is required`).max(500, `${field.label} is too long`);
+      if (/port/i.test(field.key)) {
+        s = z.string().trim().regex(/^\d{1,5}$/, `${field.label} must be a valid port number`);
+      } else if (/email_address/i.test(field.key)) {
+        s = z.string().trim().email(`${field.label} must be a valid email`).max(255);
+      } else if (/host/i.test(field.key)) {
+        s = z.string().trim().min(3, `${field.label} is required`).max(253, `${field.label} is too long`);
+      } else if (/phone_number$/.test(field.key)) {
+        s = z.string().trim().regex(/^\+?[0-9\s\-()]{6,20}$/, `${field.label} must be a valid phone number`);
+      }
+      shape[field.key] = s;
+    }
+    return z.object(shape);
+  };
+
   useEffect(() => {
     if (open) {
       setConfig(currentConfig || {});
       setShowPasswords({});
       setCopiedWebhook(false);
+      setErrors({});
     }
   }, [open, currentConfig]);
 
   const handleSave = async () => {
+    const schema = buildSchema();
+    const parsed = schema.safeParse(config);
+    if (!parsed.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as string;
+        if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
     await onSave(config);
   };
 
@@ -421,10 +456,13 @@ export function ChannelConfigDialog({
                   type={field.type === 'password' && !showPasswords[field.key] ? 'password' : 'text'}
                   placeholder={field.placeholder}
                   value={config[field.key] || ''}
-                  onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, [field.key]: e.target.value }))
-                  }
-                  className="pr-10"
+                  maxLength={500}
+                  onChange={(e) => {
+                    setConfig((prev) => ({ ...prev, [field.key]: e.target.value }));
+                    setErrors((prev) => ({ ...prev, [field.key]: '' }));
+                  }}
+                  aria-invalid={!!errors[field.key]}
+                  className={cn('pr-10', errors[field.key] && 'border-destructive')}
                 />
                 {field.type === 'password' && (
                   <button
@@ -440,6 +478,9 @@ export function ChannelConfigDialog({
                   </button>
                 )}
               </div>
+              {errors[field.key] && (
+                <p className="text-xs text-destructive">{errors[field.key]}</p>
+              )}
             </div>
           ))}
         </div>

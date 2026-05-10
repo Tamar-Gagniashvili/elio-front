@@ -15,18 +15,13 @@ export function useSuperAdmin() {
     }
 
     const checkSuperAdmin = async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'super_admin')
-        .maybeSingle();
-
-      if (error) {
+      try {
+        const data = await api.get<any[]>(`/user-roles?user_id=${user.id}`);
+        const isSuper = data && data.some(r => r.role === 'super_admin');
+        setIsSuperAdmin(isSuper);
+      } catch (error) {
         console.error('Error checking super admin status:', error);
         setIsSuperAdmin(false);
-      } else {
-        setIsSuperAdmin(!!data);
       }
       setLoading(false);
     };

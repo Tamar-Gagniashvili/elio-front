@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Contact, ChannelType } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Avatar } from '@/components/Avatar';
@@ -13,7 +13,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Users, Link2, Tag, X, Upload, Globe, FileSpreadsheet, UserPlus } from 'lucide-react';
+import { Search, Users, Link2, Tag, X, Upload, Globe, FileSpreadsheet, UserPlus, MessageSquare } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
+import { ConversationListSkeleton } from '@/components/skeletons/ListSkeletons';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStatusColorClasses } from '@/pages/Statuses';
@@ -71,13 +73,13 @@ export default function Contacts() {
     let allowedContactIds: string[] | null = null;
     
     if (!isAdmin) {
-      const { data: assignedConversations } = await supabase
-        .from('conversations')
-        .select('contact_id')
-        .eq('tenant_id', currentTenant.id)
-        .eq('assigned_to', user.id);
-      
-      allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
+      try {
+        const assignedConversations = await api.get<any[]>(`/conversations?tenant_id=${currentTenant.id}&assigned_to=${user.id}`);
+        allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
+      } catch (error) {
+        console.error('Error fetching assigned conversations:', error);
+        allowedContactIds = [];
+      }
       
       // If sales user has no assigned contacts, set empty and return early
       if (allowedContactIds.length === 0) {
@@ -90,93 +92,73 @@ export default function Contacts() {
     }
 
     // Fetch ALL contacts first to count offline ones
-    let contactsQuery = supabase
-      .from('contacts')
-      .select('*')
-      .eq('tenant_id', currentTenant.id)
-      .order('created_at', { ascending: false });
-    
-    if (allowedContactIds !== null) {
-      contactsQuery = contactsQuery.in('id', allowedContactIds);
-    }
-
-    const { data: contactsData, error: contactsError } = await contactsQuery;
-
-    if (contactsError) {
-      console.error('Error fetching contacts:', contactsError);
-    } else {
-      const allContacts = contactsData as Contact[];
+    try {
+      let qs = `tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=desc`;
+      if (allowedContactIds !== null && allowedContactIds.length > 0) {
+        qs += '&' + allowedContactIds.map(id => `id[]=${id}`).join('&');
+      }
+      
+      const contactsData = await api.get<Contact[]>(`/contacts?${qs}`);
+      const allContacts = contactsData || [];
       // Count offline contacts
       const offlineContacts = allContacts.filter(c => c.channel_type === 'offline');
       setOfflineCount(offlineContacts.length);
       // Only show online contacts in this tab
       const onlineContacts = allContacts.filter(c => c.channel_type !== 'offline');
       setContacts(onlineContacts);
+    } catch (error) {
+      console.error('Error fetching contacts data:', error);
     }
 
     // Fetch link groups
-    const { data: links } = await supabase
-      .from('contact_links')
-      .select(`
-        contact_id,
-        link_group_id,
-        contact_link_groups:link_group_id (
-          id,
-          display_name
-        )
-      `)
-      .eq('tenant_id', currentTenant.id);
-
-    const groupMap = new Map<string, { groupId: string; displayName?: string }>();
-    
-    if (links) {
-      for (const link of links) {
-        const group = link.contact_link_groups as unknown as { id: string; display_name?: string } | null;
-        groupMap.set(link.contact_id, {
-          groupId: link.link_group_id,
-          displayName: group?.display_name || undefined,
-        });
-      }
-    }
-    
-    setLinkGroups(groupMap);
-
-    // Fetch available statuses
-    const { data: statusesData } = await supabase
-      .from('lead_statuses')
-      .select('id, name, color')
-      .eq('tenant_id', currentTenant.id)
-      .order('created_at');
-
-    setAvailableStatuses(statusesData || []);
-
-    // Fetch contact statuses
-    const { data: contactStatusData } = await supabase
-      .from('contact_statuses')
-      .select(`
-        contact_id,
-        lead_statuses:status_id (
-          id,
-          name,
-          color
-        )
-      `)
-      .eq('tenant_id', currentTenant.id);
-
-    const statusMap = new Map<string, LeadStatus[]>();
-    
-    if (contactStatusData) {
-      for (const cs of contactStatusData) {
-        const status = cs.lead_statuses as unknown as LeadStatus | null;
-        if (status) {
-          const existing = statusMap.get(cs.contact_id) || [];
-          existing.push(status);
-          statusMap.set(cs.contact_id, existing);
+    try {
+      const links = await api.get<any[]>(`/contact-links?tenant_id=${currentTenant.id}`);
+      const groupMap = new Map<string, { groupId: string; displayName?: string }>();
+      
+      if (links) {
+        for (const link of links) {
+          const group = link.contact_link_group || link.contactLinkGroup;
+          groupMap.set(link.contact_id, {
+            groupId: link.link_group_id,
+            displayName: group?.display_name || undefined,
+          });
         }
       }
+      
+      setLinkGroups(groupMap);
+    } catch (e) {
+      console.error('Error fetching contact links:', e);
+      setLinkGroups(new Map());
+    }
+
+    try {
+      const statusesData = await api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=asc`);
+      setAvailableStatuses(statusesData as LeadStatus[] || []);
+    } catch (e) {
+      console.error('Error fetching available statuses', e);
+      setAvailableStatuses([]);
+    }
+
+    // Fetch contact statuses
+    try {
+      const contactStatusData = await api.get<any[]>(`/contact-statuses?tenant_id=${currentTenant.id}`);
+      const statusMap = new Map<string, LeadStatus[]>();
+      
+      if (contactStatusData) {
+        for (const cs of contactStatusData) {
+          const status = cs.status as LeadStatus | null;
+          if (status) {
+            const existing = statusMap.get(cs.contact_id) || [];
+            existing.push(status);
+            statusMap.set(cs.contact_id, existing);
+          }
+        }
+      }
+      setContactStatuses(statusMap);
+    } catch (error) {
+      console.error('Error fetching contacts data:', error);
     }
     
-    setContactStatuses(statusMap);
     setIsLoading(false);
   };
 
@@ -338,17 +320,18 @@ export default function Contacts() {
   return (
     <AppLayout>
       <div className="p-4">
-        <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
-          <div>
-            <h1 className="text-2xl font-bold">{t('contacts.title')}</h1>
-            <p className="text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 max-w-4xl mx-auto">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold">{t('contacts.title')}</h1>
+            <p className="text-sm text-muted-foreground">
               {isAdmin ? t('contacts.subtitle') : t('contacts.subtitleSales')}
             </p>
           </div>
           {isAdmin && (
-            <Button onClick={() => setImportDialogOpen(true)} variant="outline" className="gap-2">
+            <Button onClick={() => setImportDialogOpen(true)} variant="outline" size="sm" className="gap-2 self-start sm:self-auto">
               <Upload className="h-4 w-4" />
-              {t('contacts.importLeads')}
+              <span className="hidden sm:inline">{t('contacts.importLeads')}</span>
+              <span className="sm:hidden">{t('contacts.importLeads')}</span>
             </Button>
           )}
         </div>
@@ -436,18 +419,40 @@ export default function Contacts() {
               )}
             </div>
 
-            {groupedContacts.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                    <Users className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-semibold mb-1">{t('contacts.noOnlineContacts')}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t('contacts.noOnlineContactsDesc')}
-                  </p>
-                </CardContent>
-              </Card>
+            {isLoading ? (
+              <div className="border rounded-lg overflow-hidden">
+                <ConversationListSkeleton count={6} />
+              </div>
+            ) : groupedContacts.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title={t('contacts.noOnlineContacts')}
+                description={t('contacts.noOnlineContactsDesc')}
+                action={isAdmin ? {
+                  label: t('contacts.importLeads'),
+                  onClick: () => setImportDialogOpen(true),
+                  icon: Upload,
+                } : undefined}
+                secondaryAction={{
+                  label: t('inbox.title') || 'Open Inbox',
+                  onClick: () => window.location.assign('/inbox'),
+                  icon: MessageSquare,
+                }}
+              />
+            ) : filteredGroups.length === 0 ? (
+              <EmptyState
+                icon={Search}
+                title={t('common.noResults') || 'No matches'}
+                description={t('contacts.noMatchesDesc') || 'Try adjusting your search or filters.'}
+                action={{
+                  label: t('common.clearFilter') || 'Clear filters',
+                  onClick: () => {
+                    setSearchQuery('');
+                    setSelectedStatusFilter(null);
+                    setSearchParams({});
+                  },
+                }}
+              />
             ) : (
               <div className="space-y-2">
                 {filteredGroups.map((group) => {
@@ -500,8 +505,8 @@ export default function Contacts() {
                                   )}
                                 </div>
                                 {renderStatusBadges(group.statuses)}
-                              </div>
-                              <div className="flex items-center gap-3 mr-2">
+                            </div>
+                              <div className="hidden sm:flex items-center gap-3 mr-2 flex-shrink-0">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -513,9 +518,9 @@ export default function Contacts() {
                                   className="gap-1.5"
                                 >
                                   <UserPlus className="h-3.5 w-3.5" />
-                                  {t('contacts.reassign')}
+                                  <span className="hidden md:inline">{t('contacts.reassign')}</span>
                                 </Button>
-                                <div className="text-sm text-muted-foreground">
+                                <div className="text-xs text-muted-foreground whitespace-nowrap">
                                   {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
                                 </div>
                               </div>
@@ -536,8 +541,8 @@ export default function Contacts() {
 
                   return (
                     <Card key={group.id} className="hover:bg-muted/50 transition-colors">
-                      <CardContent className="py-4">
-                        <div className="flex items-center gap-4">
+                      <CardContent className="py-3 sm:py-4">
+                        <div className="flex items-start sm:items-center gap-3 sm:gap-4">
                           <Avatar
                             src={primaryContact.avatar_url}
                             name={group.displayName}
@@ -550,7 +555,7 @@ export default function Contacts() {
                               </h3>
                             </div>
                             
-                            <div className="flex items-center gap-1 mb-2">
+                            <div className="flex items-center gap-1 mb-2 flex-wrap">
                               {channelTypes.map((channelType) => (
                                 <ChannelBadge 
                                   key={channelType} 
@@ -560,17 +565,20 @@ export default function Contacts() {
                               ))}
                             </div>
                             
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                               {info.emails.map((email) => (
-                                <span key={email}>{email}</span>
+                                <span key={email} className="truncate max-w-full">{email}</span>
                               ))}
                               {info.phones.map((phone) => (
                                 <span key={phone}>{phone}</span>
                               ))}
                             </div>
                             {renderStatusBadges(group.statuses)}
+                            <div className="text-[11px] text-muted-foreground mt-2 sm:hidden">
+                              {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
                             <Button
                               variant="outline"
                               size="sm"
@@ -582,12 +590,25 @@ export default function Contacts() {
                               className="gap-1.5"
                             >
                               <UserPlus className="h-3.5 w-3.5" />
-                              {t('contacts.reassign')}
+                              <span className="hidden md:inline">{t('contacts.reassign')}</span>
                             </Button>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-xs text-muted-foreground whitespace-nowrap">
                               {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
                             </div>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedContactForReassign(primaryContact.id);
+                              setReassignDialogOpen(true);
+                            }}
+                            className="sm:hidden flex-shrink-0 h-9 w-9"
+                            aria-label={t('contacts.reassign')}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

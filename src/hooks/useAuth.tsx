@@ -1,17 +1,16 @@
 import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Profile, TenantMembership, Tenant } from '@/lib/types';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: any | null; // Replaces Supabase User
+  session: any | null; // Replaces Supabase Session
   profile: Profile | null;
   memberships: TenantMembership[];
   currentTenant: Tenant | null;
   currentMembership: TenantMembership | null;
   loading: boolean;
-  dataLoaded: boolean; // New: indicates if user data has been fetched
+  dataLoaded: boolean; // Indicates if user data has been fetched
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -21,8 +20,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<any | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [memberships, setMemberships] = useState<TenantMembership[]>([]);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
@@ -31,64 +30,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Defer profile fetch with setTimeout
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setMemberships([]);
-          setCurrentTenant(null);
-          setCurrentMembership(null);
-          setDataLoaded(false);
-          setLoading(false);
-        }
+    const initAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
       }
-    );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      } else {
+      try {
+        const userData = await api.get<any>('/user');
+        setUser(userData);
+        setSession({ user: userData }); // mock session object for compatibility
+        await fetchUserData(userData.id);
+      } catch (error) {
+        console.error('Failed to restore session', error);
+        localStorage.removeItem('token');
+        setUser(null);
+        setSession(null);
         setLoading(false);
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initAuth();
   }, []);
 
   const fetchUserData = async (userId: string) => {
     try {
       // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-      
+      const profilesData = await api.get<any[]>(`/profiles?user_id=${userId}`);
+      const profileData = Array.isArray(profilesData) ? profilesData[0] : profilesData.data?.[0];
       setProfile(profileData as Profile | null);
 
-      // Fetch memberships with tenant data
-      const { data: membershipData } = await supabase
-        .from('tenant_memberships')
-        .select(`
-          *,
-          tenant:tenants(*)
-        `)
-        .eq('user_id', userId)
-        .eq('is_active', true);
-
-      const typedMemberships = (membershipData || []).map(m => ({
+      // Fetch memberships
+      const membershipsData = await api.get<any[]>(`/memberships?user_id=${userId}&is_active=1`);
+      const items = Array.isArray(membershipsData) ? membershipsData : membershipsData.data || [];
+      const typedMemberships = items.map((m: any) => ({
         ...m,
         tenant: m.tenant as Tenant
       })) as TenantMembership[];
@@ -112,25 +88,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    try {
+      const res = await api.post<any>('/login', { email, password });
+      if (res.access_token) {
+        localStorage.setItem('token', res.access_token);
+        setUser(res.user);
+        setSession({ user: res.user });
+        await fetchUserData(res.user.id);
+        return { error: null };
+      }
+      return { error: new Error('No token received') };
+    } catch (e: any) {
+      return { error: e };
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: { full_name: fullName }
+    try {
+      const res = await api.post<any>('/register', { email, password, name: fullName });
+      if (res.access_token) {
+        localStorage.setItem('token', res.access_token);
+        setUser(res.user);
+        setSession({ user: res.user });
+        await fetchUserData(res.user.id);
+        return { error: null };
       }
-    });
-    return { error };
+      return { error: new Error('No token received') };
+    } catch (e: any) {
+      return { error: e };
+    }
   };
 
   const signOut = async () => {
-    // Clear local state first to prevent redirect loops
+    try {
+      await api.post('/logout', {});
+    } catch (e) {
+      console.log('Logout API failed, continuing local clear');
+    }
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentTenantId');
     setUser(null);
     setSession(null);
     setProfile(null);
@@ -139,17 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentMembership(null);
     setDataLoaded(false);
     setLoading(false);
-    localStorage.removeItem('currentTenantId');
     
-    // Attempt Supabase signout with global scope to clear all sessions
-    try {
-      await supabase.auth.signOut({ scope: 'global' });
-    } catch (error) {
-      // Session may already be invalid, that's okay
-      console.log('Signout completed (session may have been invalid)');
-    }
-    
-    // Force full page reload to auth page to ensure clean state
     window.location.replace('/auth');
   };
 

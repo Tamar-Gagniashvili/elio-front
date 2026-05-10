@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 
 interface LinkedContactsResult {
   linkedContactIds: string[];
@@ -25,34 +25,34 @@ export function useLinkedContacts(contactId: string, tenantId: string): LinkedCo
 
     setIsLoading(true);
 
-    // First, check if this contact is part of a link group
-    const { data: linkData } = await supabase
-      .from('contact_links')
-      .select('link_group_id')
-      .eq('contact_id', contactId)
-      .eq('tenant_id', tenantId)
-      .single();
+    try {
+      // First, check if this contact is part of a link group
+      const linkData = await api.get<any[]>(`/contact-links?contact_id=${contactId}&tenant_id=${tenantId}`);
+      
+      if (!linkData || linkData.length === 0 || !linkData[0].link_group_id) {
+        // Not linked, return just this contact
+        setLinkedContactIds([contactId]);
+        setLinkGroupId(null);
+        setIsLoading(false);
+        return;
+      }
 
-    if (!linkData?.link_group_id) {
-      // Not linked, return just this contact
+      const groupId = linkData[0].link_group_id;
+
+      // Get all contacts in the same link group
+      const allLinks = await api.get<any[]>(`/contact-links?link_group_id=${groupId}&tenant_id=${tenantId}`);
+
+      const contactIds = allLinks?.map(l => l.contact_id) || [contactId];
+      
+      setLinkedContactIds(contactIds);
+      setLinkGroupId(groupId);
+    } catch (e) {
+      console.error('Error fetching linked contacts:', e);
       setLinkedContactIds([contactId]);
       setLinkGroupId(null);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Get all contacts in the same link group
-    const { data: allLinks } = await supabase
-      .from('contact_links')
-      .select('contact_id')
-      .eq('link_group_id', linkData.link_group_id)
-      .eq('tenant_id', tenantId);
-
-    const contactIds = allLinks?.map(l => l.contact_id) || [contactId];
-    
-    setLinkedContactIds(contactIds);
-    setLinkGroupId(linkData.link_group_id);
-    setIsLoading(false);
   };
 
   return {

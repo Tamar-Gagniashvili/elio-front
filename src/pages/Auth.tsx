@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,22 +27,15 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Double-check session directly with Supabase before redirecting
+  // Double-check session directly before redirecting
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (currentSession && !loading && dataLoaded) {
-        // Only redirect if there's a REAL active session
+    if (!loading) {
+      if (session && dataLoaded) {
         navigate('/', { replace: true });
       }
       setSessionChecked(true);
-    };
-    
-    // Only check after initial auth loading is done
-    if (!loading) {
-      checkSession();
     }
-  }, [loading, dataLoaded, navigate]);
+  }, [loading, dataLoaded, navigate, session]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -100,11 +93,11 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
+        <Link to="/" className="flex flex-col items-center mb-8">
           <img src={relinkLogo} alt="ReLink" className="h-14 w-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground">ReLink</h1>
           <p className="text-muted-foreground">Conversation-Centric CRM</p>
-        </div>
+        </Link>
 
         <Card>
           <CardHeader>

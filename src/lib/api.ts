@@ -86,13 +86,16 @@ export const api = {
         return res.json();
     },
 
-    delete: async <T>(endpoint: string): Promise<T> => {
+    delete: async <T>(endpoint: string): Promise<T | null> => {
         const res = await fetch(`${getApiUrl()}${endpoint}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
         if (!res.ok) throw new Error(await res.text());
-        return res.json();
+        if (res.status === 204) return null;
+        
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
     },
 
     /**

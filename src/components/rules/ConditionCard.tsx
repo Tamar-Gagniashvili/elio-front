@@ -18,11 +18,12 @@ interface ConditionCardProps {
   condition: RuleCondition;
   onChange: (updates: Partial<RuleCondition>) => void;
   onRemove: () => void;
+  error?: string;
   className?: string;
   style?: React.CSSProperties;
 }
 
-export function ConditionCard({ condition, onChange, onRemove, className, style }: ConditionCardProps) {
+export function ConditionCard({ condition, onChange, onRemove, error, className, style }: ConditionCardProps) {
   const { t } = useTranslation();
 
   const FIELD_OPTIONS: { value: ConditionField; label: string }[] = [
@@ -124,9 +125,20 @@ export function ConditionCard({ condition, onChange, onRemove, className, style 
           type="number"
           min={0}
           max={23}
+          step={1}
           className="h-7 text-xs bg-background/80 w-16"
           value={String(condition.value)}
-          onChange={(e) => onChange({ value: parseInt(e.target.value) || 0 })}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw === '') {
+              onChange({ value: '' as unknown as number });
+              return;
+            }
+            const n = parseInt(raw, 10);
+            if (Number.isNaN(n)) return;
+            const clamped = Math.max(0, Math.min(23, n));
+            onChange({ value: clamped });
+          }}
         />
       );
     }
@@ -145,6 +157,7 @@ export function ConditionCard({ condition, onChange, onRemove, className, style 
     <div
       className={cn(
         'w-44 p-3 rounded-lg border-2 shadow-md relative group',
+        error && 'ring-2 ring-destructive ring-offset-1',
         className
       )}
       style={style}
@@ -194,6 +207,10 @@ export function ConditionCard({ condition, onChange, onRemove, className, style 
         </Select>
 
         {renderValueInput()}
+
+        {error && (
+          <p className="text-[10px] text-destructive font-medium leading-tight">{error}</p>
+        )}
       </div>
     </div>
   );

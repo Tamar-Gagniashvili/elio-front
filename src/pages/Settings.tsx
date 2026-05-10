@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { TenantMembership, Profile } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Avatar } from '@/components/Avatar';
@@ -38,31 +39,14 @@ export default function Settings() {
   const fetchTeamMembers = async () => {
     if (!currentTenant) return;
     
-    const { data: memberships, error: membershipsError } = await supabase
-      .from('tenant_memberships')
-      .select('*')
-      .eq('tenant_id', currentTenant.id)
-      .eq('is_active', true);
-
-    if (membershipsError) {
-      console.error('Error fetching team members:', membershipsError);
-      setIsLoading(false);
-      return;
+    try {
+      const data = await api.get<any[]>(`/tenant-memberships?tenant_id=${currentTenant.id}&is_active=1`);
+      if (data && Array.isArray(data)) {
+        setTeamMembers(data as TeamMember[]);
+      }
+    } catch (e) {
+      console.error('Error fetching team members:', e);
     }
-
-    // Fetch profiles separately
-    const userIds = (memberships || []).map(m => m.user_id);
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('*')
-      .in('user_id', userIds);
-
-    const membersWithProfiles = (memberships || []).map(m => ({
-      ...m,
-      profile: (profiles || []).find(p => p.user_id === m.user_id) as Profile
-    }));
-
-    setTeamMembers(membersWithProfiles as TeamMember[]);
     setIsLoading(false);
   };
 
@@ -79,14 +63,14 @@ export default function Settings() {
     <AppLayout>
       <div className="p-4 max-w-4xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold">{t('settings.title')}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             {t('settings.subtitle')}
           </p>
         </div>
 
         <Tabs defaultValue="team" className="space-y-6">
-          <TabsList>
+          <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="team">{t('settings.team')}</TabsTrigger>
             <TabsTrigger value="workspace">{t('settings.workspace')}</TabsTrigger>
           </TabsList>
@@ -104,28 +88,28 @@ export default function Settings() {
                   {teamMembers.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between py-3 border-b last:border-0"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 border-b last:border-0"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <Avatar
                           src={member.profile?.avatar_url}
                           name={member.profile?.full_name}
                           size="md"
                         />
-                        <div>
-                          <p className="font-medium">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
                             {member.profile?.full_name || t('common.unknown')}
                             {member.user_id === profile?.user_id && (
                               <span className="text-muted-foreground ml-1">({t('common.you')})</span>
                             )}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground truncate">
                             {member.profile?.email}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
                         {member.position && (
                           <Badge variant="outline">
                             {POSITION_KEYS[member.position] ? t(POSITION_KEYS[member.position]) : member.position}

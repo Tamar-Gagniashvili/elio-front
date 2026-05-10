@@ -20,7 +20,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search, Package, Loader2, MoreHorizontal, Archive, Pencil, Upload } from 'lucide-react';
+import { Plus, Search, Package, MoreHorizontal, Archive, Pencil, Upload } from 'lucide-react';
+import { TableSkeleton } from '@/components/skeletons/ListSkeletons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -269,14 +270,14 @@ export function ObjectsTable({
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 sm:p-6 space-y-4">
       {/* Filters */}
-      <div className="flex gap-4 items-center">
+      <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
         <Select
           value={selectedTypeId || ''}
           onValueChange={(value) => onSelectType(value || null)}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Select type..." />
           </SelectTrigger>
           <SelectContent>
@@ -293,7 +294,7 @@ export function ObjectsTable({
             value={statusFilter || 'all'}
             onValueChange={(value) => setStatusFilter(value === 'all' ? null : value)}
           >
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -310,7 +311,7 @@ export function ObjectsTable({
           </Select>
         )}
 
-        <div className="flex-1 relative">
+        <div className="flex-1 min-w-[180px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search..."
@@ -321,24 +322,23 @@ export function ObjectsTable({
         </div>
 
         {isAdmin && selectedTypeId && (
-          <>
-            <Button variant="outline" onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Import
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="flex-1 sm:flex-none">
+              <Upload className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Import</span>
             </Button>
-            <Button onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add {selectedType?.name || 'Object'}
+            <Button size="sm" onClick={handleCreate} className="flex-1 sm:flex-none">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add {selectedType?.name || 'Object'}</span>
+              <span className="sm:hidden">Add</span>
             </Button>
-          </>
+          </div>
         )}
       </div>
 
       {/* Table */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <TableSkeleton rows={6} cols={5} />
       ) : !selectedTypeId ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -366,62 +366,100 @@ export function ObjectsTable({
           </CardContent>
         </Card>
       ) : (
-        <div className="border rounded-lg bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="font-medium">Name</TableHead>
-                <TableHead className="font-medium">Status</TableHead>
-                {typeFields.slice(0, 4).map((field) => (
-                  <TableHead key={field.id} className="font-medium">{field.label}</TableHead>
-                ))}
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredObjects.map((obj) => (
-                <TableRow key={obj.id} className="hover:bg-muted/30">
-                  <TableCell className="font-medium">{obj.display_name}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={obj.status_id || ''}
-                      onValueChange={(value) => handleStatusChange(obj.id, value)}
-                    >
-                      <SelectTrigger className="w-[160px] h-9 border-muted-foreground/20 bg-background">
-                        <SelectValue>
-                          {obj.status && (
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`h-2 w-2 rounded-full ${getStatusColor(obj.status.color)}`}
-                              />
-                              <span className="text-sm">{obj.status.name}</span>
-                            </div>
-                          )}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border shadow-md">
-                        {typeStatuses.map((status) => (
-                          <SelectItem key={status.id} value={status.id}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`h-2 w-2 rounded-full ${getStatusColor(status.color)}`}
-                              />
-                              <span>{status.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block border rounded-lg bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="font-medium">Name</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
                   {typeFields.slice(0, 4).map((field) => (
-                    <TableCell key={field.id} className="text-muted-foreground">
-                      {getFieldValue(obj, field)}
-                    </TableCell>
+                    <TableHead key={field.id} className="font-medium">{field.label}</TableHead>
                   ))}
-                  <TableCell>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredObjects.map((obj) => (
+                  <TableRow key={obj.id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium">{obj.display_name}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={obj.status_id || ''}
+                        onValueChange={(value) => handleStatusChange(obj.id, value)}
+                      >
+                        <SelectTrigger className="w-[160px] h-9 border-muted-foreground/20 bg-background">
+                          <SelectValue>
+                            {obj.status && (
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`h-2 w-2 rounded-full ${getStatusColor(obj.status.color)}`}
+                                />
+                                <span className="text-sm">{obj.status.name}</span>
+                              </div>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border shadow-md">
+                          {typeStatuses.map((status) => (
+                            <SelectItem key={status.id} value={status.id}>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`h-2 w-2 rounded-full ${getStatusColor(status.color)}`}
+                                />
+                                <span>{status.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    {typeFields.slice(0, 4).map((field) => (
+                      <TableCell key={field.id} className="text-muted-foreground">
+                        {getFieldValue(obj, field)}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-popover border shadow-md">
+                          <DropdownMenuItem onClick={() => handleEdit(obj)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <DropdownMenuItem
+                              onClick={() => handleArchive(obj.id)}
+                              className="text-destructive"
+                            >
+                              <Archive className="h-4 w-4 mr-2" />
+                              Archive
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-2">
+            {filteredObjects.map((obj) => (
+              <Card key={obj.id}>
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-medium break-words flex-1 min-w-0">{obj.display_name}</div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -431,22 +469,54 @@ export function ObjectsTable({
                           Edit
                         </DropdownMenuItem>
                         {isAdmin && (
-                          <DropdownMenuItem
-                            onClick={() => handleArchive(obj.id)}
-                            className="text-destructive"
-                          >
+                          <DropdownMenuItem onClick={() => handleArchive(obj.id)} className="text-destructive">
                             <Archive className="h-4 w-4 mr-2" />
                             Archive
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </div>
+                  <Select
+                    value={obj.status_id || ''}
+                    onValueChange={(value) => handleStatusChange(obj.id, value)}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue>
+                        {obj.status && (
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${getStatusColor(obj.status.color)}`} />
+                            <span>{obj.status.name}</span>
+                          </div>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border shadow-md">
+                      {typeStatuses.map((status) => (
+                        <SelectItem key={status.id} value={status.id}>
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${getStatusColor(status.color)}`} />
+                            <span>{status.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {typeFields.slice(0, 4).map((field) => {
+                    const v = getFieldValue(obj, field);
+                    if (v === '-') return null;
+                    return (
+                      <div key={field.id} className="flex justify-between gap-2 text-xs">
+                        <span className="text-muted-foreground shrink-0">{field.label}</span>
+                        <span className="text-right break-words min-w-0">{v}</span>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
 
       {selectedTypeId && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useLinkedContacts } from '@/hooks/useLinkedContacts';
 import { Badge } from '@/components/ui/badge';
 import { Tag, Link2 } from 'lucide-react';
@@ -31,28 +31,29 @@ export function ContactStatusesDisplay({ contactId, tenantId }: ContactStatusesD
   const fetchContactStatuses = async () => {
     setIsLoading(true);
     
-    // Get status IDs assigned to ALL linked contacts
-    const { data: contactStatusData } = await supabase
-      .from('contact_statuses')
-      .select('status_id')
-      .in('contact_id', linkedContactIds);
+    try {
+      const queryParams = new URLSearchParams();
+      linkedContactIds.forEach(id => queryParams.append('contact_id[]', id));
+      
+      const contactStatusData = await api.get<any[]>(`/contact-statuses?${queryParams.toString()}`);
 
-    if (!contactStatusData || contactStatusData.length === 0) {
+      if (!contactStatusData || contactStatusData.length === 0) {
+        setStatuses([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const uniqueStatusIds = [...new Set(contactStatusData.map((cs: any) => cs.status_id))];
+      
+      const statusQueryParams = new URLSearchParams();
+      uniqueStatusIds.forEach(id => statusQueryParams.append('id[]', id as string));
+
+      const statusData = await api.get<any[]>(`/lead-statuses?${statusQueryParams.toString()}`);
+      setStatuses(statusData as LeadStatus[] || []);
+    } catch (error) {
+      console.error('Error fetching contact statuses:', error);
       setStatuses([]);
-      setIsLoading(false);
-      return;
     }
-
-    // Get unique status IDs
-    const uniqueStatusIds = [...new Set(contactStatusData.map(cs => cs.status_id))];
-
-    // Fetch the status details
-    const { data: statusData } = await supabase
-      .from('lead_statuses')
-      .select('id, name, color')
-      .in('id', uniqueStatusIds);
-
-    setStatuses(statusData || []);
     setIsLoading(false);
   };
 

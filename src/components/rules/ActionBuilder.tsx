@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,35 +48,29 @@ export function ActionBuilder({ actions, onChange }: ActionBuilderProps) {
   const fetchTeamMembers = async () => {
     if (!currentTenant) return;
 
-    const { data: memberships } = await supabase
-      .from('tenant_memberships')
-      .select('user_id')
-      .eq('tenant_id', currentTenant.id)
-      .eq('is_active', true);
-
-    if (memberships && memberships.length > 0) {
-      const userIds = memberships.map((m) => m.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', userIds);
-
-      if (profiles) {
-        setTeamMembers(profiles.map(p => ({ ...p, membership_user_id: p.user_id })));
+    try {
+      const memberships = await api.get<any[]>(`/tenant-memberships?tenant_id=${currentTenant.id}&is_active=1`);
+      if (memberships && Array.isArray(memberships)) {
+        setTeamMembers(memberships.filter(m => m.profile).map(m => ({ 
+          ...m.profile, 
+          membership_user_id: m.user_id 
+        })));
       }
+    } catch (e) {
+      console.error('Failed to fetch team members', e);
     }
   };
 
   const fetchStatuses = async () => {
     if (!currentTenant) return;
 
-    const { data } = await supabase
-      .from('lead_statuses')
-      .select('*')
-      .eq('tenant_id', currentTenant.id);
-
-    if (data) {
-      setStatuses(data);
+    try {
+      const data = await api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}`);
+      if (data && Array.isArray(data)) {
+        setStatuses(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch statuses', e);
     }
   };
 

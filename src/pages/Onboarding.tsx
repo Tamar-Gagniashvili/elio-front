@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,15 +47,15 @@ export default function Onboarding() {
       if (tenantError) throw tenantError;
 
       // Create membership as owner
-      const { error: membershipError } = await supabase
-        .from('tenant_memberships')
-        .insert({
+      try {
+        await api.post('/memberships', {
           tenant_id: tenant.id,
           user_id: user.id,
           role: 'owner',
         });
-
-      if (membershipError) throw membershipError;
+      } catch (err) {
+        throw err;
+      }
 
       // Create default chat distribution
       await supabase

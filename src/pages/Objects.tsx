@@ -8,7 +8,7 @@ import { ObjectsTable } from '@/components/objects/ObjectsTable';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { ObjectType, ObjectTypeField, ObjectStatus } from '@/lib/objectTypes';
-import { Loader2 } from 'lucide-react';
+import { TableSkeleton, PageHeaderSkeleton } from '@/components/skeletons/ListSkeletons';
 
 export default function Objects() {
   const { t } = useTranslation();
@@ -103,8 +103,9 @@ export default function Objects() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="p-4">
+          <PageHeaderSkeleton />
+          <TableSkeleton rows={6} cols={5} />
         </div>
       </AppLayout>
     );

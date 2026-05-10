@@ -103,6 +103,8 @@ export default function FeaturesSection() {
               src={channelsMockup} 
               alt="ReLink Multi-Channel Dashboard" 
               className="w-full h-auto"
+              loading="lazy"
+              decoding="async"
             />
           </div>
         </div>

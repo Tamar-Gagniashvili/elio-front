@@ -99,27 +99,27 @@ export default function Admin() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center">
+        <div className="container mx-auto px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg gradient-primary flex items-center justify-center shrink-0">
               <Settings className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold">Super Admin Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Manage all tenants and users</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold truncate">Super Admin Dashboard</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Manage all tenants and users</p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
+          <Button variant="outline" size="sm" onClick={handleSignOut} className="shrink-0">
+            <LogOut className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Sign Out</span>
           </Button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Tenants</CardTitle>
@@ -157,11 +157,11 @@ export default function Admin() {
         </div>
 
         {/* Tenants Section */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Tenants</h2>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Tenant
+        <div className="flex items-center justify-between mb-6 gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold">Tenants</h2>
+          <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Create Tenant</span>
           </Button>
         </div>
 
@@ -178,7 +178,7 @@ export default function Admin() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {tenants.map((tenant) => (
               <Card 
                 key={tenant.id} 

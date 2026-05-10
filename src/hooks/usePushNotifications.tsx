@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 
 // Extend ServiceWorkerRegistration to include pushManager
@@ -110,17 +110,13 @@ export function usePushNotifications() {
       const subscriptionJson = subscription.toJSON();
 
       // Save subscription to database
-      const { error } = await supabase.from('push_subscriptions').upsert({
+      await api.post('/push-subscriptions', {
         user_id: user.id,
         tenant_id: currentTenant.id,
         endpoint: subscriptionJson.endpoint!,
         p256dh: subscriptionJson.keys!.p256dh,
         auth: subscriptionJson.keys!.auth,
-      }, {
-        onConflict: 'user_id,endpoint',
       });
-
-      if (error) throw error;
 
       setIsSubscribed(true);
       return subscription;
@@ -143,12 +139,14 @@ export function usePushNotifications() {
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        // Delete from database
-        await supabase
-          .from('push_subscriptions')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('endpoint', subscription.endpoint);
+        // Fetch the subscription ID to delete
+        const subs = await api.get<any[]>(
+          `/push-subscriptions?user_id=${user.id}&endpoint=${encodeURIComponent(subscription.endpoint)}`
+        );
+
+        if (subs && subs.length > 0) {
+          await api.delete(`/push-subscriptions/${subs[0].id}`);
+        }
 
         // Unsubscribe from push
         await subscription.unsubscribe();

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webchat Testing Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+
+        .chat-box {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f3f4f6;
+        }
+
+        .msg {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: #3b82f6;
+            color: white;
+            width: fit-content;
+            max-width: 80%;
+        }
+
+        .system {
+            background: #e5e7eb;
+            color: #374151;
+            font-size: 12px;
+            margin: 0 auto 10px;
+            text-align: center;
+        }
+
+        input,
+        button {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: #10b981;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #059669;
+        }
+    </style>
+    <!-- ChatFlow Widget -->
+    <script>
+        window.ChatFlowConfig = {
+            tenantId: '019d364f-f22f-719a-ad65-4679621c136d',
+            position: 'bottom-right',
+            primaryColor: '#6366f1'
+        };
+    </script>
+    <script src="http://tenant.localhost:8080/chat-widget.js" defer></script>
+</head>
+
+<body>
+
+    <div class="chat-box">
+        <h2 style="margin-top: 0;">ReLink Webchat Simulator</h2>
+        <p style="font-size: 14px; color: #6b7280;">Tenant ID: <span
+                id="tenant">019d364f-f22f-719a-ad65-4679621c136d</span></p>
+
+        <div class="messages" id="messages">
+            <div class="msg system">Conversation will start when you send a message</div>
+        </div>
+
+        <input type="text" id="name" placeholder="Visitor Name (Optional)" value="Test Visitor" />
+        <input type="text" id="email" placeholder="Visitor Email (Optional)" value="visitor@example.com" />
+        <input type="text" id="messageInput" placeholder="Type a message..." />
+        <button onclick="sendMessage()">Send Message</button>
+    </div>
+
+    <script>
+        const tenantId = document.getElementById('tenant').innerText;
+        const apiUrl = `http://localhost:8000/api/functions/webchat?tenant_id=${tenantId}`;
+
+        // Persist conversation ID across sends
+        let conversationId = null;
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            addMessageToUI(message);
+            messageInput.value = '';
+
+            const payload = conversationId
+                ? { action: 'send', conversation_id: conversationId, message }
+                : { action: 'start', name: nameInput.value, email: emailInput.value, message };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.conversation_id) {
+                    conversationId = data.conversation_id;
+                    addSystemMessage(`Started Conversation ID: ${conversationId}`);
+                }
+            } catch (err) {
+                console.error(err);
+                addSystemMessage("Error sending message. Is your Laravel backend running on port 8000?");
+            }
+        }
+
+        function addMessageToUI(text) {
+            const div = document.createElement('div');
+            div.className = 'msg';
+            div.textContent = text;
+            div.style.marginLeft = 'auto'; // Right align
+            document.getElementById('messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function addSystemMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'msg system';
+            div.textContent = text;
+            document.getElementById('messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const messages = document.getElementById('messages');
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Enter to submit
+        document.getElementById("messageInput").addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+
+</html>

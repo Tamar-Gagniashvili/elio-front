@@ -3,6 +3,37 @@ import { Message } from '@/lib/types';
 import { Avatar } from '@/components/Avatar';
 import { cn } from '@/lib/utils';
 import { FileText, Download } from 'lucide-react';
+import { useMemo } from 'react';
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function renderTextWithLinks(text: string, isAgent: boolean) {
+  const parts = text.split(URL_REGEX);
+  if (parts.length === 1) return text;
+
+  return parts.map((part, i) => {
+    if (URL_REGEX.test(part)) {
+      // Reset lastIndex since we reuse the regex
+      URL_REGEX.lastIndex = 0;
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'underline break-all hover:opacity-80 transition-opacity',
+            isAgent ? 'text-chat-bubble-agent-text' : 'text-primary'
+          )}
+        >
+          {part}
+        </a>
+      );
+    }
+    URL_REGEX.lastIndex = 0;
+    return part;
+  });
+}
 
 interface ChatMessageBubbleProps {
   message: Message;
@@ -98,7 +129,7 @@ export function ChatMessageBubble({
         {renderMedia()}
         {message.content && !message.content.match(/^\[(Image|File):/) && (
           <p className={cn('text-sm whitespace-pre-wrap break-words', mediaUrl && 'mt-2')}>
-            {message.content}
+            {renderTextWithLinks(message.content, isAgent)}
           </p>
         )}
         <span className="text-[10px] opacity-70 mt-1 block">

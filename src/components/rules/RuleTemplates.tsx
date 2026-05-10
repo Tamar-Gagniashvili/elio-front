@@ -95,20 +95,20 @@ export function RuleTemplates({ onApply }: RuleTemplatesProps) {
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground mb-3">{t('rules.startWithTemplate')}</p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {TEMPLATES.map((template) => (
           <Button
             key={template.id}
             variant="outline"
             size="sm"
-            className="h-auto py-2 px-3 justify-start text-left"
+            className="h-auto py-2 px-3 justify-start text-left whitespace-normal w-full"
             onClick={() => onApply(template.conditions, template.actions, t(template.nameKey), t(template.descKey))}
           >
-            <div className="flex items-start gap-2">
-              <div className="mt-0.5 text-muted-foreground">{template.icon}</div>
+            <div className="flex items-start gap-2 w-full min-w-0">
+              <div className="mt-0.5 text-muted-foreground shrink-0">{template.icon}</div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-medium truncate">{t(template.nameKey)}</div>
-                <div className="text-[10px] text-muted-foreground line-clamp-1">{t(template.descKey)}</div>
+                <div className="text-[10px] text-muted-foreground line-clamp-2 break-words">{t(template.descKey)}</div>
               </div>
             </div>
           </Button>

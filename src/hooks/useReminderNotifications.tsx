@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -79,23 +79,13 @@ export function useReminderNotifications() {
       const now = new Date().toISOString();
       
       // Find notes with due reminders that haven't been shown
-      const { data: dueNotes, error } = await supabase
-        .from('contact_notes')
-        .select(`
-          id,
-          contact_id,
-          tenant_id,
-          content,
-          color,
-          reminder_at,
-          reminder_shown
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .eq('reminder_shown', false)
-        .not('reminder_at', 'is', null)
-        .lte('reminder_at', now);
-
-      if (error) {
+      let dueNotes: ContactNote[] = [];
+      try {
+        const data = await api.get<ContactNote[]>(
+          `/contact-notes?tenant_id=${currentTenant.id}&reminder_shown=0&due_before=${encodeURIComponent(now)}`
+        );
+        dueNotes = data || [];
+      } catch (error) {
         console.error('Error checking reminders:', error);
         return;
       }
@@ -103,17 +93,22 @@ export function useReminderNotifications() {
       if (!dueNotes || dueNotes.length === 0) return;
 
       // Get contact info for each note
-      const contactIds = [...new Set(dueNotes.map(n => n.contact_id))];
-      const { data: contacts } = await supabase
-        .from('contacts')
-        .select('id, name')
-        .in('id', contactIds);
-
-      // Get conversation IDs for each contact
-      const { data: conversations } = await supabase
-        .from('conversations')
-        .select('id, contact_id')
-        .in('contact_id', contactIds);
+      const contactIds = [...new Set(dueNotes.filter(n => n.contact_id).map(n => n.contact_id))];
+      
+      let contacts = [];
+      let conversations = [];
+      
+      if (contactIds.length > 0) {
+        try {
+          const qs = contactIds.map(id => `id[]=${id}`).join('&');
+          contacts = await api.get<any[]>(`/contacts?${qs}`);
+          
+          const convQs = contactIds.map(id => `contact_id[]=${id}`).join('&');
+          conversations = await api.get<any[]>(`/conversations?${convQs}`);
+        } catch (error) {
+          console.error('Error fetching contacts/conversations:', error);
+        }
+      }
 
       const contactMap = new Map(contacts?.map(c => [c.id, c]) || []);
       const conversationMap = new Map(conversations?.map(c => [c.contact_id, c]) || []);
@@ -132,10 +127,11 @@ export function useReminderNotifications() {
         const colors = NOTE_COLORS[noteColor] || NOTE_COLORS.yellow;
         
         // Mark as shown first to prevent duplicates
-        await supabase
-          .from('contact_notes')
-          .update({ reminder_shown: true })
-          .eq('id', note.id);
+        try {
+          await api.put(`/contact-notes/${note.id}`, { reminder_shown: true });
+        } catch (error) {
+          console.error('Failed to mark reminder as shown:', error);
+        }
 
         // Show sticky note styled toast notification
         toast({

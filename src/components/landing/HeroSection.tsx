@@ -68,7 +68,7 @@ export default function HeroSection() {
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               <Button size="lg" asChild className="w-full sm:w-auto h-14 px-8 text-lg gradient-primary hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">
                 <Link to="/auth" className="flex items-center gap-2">
-                  Get Started Free
+                  Login
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
@@ -110,6 +110,8 @@ export default function HeroSection() {
                 src={inboxMockup} 
                 alt="ReLink Inbox Interface" 
                 className="w-full h-auto"
+                loading="lazy"
+                decoding="async"
               />
               
               {/* Overlay gradient */}

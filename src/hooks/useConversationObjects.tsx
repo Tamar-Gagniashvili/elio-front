@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { BusinessObject, ObjectType, ObjectStatus } from '@/lib/objectTypes';
 
 export interface LinkedObject extends BusinessObject {
@@ -20,42 +20,13 @@ export function useConversationObjects(conversationId: string | null, tenantId: 
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('conversation_objects')
-        .select(`
-          id,
-          linked_at,
-          object_id,
-          objects (
-            id,
-            display_name,
-            metadata,
-            status_id,
-            object_type_id,
-            created_at,
-            object_statuses (
-              id,
-              name,
-              color
-            ),
-            object_types (
-              id,
-              name,
-              name_plural,
-              icon
-            )
-          )
-        `)
-        .eq('conversation_id', conversationId)
-        .eq('tenant_id', tenantId);
-
-      if (error) throw error;
+      const data = await api.get<any[]>(`/conversation-objects?conversation_id=${conversationId}`);
 
       const objects: LinkedObject[] = (data || []).map((link: any) => ({
-        ...link.objects,
-        status: link.objects?.object_statuses,
-        object_type: link.objects?.object_types,
-        linked_at: link.linked_at,
+        ...link.relink_object,
+        status: link.relink_object?.status,
+        object_type: link.relink_object?.type,
+        linked_at: link.linked_at || link.created_at,
         link_id: link.id,
       }));
 
@@ -77,24 +48,16 @@ export function useConversationObjects(conversationId: string | null, tenantId: 
     try {
       // If a new status is provided, update the object's status first
       if (newStatusId) {
-        const { error: statusError } = await supabase
-          .from('objects')
-          .update({ status_id: newStatusId })
-          .eq('id', objectId);
-        
-        if (statusError) throw statusError;
+        await api.put(`/relink-objects/${objectId}`, { status_id: newStatusId });
       }
 
       // Link the object to the conversation
-      const { error } = await supabase
-        .from('conversation_objects')
-        .insert({
-          conversation_id: conversationId,
-          object_id: objectId,
-          tenant_id: tenantId,
-        });
+      await api.post('/conversation-objects', {
+        conversation_id: conversationId,
+        object_id: objectId,
+        tenant_id: tenantId,
+      });
 
-      if (error) throw error;
       await fetchLinkedObjects();
       return true;
     } catch (error) {
@@ -105,12 +68,7 @@ export function useConversationObjects(conversationId: string | null, tenantId: 
 
   const unlinkObject = async (linkId: string) => {
     try {
-      const { error } = await supabase
-        .from('conversation_objects')
-        .delete()
-        .eq('id', linkId);
-
-      if (error) throw error;
+      await api.delete(`/conversation-objects/${linkId}`);
       await fetchLinkedObjects();
       return true;
     } catch (error) {

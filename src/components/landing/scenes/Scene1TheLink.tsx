@@ -34,8 +34,8 @@ export default function Scene1TheLink() {
   const taglineWords = [t('landing.taglineWord1'), t('landing.taglineWord2'), t('landing.taglineWord3')];
 
   return (
-    <section ref={sectionRef} className="relative h-screen w-full" onMouseMove={handleMouseMove}>
-      <div className="relative h-screen w-full flex items-center overflow-hidden">
+    <section ref={sectionRef} className="relative min-h-[100svh] w-full" onMouseMove={handleMouseMove}>
+      <div className="relative min-h-[100svh] w-full flex items-center overflow-hidden pt-20 pb-16 md:pt-0 md:pb-0">
         <Suspense fallback={<div className="absolute inset-0 bg-black" />}>
           <HeroScene3D scrollProgress={0} className="absolute inset-0 z-0" />
         </Suspense>
@@ -79,10 +79,10 @@ export default function Scene1TheLink() {
           />
 
           <motion.h1
-            className="leading-[0.95] mb-4 select-none"
+            className="leading-[0.95] mb-4 select-none break-words"
             style={{
               fontFamily: '"Major Mono Display", "Space Mono", ui-monospace, monospace',
-              fontSize: 'clamp(3.5rem, 11vw, 9rem)',
+              fontSize: 'clamp(2.75rem, 11vw, 9rem)',
               letterSpacing: '0.02em',
               color: '#f0f0f0',
               textShadow:

@@ -7,14 +7,16 @@ import Scene5CTA from '@/components/landing/scenes/Scene5CTA';
 import FlyingCosmonaut from '@/components/landing/FlyingCosmonaut';
 import Starfield from '@/components/landing/Starfield';
 import NeonStrings from '@/components/landing/NeonStrings';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Landing() {
+  const isMobile = useIsMobile();
   return (
-    <div className="relative" style={{ background: '#000000' }}>
+    <div className="relative overflow-x-hidden" style={{ background: '#000000' }}>
       {/* Single unified background for all sections */}
       <div className="fixed inset-0 z-0">
-        <Starfield count={200} />
-        <NeonStrings count={12} />
+        <Starfield count={isMobile ? 80 : 200} />
+        <NeonStrings count={isMobile ? 5 : 12} />
       </div>
       <FlyingCosmonaut />
       <LandingNav />

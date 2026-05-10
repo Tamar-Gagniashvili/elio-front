@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
+import { echo } from '@/lib/echo';
 import { LeadStatus } from '@/lib/types';
 
 interface ContactStatusInfo {
@@ -23,33 +24,31 @@ export function useContactStatuses(
 
     setIsLoading(true);
 
-    // Fetch all contact_statuses for the given contacts
-    const { data: contactStatusData, error: csError } = await supabase
-      .from('contact_statuses')
-      .select('contact_id, status_id')
-      .eq('tenant_id', tenantId)
-      .in('contact_id', contactIds);
+    try {
+      // Build query string for multiple contact_ids
+      const queryParams = new URLSearchParams();
+      contactIds.forEach(id => queryParams.append('contact_id[]', id));
+      
+      const contactStatusData = await api.get<any[]>(`/contact-statuses?${queryParams.toString()}`);
 
-    if (csError || !contactStatusData || contactStatusData.length === 0) {
-      setStatusesByContact({});
-      setIsLoading(false);
-      return;
-    }
+      if (!contactStatusData || contactStatusData.length === 0) {
+        setStatusesByContact({});
+        return;
+      }
 
-    // Get unique status IDs
-    const uniqueStatusIds = [...new Set(contactStatusData.map(cs => cs.status_id))];
+      // Get unique status IDs
+      const uniqueStatusIds = [...new Set(contactStatusData.map(cs => cs.status_id))];
 
-    // Fetch the status details
-    const { data: statusData, error: sError } = await supabase
-      .from('lead_statuses')
-      .select('id, name, color, icon, tenant_id, created_at, created_by')
-      .in('id', uniqueStatusIds);
+      // Fetch the status details
+      const statusQueryParams = new URLSearchParams();
+      uniqueStatusIds.forEach(id => statusQueryParams.append('id[]', id));
 
-    if (sError || !statusData) {
-      setStatusesByContact({});
-      setIsLoading(false);
-      return;
-    }
+      const statusData = await api.get<any[]>(`/lead-statuses?${statusQueryParams.toString()}`);
+
+      if (!statusData) {
+        setStatusesByContact({});
+        return;
+      }
 
     // Build a map of status_id -> status
     const statusMap: Record<string, LeadStatus> = {};
@@ -69,8 +68,12 @@ export function useContactStatuses(
       }
     });
 
-    setStatusesByContact(result);
-    setIsLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch contact statuses:', error);
+      setStatusesByContact({});
+    } finally {
+      setIsLoading(false);
+    }
   }, [tenantId, contactIds.join(','), enabled, refreshTrigger]);
 
   useEffect(() => {
@@ -81,25 +84,18 @@ export function useContactStatuses(
   useEffect(() => {
     if (!tenantId || !enabled) return;
 
-    const channel = supabase
-      .channel('contact-statuses-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'contact_statuses',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        () => {
-          // Trigger a refresh when statuses change
-          setRefreshTrigger(prev => prev + 1);
-        }
-      )
-      .subscribe();
+    // Use Laravel Echo for realtime updates
+    // Note: Requires backend to broadcast a 'ContactStatusChanged' event
+    const channelName = `tenant.${tenantId}.contact-statuses`;
+    const channel = echo.channel(channelName);
+    
+    channel.listen('.ContactStatusChanged', () => {
+      setRefreshTrigger(prev => prev + 1);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.stopListening('.ContactStatusChanged');
+      echo.leaveChannel(channelName);
     };
   }, [tenantId, enabled]);
 
