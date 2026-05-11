@@ -131,7 +131,7 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${tenants.reduce((sum, t) => sum + (t.pricing_monthly || 0), 0).toFixed(2)}
+                ${tenants.reduce((sum, t) => sum + Number(t.pricing_monthly || 0), 0).toFixed(2)}
               </div>
               <p className="text-xs text-muted-foreground">From all active tenants</p>
             </CardContent>
