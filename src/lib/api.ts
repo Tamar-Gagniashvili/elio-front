@@ -21,10 +21,14 @@ export const getTenantDomain = () => {
 };
 
 const getApiUrl = () => {
-    // Default to 8000 as per user's server configuration
-    const baseApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+    let rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+    // Ensure the URL has a protocol so new URL() can parse it and tenant subdomain can be prepended correctly
+    if (rawUrl && !rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+        rawUrl = `https://${rawUrl}`;
+    }
+    const baseApiUrl = rawUrl;
     const tenantDomain = getTenantDomain();
-    
+
     if (!tenantDomain) return baseApiUrl;
 
     try {
