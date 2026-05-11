@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSuperAdmin } from '@/hooks/useSuperAdmin';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Tenant, TenantMembership, Profile, ChannelType, ALL_CHANNELS, CHANNEL_CONFIG } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,41 +43,33 @@ export default function Admin() {
 
   const fetchTenants = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('tenants')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const data = await api.get<Tenant[]>('/tenants');
+      setTenants(Array.isArray(data) ? data : (data as any).data || []);
+    } catch (error) {
       console.error('Error fetching tenants:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch tenants',
         variant: 'destructive',
       });
-    } else {
-      setTenants((data || []) as Tenant[]);
     }
     setIsLoading(false);
   };
 
   const handleToggleTenantStatus = async (tenant: Tenant) => {
-    const { error } = await supabase
-      .from('tenants')
-      .update({ is_active: !tenant.is_active })
-      .eq('id', tenant.id);
-
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update tenant status',
-        variant: 'destructive',
-      });
-    } else {
+    try {
+      await api.put(`/tenants/${tenant.id}`, { is_active: !tenant.is_active });
       fetchTenants();
       toast({
         title: 'Success',
         description: `Tenant ${tenant.is_active ? 'deactivated' : 'activated'}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update tenant status',
+        variant: 'destructive',
       });
     }
   };
