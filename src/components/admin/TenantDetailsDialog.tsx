@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { api } from '@/lib/api';
 import { Tenant, TenantMembership, Profile, ChannelType, ALL_CHANNELS, CHANNEL_CONFIG, AppRole } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -58,7 +57,7 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
     setIsLoading(true);
     
     try {
-      const data = await api.get<any[]>(`/tenant-memberships?tenant_id=${tenant.id}&sort_by=created_at&sort_direction=asc`);
+      const data = await api.get<any[]>(`/memberships?tenant_id=${tenant.id}&sort_by=created_at&sort_direction=asc`);
       if (data) {
         setMembers(data);
       } else {
@@ -82,27 +81,16 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
     if (!tenant) return;
     
     setIsSaving(true);
-    const { error } = await supabase
-      .from('tenants')
-      .update({
+    try {
+      await api.put(`/tenants/${tenant.id}`, {
         name,
         pricing_monthly: parseFloat(pricingMonthly) || 0,
         enabled_channels: enabledChannels,
-      })
-      .eq('id', tenant.id);
-
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update tenant',
-        variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'Success',
-        description: 'Tenant updated successfully',
-      });
+      toast({ title: 'Success', description: 'Tenant updated successfully' });
       onUpdate();
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update tenant', variant: 'destructive' });
     }
     setIsSaving(false);
   };
@@ -113,17 +101,13 @@ export function TenantDetailsDialog({ tenant, open, onOpenChange, onUpdate }: Te
 
     setIsAddingMember(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          email: newMemberEmail,
-          password: newMemberPassword,
-          fullName: newMemberName,
-          tenantId: tenant.id,
-          role: newMemberRole,
-        },
+      await api.post('/functions/create-user', {
+        email: newMemberEmail,
+        password: newMemberPassword,
+        fullName: newMemberName,
+        tenantId: tenant.id,
+        role: newMemberRole,
       });
-
-      if (error) throw error;
 
       toast({
         title: 'Success',
