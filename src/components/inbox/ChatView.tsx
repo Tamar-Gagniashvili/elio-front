@@ -713,7 +713,7 @@ export function ContactDetails({
       )}
 
       {/* Linked Objects Section */}
-      {tenantId && (
+      {/* {tenantId && (
         <LinkedObjectsPanel
           linkedObjects={linkedObjects}
           loading={objectsLoading}
@@ -723,7 +723,7 @@ export function ContactDetails({
           tenantId={tenantId}
           conversationId={conversation.id}
         />
-      )}
+      )} */}
 
 
       {/* Contact Notes Section */}

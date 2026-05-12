@@ -17,7 +17,7 @@ import {
   Zap,
   PanelLeftClose,
   PanelLeft,
-  Package,
+  // Package,
 } from 'lucide-react';
 import relinkLogo from '@/assets/logo.png';
 import {
@@ -37,7 +37,7 @@ import {
 const navItems = [
   { href: '/inbox', labelKey: 'nav.inbox', icon: Inbox },
   { href: '/contacts', labelKey: 'nav.contacts', icon: Users },
-  { href: '/objects', labelKey: 'nav.inventory', icon: Package },
+  // { href: '/objects', labelKey: 'nav.inventory', icon: Package },
   { href: '/notes', labelKey: 'nav.notes', icon: StickyNote },
   { href: '/statuses', labelKey: 'nav.statuses', icon: Tag },
   { href: '/rules', labelKey: 'nav.rules', icon: Zap, adminOnly: true },
