@@ -560,7 +560,16 @@
     "failedToCreate": "Не удалось создать канал",
     "failedToEncrypt": "Не удалось зашифровать учётные данные",
     "failedToSave": "Не удалось сохранить настройки",
-    "failedToUpdate": "Не удалось обновить канал"
+    "failedToUpdate": "Не удалось обновить канал",
+    "metaTitle": "Facebook и Instagram",
+    "metaDesc": "Войдите через Facebook, чтобы подключить Messenger и Instagram ваших страниц",
+    "metaConnect": "Подключить Facebook и Instagram",
+    "metaAddMore": "Подключить другие страницы",
+    "metaDisconnect": "Отключить",
+    "metaNoInstagram": "аккаунт Instagram не привязан",
+    "metaConnected": "Facebook подключён",
+    "metaConnectedDesc": "Подключено страниц: {{count}}",
+    "metaConnectFailed": "Не удалось подключить Facebook. Попробуйте ещё раз."
   },
   "settings": {
     "title": "Настройки",

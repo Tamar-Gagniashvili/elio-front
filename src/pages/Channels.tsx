@@ -12,8 +12,12 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, AlertCircle, CheckCircle2, Radio } from 'lucide-react';
 import { ChannelConfigDialog } from '@/components/channels/ChannelConfigDialog';
+import { MetaConnectionsCard } from '@/components/channels/MetaConnectionsCard';
 import { EmptyState } from '@/components/EmptyState';
 import { CardListSkeleton, PageHeaderSkeleton } from '@/components/skeletons/ListSkeletons';
+
+// Connected through Facebook Login (MetaConnectionsCard) instead of manual credentials
+const META_CHANNEL_TYPES: ChannelType[] = ['messenger', 'instagram'];
 
 export default function Channels() {
   const { t } = useTranslation();
@@ -215,7 +219,11 @@ export default function Channels() {
               description={t('channels.noChannelsDesc')}
             />
           ) : (
-            enabledChannelTypes.map((type) => {
+            <>
+            {enabledChannelTypes.some((type) => META_CHANNEL_TYPES.includes(type)) && (
+              <MetaConnectionsCard isAdmin={isAdmin} />
+            )}
+            {enabledChannelTypes.filter((type) => !META_CHANNEL_TYPES.includes(type)).map((type) => {
               const channel = getChannelForType(type);
               const configured = channel ? isChannelConfigured(channel) : false;
               const isWebChat = type === 'web_chat';
@@ -275,7 +283,8 @@ export default function Channels() {
                   </CardContent>
                 </Card>
               );
-            })
+            })}
+            </>
           )}
         </div>
 

@@ -595,7 +595,16 @@
     "failedToCreate": "Failed to create channel",
     "failedToEncrypt": "Failed to encrypt credentials",
     "failedToSave": "Failed to save configuration",
-    "failedToUpdate": "Failed to update channel"
+    "failedToUpdate": "Failed to update channel",
+    "metaTitle": "Facebook & Instagram",
+    "metaDesc": "Log in with Facebook to connect your Pages' Messenger and Instagram inboxes",
+    "metaConnect": "Connect Facebook & Instagram",
+    "metaAddMore": "Connect more Pages",
+    "metaDisconnect": "Disconnect",
+    "metaNoInstagram": "no Instagram account linked",
+    "metaConnected": "Facebook connected",
+    "metaConnectedDesc": "{{count}} Page(s) connected",
+    "metaConnectFailed": "Could not connect Facebook. Please try again."
   },
   "settings": {
     "title": "Settings",

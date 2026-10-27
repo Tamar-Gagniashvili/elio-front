@@ -560,7 +560,16 @@
     "failedToCreate": "არხის შექმნა ვერ მოხერხდა",
     "failedToEncrypt": "რწმუნებათა სიგელების დაშიფვრა ვერ მოხერხდა",
     "failedToSave": "კონფიგურაციის შენახვა ვერ მოხერხდა",
-    "failedToUpdate": "არხის განახლება ვერ მოხერხდა"
+    "failedToUpdate": "არხის განახლება ვერ მოხერხდა",
+    "metaTitle": "Facebook და Instagram",
+    "metaDesc": "შედით Facebook-ით, რომ დააკავშიროთ თქვენი გვერდების Messenger და Instagram შეტყობინებები",
+    "metaConnect": "Facebook და Instagram-ის დაკავშირება",
+    "metaAddMore": "სხვა გვერდების დაკავშირება",
+    "metaDisconnect": "გათიშვა",
+    "metaNoInstagram": "Instagram ანგარიში არ არის მიბმული",
+    "metaConnected": "Facebook დაკავშირებულია",
+    "metaConnectedDesc": "დაკავშირებულია {{count}} გვერდი",
+    "metaConnectFailed": "Facebook-ის დაკავშირება ვერ მოხერხდა. სცადეთ თავიდან."
   },
   "settings": {
     "title": "პარამეტრები",
