@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EditMemberDialog } from '@/components/settings/EditMemberDialog';
 import { PaymentSettingsCard } from '@/components/settings/PaymentSettingsCard';
+import { AdvancePaymentCard } from '@/components/settings/AdvancePaymentCard';
 import { SmsSettingsCard } from '@/components/settings/SmsSettingsCard';
 import { Pencil } from 'lucide-react';
 
@@ -162,6 +163,7 @@ export default function Settings() {
           {isAdmin && (
             <TabsContent value="payments" className="space-y-6">
               <PaymentSettingsCard />
+              <AdvancePaymentCard />
             </TabsContent>
           )}
           {isAdmin && (

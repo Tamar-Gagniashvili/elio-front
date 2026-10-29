@@ -191,6 +191,8 @@ export interface Booking {
   ends_at: string;
   status: BookingStatus;
   notes: string | null;
+  /** Session price in GEL */
+  price?: string | null;
   created_by: number | null;
   created_at: string;
   updated_at: string;

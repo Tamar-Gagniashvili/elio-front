@@ -108,7 +108,7 @@ export function ContactBookings({ contact, conversationId, onSendToChat, classNa
                     {format(start, 'EEE HH:mm', { locale })}–{format(new Date(booking.ends_at), 'HH:mm')}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {[booking.staff_profile?.full_name, booking.title].filter(Boolean).join(' · ')}
+                    {[booking.staff_profile?.full_name, booking.title, booking.price && `${Number(booking.price)} GEL`].filter(Boolean).join(' · ')}
                   </p>
                 </div>
                 <span className={cn('text-[11px] font-medium flex-shrink-0', STATUS_TEXT[booking.status])}>

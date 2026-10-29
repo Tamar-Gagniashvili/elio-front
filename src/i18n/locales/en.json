@@ -61,6 +61,7 @@
     "note": "Note"
   },
   "bookings": {
+    "price": "Price",
     "newClient": "New client",
     "newClientNamed": "New client “{{name}}”",
     "chooseExisting": "Choose existing",
@@ -720,6 +721,23 @@
     "metaConnectFailed": "Could not connect Facebook. Please try again."
   },
   "settings": {
+    "advance": {
+      "title": "Pay in advance",
+      "description": "Text clients a payment link before their session, so it's paid before they arrive.",
+      "needsProvider": "Choose a payment provider and save its merchant details above first.",
+      "needsSms": "Payment links are sent by SMS. Set up SMS in the SMS tab, otherwise nothing will be sent.",
+      "hoursBefore": "Send the link before the session",
+      "priceFromBooking": "Each client pays the price written on their booking. Sessions without a price don't get a link.",
+      "hours": "{{count}} h",
+      "message": "Message",
+      "insert": "Insert:",
+      "needsLink": "Add {link} where the payment link should go.",
+      "preview": "Preview",
+      "sampleClient": "Mariam",
+      "sampleSpecialist": "Nana Beridze",
+      "defaultMessage": "Hi {client}, your session with {specialist} is on {date} at {time}. Please pay {amount} GEL in advance: {link}",
+      "saved": "Pay in advance settings saved"
+    },
     "sms": {
       "tab": "SMS",
       "title": "SMS",

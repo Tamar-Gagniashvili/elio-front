@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SecretInput, SetupBadge } from '@/components/settings/SettingsFormParts';
+import { PAYMENT_SETTINGS_CHANGED_EVENT } from '@/components/settings/settingsEvents';
 
 type Provider = 'bog' | 'flitt';
 
@@ -68,6 +69,7 @@ export function PaymentSettingsCard() {
         flitt_secret_key: flittSecretKey.trim() || null,
       });
       apply(data);
+      window.dispatchEvent(new Event(PAYMENT_SETTINGS_CHANGED_EVENT));
       toast({ title: t('settings.payments.saved') });
     } catch (err) {
       setError(readApiError(err));

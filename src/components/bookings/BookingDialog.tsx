@@ -79,6 +79,7 @@ export function BookingDialog({
   const [duration, setDuration] = useState('50');
   const [status, setStatus] = useState<BookingStatus>('scheduled');
   const [notes, setNotes] = useState('');
+  const [price, setPrice] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [sendConfirmation, setSendConfirmation] = useState(true);
@@ -109,6 +110,7 @@ export function BookingDialog({
       setDuration(String(differenceInMinutes(new Date(booking.ends_at), start)));
       setStatus(booking.status);
       setNotes(booking.notes || '');
+      setPrice(booking.price ? String(Number(booking.price)) : '');
     } else {
       setStaffUserId(defaultStaffUserId ?? (user?.id ? String(user.id) : ''));
       setContactId(contact?.id || 'none');
@@ -118,6 +120,7 @@ export function BookingDialog({
       setDuration('50');
       setStatus('scheduled');
       setNotes('');
+      setPrice('');
     }
   }, [open, booking, contact, defaultDate, defaultStaffUserId, user]);
 
@@ -227,6 +230,7 @@ export function BookingDialog({
       ends_at: endsAt.toISOString(),
       status,
       notes: notes.trim() || null,
+      price: price.trim() ? Number(price) : null,
     };
 
     try {
@@ -360,14 +364,30 @@ export function BookingDialog({
             </Select>
           </div>
 
-          {/* Session type */}
-          <div className="space-y-2">
-            <Label>{t('bookings.sessionType')}</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('bookings.sessionTypePlaceholder')}
-            />
+          {/* Session type and price */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-2 sm:col-span-2">
+              <Label>{t('bookings.sessionType')}</Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={t('bookings.sessionTypePlaceholder')}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="booking-price">{t('bookings.price')}</Label>
+              <div className="relative">
+                <Input
+                  id="booking-price"
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value.replace(',', '.').replace(/[^\d.]/g, ''))}
+                  placeholder="0"
+                  className="pr-12"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">GEL</span>
+              </div>
+            </div>
           </div>
 
           {/* Date / time / duration */}
