@@ -720,6 +720,24 @@
     "metaConnectFailed": "Could not connect Facebook. Please try again."
   },
   "settings": {
+    "payments": {
+      "tab": "Payments",
+      "title": "Online payments",
+      "description": "Choose the provider clients pay you through and enter your merchant details.",
+      "active": "Active",
+      "notSetUp": "Not set up",
+      "provider": "Provider",
+      "bogDesc": "Online payments (iPay) from Bank of Georgia",
+      "flittDesc": "Card payments through Flitt",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "merchantId": "Merchant ID",
+      "secretKey": "Secret key",
+      "secretSaved": "Saved — leave blank to keep",
+      "bogHelp": "You'll find these in your Bank of Georgia online payments merchant account.",
+      "flittHelp": "You'll find these in your Flitt merchant portal under the merchant's settings.",
+      "saved": "Payment settings saved"
+    },
     "title": "Settings",
     "subtitle": "Manage your workspace and team settings",
     "general": "General",
