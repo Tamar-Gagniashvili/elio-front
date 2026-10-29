@@ -21,14 +21,18 @@ interface ClientPickerProps {
   contacts: Contact[];
   selected: Contact | null;
   onSelect: (contact: Contact | null) => void;
-  /** Starts the "new client" form, prefilled with what was typed in the search */
-  onCreateNew: (name: string) => void;
+  /** Starts the "new client" form, prefilled with what was typed in the search; omit to hide it */
+  onCreateNew?: (name: string) => void;
+  /** Trigger text while nothing is selected */
+  placeholder?: string;
+  /** Label of the option that clears the selection */
+  noneLabel?: string;
 }
 
 const contactLabel = (c: Contact, fallback: string) => c.name || c.phone || c.email || c.external_id || fallback;
 
 /** Searchable client list (name, phone, email) with a "new client" shortcut */
-export function ClientPicker({ contacts, selected, onSelect, onCreateNew }: ClientPickerProps) {
+export function ClientPicker({ contacts, selected, onSelect, onCreateNew, placeholder, noneLabel }: ClientPickerProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -48,7 +52,7 @@ export function ClientPicker({ contacts, selected, onSelect, onCreateNew }: Clie
               <span className="truncate">{contactLabel(selected, t('common.unknown'))}</span>
             </span>
           ) : (
-            <span className="text-muted-foreground">{t('bookings.selectClient')}</span>
+            <span className="text-muted-foreground">{placeholder || t('bookings.selectClient')}</span>
           )}
           <ChevronsUpDown className="h-4 w-4 opacity-50 flex-shrink-0" />
         </Button>
@@ -81,19 +85,25 @@ export function ClientPicker({ contacts, selected, onSelect, onCreateNew }: Clie
                 </CommandItem>
               ))}
             </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup>
-              <CommandItem forceMount value="__new" onSelect={() => { onCreateNew(query.trim()); close(); }} className="gap-2">
-                <UserPlus className="h-4 w-4" />
-                {query.trim() ? t('bookings.newClientNamed', { name: query.trim() }) : t('bookings.newClient')}
-              </CommandItem>
-              {selected && (
-                <CommandItem forceMount value="__none" onSelect={() => { onSelect(null); close(); }} className="gap-2 text-muted-foreground">
-                  <X className="h-4 w-4" />
-                  {t('bookings.noClient')}
-                </CommandItem>
-              )}
-            </CommandGroup>
+            {(onCreateNew || selected) && (
+              <>
+                <CommandSeparator />
+                <CommandGroup>
+                  {onCreateNew && (
+                    <CommandItem forceMount value="__new" onSelect={() => { onCreateNew(query.trim()); close(); }} className="gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      {query.trim() ? t('bookings.newClientNamed', { name: query.trim() }) : t('bookings.newClient')}
+                    </CommandItem>
+                  )}
+                  {selected && (
+                    <CommandItem forceMount value="__none" onSelect={() => { onSelect(null); close(); }} className="gap-2 text-muted-foreground">
+                      <X className="h-4 w-4" />
+                      {noneLabel || t('bookings.noClient')}
+                    </CommandItem>
+                  )}
+                </CommandGroup>
+              </>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

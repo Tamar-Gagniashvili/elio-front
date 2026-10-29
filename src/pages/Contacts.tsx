@@ -1,645 +1,591 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { addDays, format, formatDistanceToNowStrict, isToday, isTomorrow } from 'date-fns';
+import { CalendarClock, Link2, Plus, Search, Upload, Users, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
-import { Contact, ChannelType } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { CHANNEL_CONFIG } from '@/lib/types';
+import type { Booking, Contact, Conversation, TenantMembership } from '@/lib/types';
+import { CONTACT_UPDATED_EVENT } from '@/lib/contactEvents';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Avatar } from '@/components/Avatar';
 import { ChannelBadge } from '@/components/ChannelBadge';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Users, Link2, Tag, X, Upload, Globe, FileSpreadsheet, UserPlus, MessageSquare } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
-import { ConversationListSkeleton } from '@/components/skeletons/ListSkeletons';
-import { formatDistanceToNow } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { getStatusColorClasses } from '@/pages/Statuses';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImportLeadsDialog } from '@/components/contacts/ImportLeadsDialog';
-import { OfflineLeadsWorkspace } from '@/components/contacts/OfflineLeadsWorkspace';
-import { ReassignDialog } from '@/components/inbox/ReassignDialog';
+import { AddClientDialog } from '@/components/contacts/AddClientDialog';
+import { ClientDetailsSheet } from '@/components/contacts/ClientDetailsSheet';
+import { StatusPill } from '@/components/contacts/StatusPill';
+import type { ClientRow, LeadStatus } from '@/components/contacts/clientTypes';
+import { BOOKINGS_CHANGED_EVENT, useDateLocale } from '@/components/bookings/calendarUtils';
 
-interface LeadStatus {
-  id: string;
-  name: string;
-  color: string;
+type Source = 'all' | 'chats' | 'added';
+
+interface ContactLinkRow {
+  contact_id: string;
+  link_group_id: string;
+  contact_link_group?: { display_name?: string | null };
+  contactLinkGroup?: { display_name?: string | null };
 }
 
-interface GroupedContact {
-  id: string;
-  isLinked: boolean;
-  displayName: string;
-  contacts: Contact[];
-  lastActivity: string;
-  statuses: LeadStatus[];
+interface ContactStatusRow {
+  contact_id: string;
+  status: LeadStatus | null;
 }
+
+const PAGE_SIZE = 50;
+const BOOKINGS_AHEAD_DAYS = 180;
+const MAX_ROW_STATUSES = 2;
 
 export default function Contacts() {
   const { t } = useTranslation();
+  const locale = useDateLocale();
+  const { currentTenant, currentMembership, user } = useAuth();
+  const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [linkGroups, setLinkGroups] = useState<Map<string, { groupId: string; displayName?: string }>>(new Map());
   const [contactStatuses, setContactStatuses] = useState<Map<string, LeadStatus[]>>(new Map());
   const [availableStatuses, setAvailableStatuses] = useState<LeadStatus[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [memberNames, setMemberNames] = useState<Map<string, { name: string; avatar?: string }>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'online' | 'imported'>('online');
-  const [offlineCount, setOfflineCount] = useState(0);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
-  const [selectedContactForReassign, setSelectedContactForReassign] = useState<string | null>(null);
-  
-  const { currentTenant, currentMembership, user } = useAuth();
-  
-  const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
 
-  // Read status filter from URL on mount
-  useEffect(() => {
-    const statusParam = searchParams.get('status');
-    if (statusParam) {
-      setSelectedStatusFilter(statusParam);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [source, setSource] = useState<Source>('all');
+  const [statusFilter, setStatusFilter] = useState<string | null>(() => searchParams.get('status'));
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+
+  const fetchBookings = useCallback(async () => {
+    try {
+      const now = new Date();
+      const params = new URLSearchParams({ from: now.toISOString(), to: addDays(now, BOOKINGS_AHEAD_DAYS).toISOString() });
+      setBookings((await api.get<Booking[]>(`/bookings?${params.toString()}`)) || []);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
     }
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!currentTenant || !user) return;
-    
-    // For sales users, first get their assigned contact IDs
-    let allowedContactIds: string[] | null = null;
-    
-    if (!isAdmin) {
-      try {
-        const assignedConversations = await api.get<any[]>(`/conversations?tenant_id=${currentTenant.id}&assigned_to=${user.id}`);
-        allowedContactIds = assignedConversations?.map(c => c.contact_id) || [];
-      } catch (error) {
-        console.error('Error fetching assigned conversations:', error);
-        allowedContactIds = [];
-      }
-      
-      // If sales user has no assigned contacts, set empty and return early
-      if (allowedContactIds.length === 0) {
-        setContacts([]);
-        setLinkGroups(new Map());
-        setContactStatuses(new Map());
-        setIsLoading(false);
-        return;
-      }
-    }
+    const tenantQs = `tenant_id=${currentTenant.id}`;
 
-    // Fetch ALL contacts first to count offline ones
+    // Sales users only see the clients whose chats are assigned to them
+    let convs: Conversation[] = [];
     try {
-      let qs = `tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=desc`;
-      if (allowedContactIds !== null && allowedContactIds.length > 0) {
-        qs += '&' + allowedContactIds.map(id => `id[]=${id}`).join('&');
-      }
-      
-      const contactsData = await api.get<Contact[]>(`/contacts?${qs}`);
-      const allContacts = contactsData || [];
-      // Count offline contacts
-      const offlineContacts = allContacts.filter(c => c.channel_type === 'offline');
-      setOfflineCount(offlineContacts.length);
-      // Only show online contacts in this tab
-      const onlineContacts = allContacts.filter(c => c.channel_type !== 'offline');
-      setContacts(onlineContacts);
+      convs = (await api.get<Conversation[]>(
+        `/conversations?${tenantQs}${isAdmin ? '' : `&assigned_to=${user.id}`}`,
+      )) || [];
     } catch (error) {
-      console.error('Error fetching contacts data:', error);
+      console.error('Error fetching conversations:', error);
+    }
+    setConversations(convs);
+
+    const allowedIds = isAdmin ? null : [...new Set(convs.map((c) => c.contact_id))];
+    if (allowedIds && allowedIds.length === 0) {
+      setContacts([]);
+      setIsLoading(false);
+      return;
     }
 
-    // Fetch link groups
-    try {
-      const links = await api.get<any[]>(`/contact-links?tenant_id=${currentTenant.id}`);
-      const groupMap = new Map<string, { groupId: string; displayName?: string }>();
-      
-      if (links) {
-        for (const link of links) {
-          const group = link.contact_link_group || link.contactLinkGroup;
-          groupMap.set(link.contact_id, {
-            groupId: link.link_group_id,
-            displayName: group?.display_name || undefined,
-          });
-        }
+    const contactsQs = `${tenantQs}&sort_by=created_at&sort_direction=desc` +
+      (allowedIds ? '&' + allowedIds.map((id) => `id[]=${id}`).join('&') : '');
+
+    const [contactsRes, linksRes, statusesRes, contactStatusesRes, membersRes] = await Promise.allSettled([
+      api.get<Contact[]>(`/contacts?${contactsQs}`),
+      api.get<ContactLinkRow[]>(`/contact-links?${tenantQs}`),
+      api.get<LeadStatus[]>(`/lead-statuses?${tenantQs}&sort_by=created_at&sort_direction=asc`),
+      api.get<ContactStatusRow[]>(`/contact-statuses?${tenantQs}`),
+      api.get<TenantMembership[]>(`/tenant-memberships?is_active=1`),
+    ]);
+
+    if (contactsRes.status === 'fulfilled') setContacts(contactsRes.value || []);
+
+    const groupMap = new Map<string, { groupId: string; displayName?: string }>();
+    if (linksRes.status === 'fulfilled') {
+      for (const link of linksRes.value || []) {
+        const group = link.contact_link_group || link.contactLinkGroup;
+        groupMap.set(link.contact_id, { groupId: link.link_group_id, displayName: group?.display_name || undefined });
       }
-      
-      setLinkGroups(groupMap);
-    } catch (e) {
-      console.error('Error fetching contact links:', e);
-      setLinkGroups(new Map());
     }
+    setLinkGroups(groupMap);
 
-    try {
-      const statusesData = await api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=asc`);
-      setAvailableStatuses(statusesData as LeadStatus[] || []);
-    } catch (e) {
-      console.error('Error fetching available statuses', e);
-      setAvailableStatuses([]);
-    }
+    setAvailableStatuses(statusesRes.status === 'fulfilled' ? statusesRes.value || [] : []);
 
-    // Fetch contact statuses
-    try {
-      const contactStatusData = await api.get<any[]>(`/contact-statuses?tenant_id=${currentTenant.id}`);
-      const statusMap = new Map<string, LeadStatus[]>();
-      
-      if (contactStatusData) {
-        for (const cs of contactStatusData) {
-          const status = cs.status as LeadStatus | null;
-          if (status) {
-            const existing = statusMap.get(cs.contact_id) || [];
-            existing.push(status);
-            statusMap.set(cs.contact_id, existing);
-          }
-        }
+    const statusMap = new Map<string, LeadStatus[]>();
+    if (contactStatusesRes.status === 'fulfilled') {
+      for (const cs of contactStatusesRes.value || []) {
+        if (!cs.status) continue;
+        statusMap.set(cs.contact_id, [...(statusMap.get(cs.contact_id) || []), cs.status]);
       }
-      setContactStatuses(statusMap);
-    } catch (error) {
-      console.error('Error fetching contacts data:', error);
     }
-    
+    setContactStatuses(statusMap);
+
+    const names = new Map<string, { name: string; avatar?: string }>();
+    if (membersRes.status === 'fulfilled') {
+      for (const m of membersRes.value || []) {
+        if (m.profile) names.set(m.user_id, { name: m.profile.full_name || m.profile.email, avatar: m.profile.avatar_url });
+      }
+    }
+    setMemberNames(names);
+
     setIsLoading(false);
-  };
-
-  useEffect(() => {
-    if (!currentTenant || !user) return;
-    fetchData();
   }, [currentTenant, user, isAdmin]);
 
-  const groupedContacts = useMemo(() => {
-    const groups = new Map<string, GroupedContact>();
-    const standalone: GroupedContact[] = [];
+  useEffect(() => {
+    fetchData();
+    fetchBookings();
+  }, [fetchData, fetchBookings]);
 
-    for (const contact of contacts) {
-      const linkInfo = linkGroups.get(contact.id);
-      const statuses = contactStatuses.get(contact.id) || [];
+  // Keep the list in step with edits made in the details panel or elsewhere
+  useEffect(() => {
+    const onContactUpdated = (e: Event) => {
+      const updated = (e as CustomEvent<Contact>).detail;
+      setContacts((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+    };
+    window.addEventListener(CONTACT_UPDATED_EVENT, onContactUpdated);
+    window.addEventListener(BOOKINGS_CHANGED_EVENT, fetchBookings);
+    return () => {
+      window.removeEventListener(CONTACT_UPDATED_EVENT, onContactUpdated);
+      window.removeEventListener(BOOKINGS_CHANGED_EVENT, fetchBookings);
+    };
+  }, [fetchBookings]);
 
-      if (linkInfo) {
-        const existing = groups.get(linkInfo.groupId);
-        
-        if (existing) {
-          existing.contacts.push(contact);
-          // Merge statuses from all linked contacts
-          statuses.forEach(s => {
-            if (!existing.statuses.some(es => es.id === s.id)) {
-              existing.statuses.push(s);
-            }
-          });
-          if (new Date(contact.updated_at) > new Date(existing.lastActivity)) {
-            existing.lastActivity = contact.updated_at;
-          }
-        } else {
-          groups.set(linkInfo.groupId, {
-            id: linkInfo.groupId,
-            isLinked: true,
-            displayName: linkInfo.displayName || contact.name || 'Unknown',
-            contacts: [contact],
-            lastActivity: contact.updated_at,
-            statuses: [...statuses],
-          });
-        }
-      } else {
-        standalone.push({
-          id: contact.id,
-          isLinked: false,
-          displayName: contact.name || 'Unknown',
-          contacts: [contact],
-          lastActivity: contact.updated_at,
-          statuses,
-        });
+  const clients = useMemo<ClientRow[]>(() => {
+    const latestConversation = new Map<string, Conversation>();
+    for (const conv of conversations) {
+      const current = latestConversation.get(conv.contact_id);
+      if (!current || (conv.last_message_at || '') > (current.last_message_at || '')) {
+        latestConversation.set(conv.contact_id, conv);
       }
     }
 
-    const allGroups = [...groups.values(), ...standalone];
-    allGroups.sort((a, b) => {
-      return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
-    });
-
-    return allGroups;
-  }, [contacts, linkGroups, contactStatuses]);
-
-  const filteredGroups = groupedContacts.filter((group) => {
-    // Filter by status first
-    if (selectedStatusFilter) {
-      const hasStatus = group.statuses.some(s => s.id === selectedStatusFilter);
-      if (!hasStatus) return false;
+    const nextBooking = new Map<string, Booking>();
+    for (const booking of bookings) {
+      if (!booking.contact_id || booking.status === 'cancelled') continue;
+      const current = nextBooking.get(booking.contact_id);
+      if (!current || booking.starts_at < current.starts_at) nextBooking.set(booking.contact_id, booking);
     }
-    
-    // Then filter by search query
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    
-    if (group.displayName.toLowerCase().includes(query)) return true;
-    
-    // Search in status names too
-    if (group.statuses.some(s => s.name.toLowerCase().includes(query))) return true;
-    
-    return group.contacts.some((contact) => {
-      const name = contact.name?.toLowerCase() || '';
-      const email = contact.email?.toLowerCase() || '';
-      const phone = contact.phone?.toLowerCase() || '';
-      return name.includes(query) || email.includes(query) || phone.includes(query);
-    });
-  });
 
-  const getChannelTypes = (group: GroupedContact): ChannelType[] => {
-    const types = new Set<ChannelType>();
-    group.contacts.forEach(c => types.add(c.channel_type));
-    return Array.from(types);
+    const groups = new Map<string, Contact[]>();
+    for (const contact of contacts) {
+      const key = linkGroups.get(contact.id)?.groupId || contact.id;
+      groups.set(key, [...(groups.get(key) || []), contact]);
+    }
+
+    const activityOf = (c: Contact) => latestConversation.get(c.id)?.last_message_at || c.updated_at;
+
+    return [...groups.entries()]
+      .map(([id, members]) => {
+        const sorted = [...members].sort((a, b) => activityOf(b).localeCompare(activityOf(a)));
+        const primary = sorted[0];
+        const conv = sorted.map((c) => latestConversation.get(c.id)).find(Boolean) || null;
+        const statuses = new Map<string, LeadStatus>();
+        members.forEach((c) => (contactStatuses.get(c.id) || []).forEach((s) => statuses.set(s.id, s)));
+        const next = members
+          .map((c) => nextBooking.get(c.id))
+          .filter((b): b is Booking => !!b)
+          .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0] || null;
+
+        return {
+          id,
+          isLinked: members.length > 1,
+          displayName: linkGroups.get(primary.id)?.displayName || primary.name || t('contacts.unknown'),
+          contacts: sorted,
+          primary,
+          lastActivity: activityOf(primary),
+          statuses: [...statuses.values()],
+          isOffline: members.every((c) => c.channel_type === 'offline'),
+          conversationId: conv?.id || null,
+          assignedTo: conv?.assigned_to || null,
+          nextBooking: next,
+        };
+      })
+      .sort((a, b) => b.lastActivity.localeCompare(a.lastActivity));
+  }, [contacts, linkGroups, contactStatuses, conversations, bookings, t]);
+
+  const sourceCounts = useMemo(() => ({
+    all: clients.length,
+    chats: clients.filter((c) => !c.isOffline).length,
+    added: clients.filter((c) => c.isOffline).length,
+  }), [clients]);
+
+  const filtered = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return clients.filter((client) => {
+      if (source === 'chats' && client.isOffline) return false;
+      if (source === 'added' && !client.isOffline) return false;
+      if (statusFilter && !client.statuses.some((s) => s.id === statusFilter)) return false;
+      if (!query) return true;
+      if (client.displayName.toLowerCase().includes(query)) return true;
+      if (client.statuses.some((s) => s.name.toLowerCase().includes(query))) return true;
+      return client.contacts.some((c) =>
+        [c.name, c.email, c.phone].some((v) => v?.toLowerCase().includes(query)),
+      );
+    });
+  }, [clients, source, statusFilter, searchQuery]);
+
+  useEffect(() => setVisibleCount(PAGE_SIZE), [source, statusFilter, searchQuery]);
+
+  const selectedClient = clients.find((c) => c.id === selectedId) || null;
+
+  const changeStatusFilter = (value: string | null) => {
+    setStatusFilter(value);
+    setSearchParams(value ? { status: value } : {});
   };
 
-  const getCombinedInfo = (group: GroupedContact) => {
-    const emails = new Set<string>();
-    const phones = new Set<string>();
-    
-    group.contacts.forEach(c => {
-      if (c.email) emails.add(c.email);
-      if (c.phone) phones.add(c.phone);
-    });
-    
-    return {
-      emails: Array.from(emails),
-      phones: Array.from(phones),
-    };
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSource('all');
+    changeStatusFilter(null);
   };
 
-  const renderStatusBadges = (statuses: LeadStatus[]) => {
-    if (statuses.length === 0) return null;
-    
+  const formatSession = (booking: Booking) => {
+    const start = new Date(booking.starts_at);
+    const time = format(start, 'HH:mm');
+    if (isToday(start)) return `${t('contacts.today')}, ${time}`;
+    if (isTomorrow(start)) return `${t('contacts.tomorrow')}, ${time}`;
+    return format(start, 'EEE d MMM, HH:mm', { locale });
+  };
+
+  const formatActivity = (date: string) => formatDistanceToNowStrict(new Date(date), { addSuffix: true, locale });
+
+  const contactLine = (client: ClientRow) => {
+    const phone = client.contacts.find((c) => c.phone)?.phone;
+    const email = client.contacts.find((c) => c.email)?.email;
+    return { phone, email };
+  };
+
+  const channelsOf = (client: ClientRow) => [...new Set(client.contacts.map((c) => c.channel_type))];
+
+  const renderAvatar = (client: ClientRow, size: 'md' | 'sm' = 'md') => {
+    const channels = channelsOf(client);
     return (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {statuses.map((status) => {
-          const colorClasses = getStatusColorClasses(status.color);
-          return (
-            <Badge
-              key={status.id}
-              className={cn(
-                colorClasses.bg,
-                colorClasses.text,
-                'border',
-                colorClasses.border,
-                'text-[10px] py-0 px-1.5'
-              )}
-            >
-              {status.name}
-            </Badge>
-          );
-        })}
+      <div className="relative flex-shrink-0">
+        <Avatar src={client.primary.avatar_url} name={client.displayName} size={size} />
+        {client.isLinked ? (
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary ring-2 ring-card">
+            <Link2 className="h-2.5 w-2.5 text-primary-foreground" />
+          </span>
+        ) : channels[0] && channels[0] !== 'offline' ? (
+          <ChannelBadge channelType={channels[0]} size="xs" className="absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-card" />
+        ) : null}
       </div>
     );
   };
 
-  const renderContactRow = (contact: Contact) => {
-    const statuses = contactStatuses.get(contact.id) || [];
-    
+  const renderStatuses = (client: ClientRow) => {
+    if (client.statuses.length === 0) return <span className="text-muted-foreground/60">—</span>;
+    const extra = client.statuses.length - MAX_ROW_STATUSES;
     return (
-      <div key={contact.id} className="flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-lg">
-        <Avatar
-          src={contact.avatar_url}
-          name={contact.name}
-          size="md"
-        />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-medium truncate">{contact.name || 'Unknown'}</span>
-            <ChannelBadge channelType={contact.channel_type} size="sm" />
-          </div>
-          <div className="text-sm text-muted-foreground">
-          {contact.email || contact.phone || contact.external_id || t('contacts.noContactInfo')}
-        </div>
-        {renderStatusBadges(statuses)}
-      </div>
-        <div className="text-xs text-muted-foreground">
-          {formatDistanceToNow(new Date(contact.created_at), { addSuffix: true })}
-        </div>
+      <div className="flex items-center gap-1 flex-wrap">
+        {client.statuses.slice(0, MAX_ROW_STATUSES).map((s) => <StatusPill key={s.id} status={s} />)}
+        {extra > 0 && <span className="text-xs text-muted-foreground">+{extra}</span>}
       </div>
     );
   };
+
+  const sourceTabs: { value: Source; label: string }[] = [
+    { value: 'all', label: t('contacts.sourceAll') },
+    { value: 'chats', label: t('contacts.sourceChats') },
+    { value: 'added', label: t('contacts.sourceAdded') },
+  ];
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasFilters = !!searchQuery || source !== 'all' || !!statusFilter;
 
   return (
     <AppLayout>
-      <div className="p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 max-w-4xl mx-auto">
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-6">
+        {/* Header */}
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold">{t('contacts.title')}</h1>
-            <p className="text-sm text-muted-foreground">
-              {isAdmin ? t('contacts.subtitle') : t('contacts.subtitleSales')}
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t('contacts.clients')}</h1>
+              {!isLoading && (
+                <span className="rounded-full border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {clients.length}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {isAdmin ? t('contacts.clientsSubtitle') : t('contacts.clientsSubtitleSales')}
             </p>
           </div>
-          {isAdmin && (
-            <Button onClick={() => setImportDialogOpen(true)} variant="outline" size="sm" className="gap-2 self-start sm:self-auto">
-              <Upload className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('contacts.importLeads')}</span>
-              <span className="sm:hidden">{t('contacts.importLeads')}</span>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('contacts.importLeads')}</span>
+              </Button>
+            )}
+            <Button size="sm" className="gap-2" onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4" />
+              {t('contacts.addClient')}
             </Button>
-          )}
+          </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'online' | 'imported')} className="w-full">
-          <TabsList className="mb-6 max-w-4xl mx-auto">
-            <TabsTrigger value="online" className="gap-2">
-              <Globe className="h-4 w-4" />
-              {t('contacts.onlineContacts')}
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {contacts.length}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="imported" className="gap-2">
-              <FileSpreadsheet className="h-4 w-4" />
-              {t('contacts.importedLeads')}
-              {offlineCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                  {offlineCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          {/* Toolbar */}
+          <div className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 overflow-x-auto self-start">
+              {sourceTabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setSource(tab.value)}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm whitespace-nowrap transition-colors',
+                    source === tab.value
+                      ? 'bg-card text-foreground shadow-sm font-medium'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {tab.label}
+                  <span className="text-xs text-muted-foreground">{sourceCounts[tab.value]}</span>
+                </button>
+              ))}
+            </div>
 
-          <TabsContent value="online" className="max-w-4xl mx-auto">
-            <div className="mb-6 space-y-3">
-              <div className="relative max-w-sm">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 lg:w-72 lg:flex-none">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('contacts.searchContactsOrStatuses')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="h-9 pl-9 pr-8"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                    aria-label={t('common.clearFilter')}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
-              
-              {/* Status Filter */}
               {availableStatuses.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Tag className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">{t('common.filterByStatus')}:</span>
-                  {availableStatuses.map((status) => {
-                    const colorClasses = getStatusColorClasses(status.color);
-                    const isSelected = selectedStatusFilter === status.id;
-                    
-                    return (
-                      <button
-                        key={status.id}
-                        onClick={() => {
-                          const newValue = isSelected ? null : status.id;
-                          setSelectedStatusFilter(newValue);
-                          if (newValue) {
-                            setSearchParams({ status: newValue });
-                          } else {
-                            setSearchParams({});
-                          }
-                        }}
-                        className={cn(
-                          'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all border',
-                          colorClasses.bg,
-                          colorClasses.text,
-                          colorClasses.border,
-                          isSelected && 'ring-2 ring-primary ring-offset-1'
-                        )}
-                      >
-                        {status.name}
-                        {isSelected && <X className="h-3 w-3" />}
-                      </button>
-                    );
-                  })}
-                  {selectedStatusFilter && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedStatusFilter(null);
-                        setSearchParams({});
-                      }}
-                      className="text-xs h-6"
-                    >
-                      {t('common.clearFilter')}
-                    </Button>
-                  )}
-                </div>
+                <Select value={statusFilter || 'all'} onValueChange={(v) => changeStatusFilter(v === 'all' ? null : v)}>
+                  <SelectTrigger className="h-9 w-[150px] sm:w-[170px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('contacts.allStatuses')}</SelectItem>
+                    {availableStatuses.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <StatusPill status={s} className="border-0 bg-transparent px-0" />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
+          </div>
 
-            {isLoading ? (
-              <div className="border rounded-lg overflow-hidden">
-                <ConversationListSkeleton count={6} />
-              </div>
-            ) : groupedContacts.length === 0 ? (
+          {/* List */}
+          {isLoading ? (
+            <div className="divide-y">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-40" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : clients.length === 0 ? (
+            <div className="py-6">
               <EmptyState
                 icon={Users}
-                title={t('contacts.noOnlineContacts')}
-                description={t('contacts.noOnlineContactsDesc')}
-                action={isAdmin ? {
-                  label: t('contacts.importLeads'),
-                  onClick: () => setImportDialogOpen(true),
-                  icon: Upload,
-                } : undefined}
-                secondaryAction={{
-                  label: t('inbox.title') || 'Open Inbox',
-                  onClick: () => window.location.assign('/inbox'),
-                  icon: MessageSquare,
-                }}
+                title={t('contacts.noClientsYet')}
+                description={t('contacts.noClientsYetDesc')}
+                action={{ label: t('contacts.addClient'), onClick: () => setAddOpen(true), icon: Plus }}
               />
-            ) : filteredGroups.length === 0 ? (
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-6">
               <EmptyState
                 icon={Search}
-                title={t('common.noResults') || 'No matches'}
-                description={t('contacts.noMatchesDesc') || 'Try adjusting your search or filters.'}
-                action={{
-                  label: t('common.clearFilter') || 'Clear filters',
-                  onClick: () => {
-                    setSearchQuery('');
-                    setSelectedStatusFilter(null);
-                    setSearchParams({});
-                  },
-                }}
+                title={t('contacts.noResults')}
+                description={t('contacts.noMatchesDesc')}
+                action={hasFilters ? { label: t('contacts.clearFilters'), onClick: clearFilters } : undefined}
               />
-            ) : (
-              <div className="space-y-2">
-                {filteredGroups.map((group) => {
-                  const channelTypes = getChannelTypes(group);
-                  const info = getCombinedInfo(group);
-                  const primaryContact = group.contacts[0];
-
-                  if (group.isLinked) {
+            </div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <table className="hidden md:table w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40 text-left text-xs font-medium text-muted-foreground">
+                    <th className="px-4 py-2.5 font-medium">{t('contacts.colClient')}</th>
+                    <th className="px-4 py-2.5 font-medium">{t('contacts.colContact')}</th>
+                    <th className="px-4 py-2.5 font-medium">{t('contacts.colStatus')}</th>
+                    <th className="px-4 py-2.5 font-medium">{t('contacts.colNextSession')}</th>
+                    <th className="hidden lg:table-cell px-4 py-2.5 font-medium">{t('contacts.colAssigned')}</th>
+                    <th className="px-4 py-2.5 font-medium text-right">{t('contacts.colLastActivity')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {visible.map((client) => {
+                    const { phone, email } = contactLine(client);
+                    const assignee = client.assignedTo ? memberNames.get(client.assignedTo) : null;
                     return (
-                      <Accordion key={group.id} type="single" collapsible>
-                        <AccordionItem value={group.id} className="border rounded-lg bg-card">
-                          <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 rounded-lg [&[data-state=open]]:rounded-b-none">
-                            <div className="flex items-center gap-4 flex-1 text-left">
-                              <div className="relative flex-shrink-0">
-                                <Avatar
-                                  src={primaryContact.avatar_url}
-                                  name={group.displayName}
-                                  size="lg"
-                                />
-                                <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                                  <Link2 className="h-3 w-3 text-primary-foreground" />
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h3 className="font-semibold truncate">
-                                    {group.displayName}
-                                  </h3>
-                                  <span className="text-xs text-muted-foreground">
-                                    ({group.contacts.length} {t('contacts.linked')})
-                                  </span>
-                                </div>
-                                
-                                <div className="flex items-center gap-1 mb-2">
-                                  {channelTypes.map((channelType) => (
-                                    <ChannelBadge 
-                                      key={channelType} 
-                                      channelType={channelType} 
-                                      size="sm" 
-                                    />
-                                  ))}
-                                </div>
-                                
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                                  {info.emails.slice(0, 2).map((email) => (
-                                    <span key={email}>{email}</span>
-                                  ))}
-                                  {info.emails.length > 2 && (
-                                    <span>+{info.emails.length - 2} {t('common.more')}</span>
-                                  )}
-                                </div>
-                                {renderStatusBadges(group.statuses)}
-                            </div>
-                              <div className="hidden sm:flex items-center gap-3 mr-2 flex-shrink-0">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedContactForReassign(primaryContact.id);
-                                    setReassignDialogOpen(true);
-                                  }}
-                                  className="gap-1.5"
-                                >
-                                  <UserPlus className="h-3.5 w-3.5" />
-                                  <span className="hidden md:inline">{t('contacts.reassign')}</span>
-                                </Button>
-                                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
-                                </div>
-                              </div>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="px-4 pb-4">
-                            <div className="space-y-2 pt-2 border-t">
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium py-2">
-                                {t('contacts.linkedContacts')}
+                      <tr
+                        key={client.id}
+                        onClick={() => setSelectedId(client.id)}
+                        className={cn(
+                          'cursor-pointer transition-colors hover:bg-muted/40',
+                          selectedId === client.id && 'bg-muted/50',
+                        )}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {renderAvatar(client)}
+                            <div className="min-w-0">
+                              <p className="font-medium truncate max-w-[220px]">{client.displayName}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {client.isOffline
+                                  ? t('contacts.addedManually')
+                                  : channelsOf(client).filter((c) => c !== 'offline').map((c) => CHANNEL_CONFIG[c]?.label || c).join(' · ')}
                               </p>
-                              {group.contacts.map(renderContactRow)}
                             </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {phone || email ? (
+                            <div className="min-w-0 max-w-[220px]">
+                              {phone && <p className="truncate tabular-nums">{phone}</p>}
+                              {email && <p className="truncate text-xs text-muted-foreground">{email}</p>}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">{renderStatuses(client)}</td>
+                        <td className="px-4 py-3">
+                          {client.nextBooking ? (
+                            <div className="min-w-0">
+                              <p className="whitespace-nowrap">{formatSession(client.nextBooking)}</p>
+                              {client.nextBooking.staff_profile?.full_name && (
+                                <p className="text-xs text-muted-foreground truncate max-w-[160px]">
+                                  {client.nextBooking.staff_profile.full_name}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </td>
+                        <td className="hidden lg:table-cell px-4 py-3">
+                          {assignee ? (
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Avatar src={assignee.avatar} name={assignee.name} size="sm" />
+                              <span className="truncate max-w-[130px]">{assignee.name}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs text-muted-foreground whitespace-nowrap">
+                          {formatActivity(client.lastActivity)}
+                        </td>
+                      </tr>
                     );
-                  }
+                  })}
+                </tbody>
+              </table>
 
+              {/* Mobile list */}
+              <ul className="md:hidden divide-y">
+                {visible.map((client) => {
+                  const { phone, email } = contactLine(client);
                   return (
-                    <Card key={group.id} className="hover:bg-muted/50 transition-colors">
-                      <CardContent className="py-3 sm:py-4">
-                        <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-                          <Avatar
-                            src={primaryContact.avatar_url}
-                            name={group.displayName}
-                            size="lg"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold truncate">
-                                {group.displayName}
-                              </h3>
-                            </div>
-                            
-                            <div className="flex items-center gap-1 mb-2 flex-wrap">
-                              {channelTypes.map((channelType) => (
-                                <ChannelBadge 
-                                  key={channelType} 
-                                  channelType={channelType} 
-                                  size="sm" 
-                                />
-                              ))}
-                            </div>
-                            
-                            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
-                              {info.emails.map((email) => (
-                                <span key={email} className="truncate max-w-full">{email}</span>
-                              ))}
-                              {info.phones.map((phone) => (
-                                <span key={phone}>{phone}</span>
-                              ))}
-                            </div>
-                            {renderStatusBadges(group.statuses)}
-                            <div className="text-[11px] text-muted-foreground mt-2 sm:hidden">
-                              {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
-                            </div>
+                    <li key={client.id}>
+                      <button
+                        onClick={() => setSelectedId(client.id)}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-muted/50"
+                      >
+                        {renderAvatar(client)}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <p className="font-medium truncate">{client.displayName}</p>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              {formatActivity(client.lastActivity)}
+                            </span>
                           </div>
-                          <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedContactForReassign(primaryContact.id);
-                                setReassignDialogOpen(true);
-                              }}
-                              className="gap-1.5"
-                            >
-                              <UserPlus className="h-3.5 w-3.5" />
-                              <span className="hidden md:inline">{t('contacts.reassign')}</span>
-                            </Button>
-                            <div className="text-xs text-muted-foreground whitespace-nowrap">
-                              {formatDistanceToNow(new Date(group.lastActivity), { addSuffix: true })}
+                          <p className="text-xs text-muted-foreground truncate">
+                            {phone || email || t('contacts.noContactInfoShort')}
+                          </p>
+                          {(client.nextBooking || client.statuses.length > 0) && (
+                            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                              {client.nextBooking && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                  <CalendarClock className="h-3 w-3" />
+                                  {formatSession(client.nextBooking)}
+                                </span>
+                              )}
+                              {client.statuses.slice(0, MAX_ROW_STATUSES).map((s) => <StatusPill key={s.id} status={s} />)}
                             </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedContactForReassign(primaryContact.id);
-                              setReassignDialogOpen(true);
-                            }}
-                            className="sm:hidden flex-shrink-0 h-9 w-9"
-                            aria-label={t('contacts.reassign')}
-                          >
-                            <UserPlus className="h-4 w-4" />
-                          </Button>
+                          )}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </button>
+                    </li>
                   );
                 })}
-              </div>
-            )}
-          </TabsContent>
+              </ul>
 
-          <TabsContent value="imported" className="max-w-6xl mx-auto">
-            <OfflineLeadsWorkspace onRefresh={fetchData} />
-          </TabsContent>
-        </Tabs>
+              {filtered.length > visibleCount && (
+                <div className="border-t p-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}>
+                    {t('contacts.showMore')} · {filtered.length - visibleCount}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-      
-      <ImportLeadsDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-        onImportComplete={() => {
+
+      <ClientDetailsSheet
+        client={selectedClient}
+        assigneeName={selectedClient?.assignedTo ? memberNames.get(selectedClient.assignedTo)?.name : null}
+        canReassign={isAdmin || (!!selectedClient && selectedClient.assignedTo === user?.id)}
+        onOpenChange={(open) => !open && setSelectedId(null)}
+        onChanged={() => {
           fetchData();
-          setActiveTab('imported');
+          fetchBookings();
         }}
       />
-      
-      <ReassignDialog
-        open={reassignDialogOpen}
-        onOpenChange={setReassignDialogOpen}
-        contactId={selectedContactForReassign || undefined}
-        onReassigned={() => {
-          setSelectedContactForReassign(null);
+
+      <AddClientDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onCreated={(contact) => {
+          setContacts((prev) => [contact, ...prev]);
+          setSelectedId(contact.id);
+        }}
+      />
+
+      <ImportLeadsDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImportComplete={() => {
           fetchData();
+          setSource('added');
         }}
       />
     </AppLayout>

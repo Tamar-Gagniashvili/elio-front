@@ -20,13 +20,14 @@ const STATUS_TEXT: Record<Booking['status'], string> = {
 
 interface ContactBookingsProps {
   contact: Contact;
-  conversationId: string;
+  conversationId?: string | null;
   /** Sends a booking confirmation into the chat */
   onSendToChat?: (message: string) => void;
+  className?: string;
 }
 
 /** "Sessions" section of the contact panel: upcoming bookings plus a quick way to book */
-export function ContactBookings({ contact, conversationId, onSendToChat }: ContactBookingsProps) {
+export function ContactBookings({ contact, conversationId, onSendToChat, className = 'mt-6 px-4' }: ContactBookingsProps) {
   const { t } = useTranslation();
   const locale = useDateLocale();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -63,7 +64,7 @@ export function ContactBookings({ contact, conversationId, onSendToChat }: Conta
   };
 
   return (
-    <div className="mt-6 px-4">
+    <div className={className}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <CalendarCheck className="h-4 w-4 text-muted-foreground" />
