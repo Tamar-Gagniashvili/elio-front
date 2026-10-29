@@ -720,6 +720,17 @@
     "metaConnectFailed": "Could not connect Facebook. Please try again."
   },
   "settings": {
+    "sms": {
+      "tab": "SMS",
+      "title": "SMS",
+      "description": "Your InexPhone account, used to text clients reminders and payment links.",
+      "apiKey": "API key",
+      "sender": "Sender name",
+      "help": "The sender name must be registered on your InexPhone account, otherwise messages are refused.",
+      "advanced": "Advanced",
+      "apiUrl": "API address",
+      "saved": "SMS settings saved"
+    },
     "payments": {
       "tab": "Payments",
       "title": "Online payments",
