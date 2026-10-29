@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 interface ChannelBadgeProps {
   channelType: ChannelType;
   showLabel?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }
 
@@ -26,12 +26,14 @@ export function ChannelBadge({ channelType, showLabel = false, size = 'md', clas
   const Icon = iconMap[config.icon as keyof typeof iconMap];
   
   const sizeClasses = {
+    xs: 'h-4 w-4 text-[8px]',
     sm: 'h-5 w-5 text-[10px]',
     md: 'h-6 w-6 text-xs',
     lg: 'h-8 w-8 text-sm',
   };
 
   const iconSizes = {
+    xs: 9,
     sm: 10,
     md: 12,
     lg: 16,

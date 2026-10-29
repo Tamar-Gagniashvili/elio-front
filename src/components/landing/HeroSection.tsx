@@ -108,7 +108,7 @@ export default function HeroSection() {
             <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 border border-border/50 bg-card">
               <img 
                 src={inboxMockup} 
-                alt="ReLink Inbox Interface" 
+                alt="Elio Inbox Interface" 
                 className="w-full h-auto"
                 loading="lazy"
                 decoding="async"

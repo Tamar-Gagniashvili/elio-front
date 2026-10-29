@@ -15,6 +15,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const Contacts = lazy(() => import("./pages/Contacts"));
 const Notes = lazy(() => import("./pages/Notes"));
+const Bookings = lazy(() => import("./pages/Bookings"));
 const Statuses = lazy(() => import("./pages/Statuses"));
 const Rules = lazy(() => import("./pages/Rules"));
 const Channels = lazy(() => import("./pages/Channels"));
@@ -57,6 +58,7 @@ const App = () => (
                     <Route path="/inbox" element={<Inbox />} />
                     <Route path="/contacts" element={<Contacts />} />
                     <Route path="/notes" element={<Notes />} />
+                    <Route path="/bookings" element={<Bookings />} />
                     <Route path="/statuses" element={<Statuses />} />
                     <Route path="/rules" element={<Rules />} />
                     <Route path="/channels" element={<Channels />} />

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { api, getTenantDomain } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import Landing from './Landing';
 
@@ -57,9 +57,10 @@ export default function Index() {
     // If memberships exist but no currentTenant yet, wait for useAuth to auto-select
   }, [user, loading, dataLoaded, roleChecked, isSuperAdmin, memberships, currentTenant, navigate]);
 
-  // Show landing page for non-authenticated users
+  // Logged-out visitors: tenant subdomains go straight to sign-in,
+  // the landing page only lives on the central domain
   if (!loading && !user) {
-    return <Landing />;
+    return getTenantDomain() ? <Navigate to="/auth" replace /> : <Landing />;
   }
 
   // Show loading state for authenticated users while checking roles/memberships

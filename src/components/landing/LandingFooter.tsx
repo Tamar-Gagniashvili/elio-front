@@ -8,8 +8,8 @@ export default function LandingFooter() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo and name */}
           <div className="flex items-center gap-3">
-            <img src={relinkLogo} alt="ReLink" className="h-8 w-auto" />
-            <span className="font-bold text-lg text-foreground">ReLink</span>
+            <img src={relinkLogo} alt="Elio" className="h-8 w-auto" />
+            <span className="font-bold text-lg text-foreground">Elio</span>
           </div>
 
           {/* Links */}
@@ -24,7 +24,7 @@ export default function LandingFooter() {
 
           {/* Copyright */}
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} ReLink. All rights reserved.
+            © {new Date().getFullYear()} Elio. All rights reserved.
           </p>
         </div>
       </div>

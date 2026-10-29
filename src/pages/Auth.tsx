@@ -94,8 +94,8 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <Link to="/" className="flex flex-col items-center mb-8">
-          <img src={relinkLogo} alt="ReLink" className="h-14 w-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground">ReLink</h1>
+          <img src={relinkLogo} alt="Elio" className="h-14 w-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground">Elio</h1>
           <p className="text-muted-foreground">Conversation-Centric CRM</p>
         </Link>
 

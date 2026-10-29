@@ -35,16 +35,10 @@ export default function Onboarding() {
 
     try {
       // Create tenant
-      const { data: tenant, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({
-          name: companyName.trim(),
-          slug: generateSlug(companyName.trim()),
-        })
-        .select()
-        .single();
-
-      if (tenantError) throw tenantError;
+      const tenant = await api.post<{ id: string }>('/tenants', {
+        name: companyName.trim(),
+        slug: generateSlug(companyName.trim()),
+      });
 
       // Create membership as owner
       try {

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { formatDistanceToNow } from 'date-fns';
+import i18n from '@/i18n';
+import { differenceInCalendarDays, format, isToday, isYesterday } from 'date-fns';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { List, type RowComponentProps } from 'react-window';
 import { Conversation, ChannelType, Profile, LeadStatus } from '@/lib/types';
@@ -26,7 +27,7 @@ interface UnifiedConversationListProps {
   isLoading?: boolean;
 }
 
-const ROW_HEIGHT = 104;
+const ROW_HEIGHT = 78;
 const VIRTUALIZE_THRESHOLD = 50;
 
 interface RowData {
@@ -39,6 +40,14 @@ interface RowData {
   profiles: Record<string, Profile>;
   statusesByContact: Record<string, LeadStatus[]>;
   t: (key: string) => string;
+}
+
+/** Messenger-style timestamp: 14:05, Yesterday, Mon, 12 Oct */
+function formatListTime(date: Date): string {
+  if (isToday(date)) return format(date, 'HH:mm');
+  if (isYesterday(date)) return i18n.t('inbox.yesterday');
+  if (differenceInCalendarDays(new Date(), date) < 7) return format(date, 'EEE');
+  return format(date, 'd MMM');
 }
 
 function getLatestConversation(group: GroupedConversation): Conversation | undefined {
@@ -106,113 +115,113 @@ function ConversationRow({
     return uniqueStatuses;
   }, [group.contacts, statusesByContact]);
 
+  const totalUnread = Object.values(group.unreadByChannel).reduce((sum, n) => sum + (n || 0), 0);
+  const avatarChannel = primaryContact?.channel_type ?? channelTypes[0];
+  const assigneeLabel = isAdmin
+    ? assigneeName ?? (!latestConversation?.assigned_to ? t('inbox.filters.unassigned').toLowerCase() : null)
+    : null;
+  const hasMeta = group.isUnified || groupStatuses.length > 0 || (isAdmin && (assigneeLabel || status !== 'open'));
+
   return (
     <button
       onClick={() => onSelectGroup(group)}
       style={style}
       className={cn(
-        'flex items-start gap-3 p-4 text-left transition-colors hover:bg-muted/50 border-b border-border w-full',
-        isSelected && 'bg-accent'
+        'relative flex items-center gap-3 w-full px-3 py-2.5 text-left transition-colors hover:bg-muted/60',
+        isSelected && 'bg-primary/[0.07] hover:bg-primary/10'
       )}
     >
+      {isSelected && <span className="absolute left-0 inset-y-2 w-[3px] rounded-r-full bg-primary" />}
+
+      {/* Avatar with channel badge, like messaging apps */}
       <div className="relative flex-shrink-0">
         <Avatar src={primaryContact?.avatar_url} name={group.displayName} size="md" />
+        {avatarChannel && (
+          <ChannelBadge
+            channelType={avatarChannel}
+            size="xs"
+            className="absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-card"
+          />
+        )}
         {group.isUnified && (
-          <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
-            <Link2 className="h-2.5 w-2.5 text-primary-foreground" />
+          <div className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-primary ring-2 ring-card flex items-center justify-center">
+            <Link2 className="h-2 w-2 text-primary-foreground" />
           </div>
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-0.5">
-          <span className="font-medium text-foreground truncate">{group.displayName}</span>
-          <span className="text-xs text-muted-foreground flex-shrink-0">
-            {group.lastMessageAt
-              ? formatDistanceToNow(new Date(group.lastMessageAt), { addSuffix: false })
-              : ''}
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={cn('text-sm truncate text-foreground', totalUnread > 0 ? 'font-semibold' : 'font-medium')}>
+            {group.displayName}
+          </span>
+          <span className={cn('text-[11px] flex-shrink-0 tabular-nums', totalUnread > 0 ? 'text-primary font-medium' : 'text-muted-foreground')}>
+            {group.lastMessageAt ? formatListTime(new Date(group.lastMessageAt)) : ''}
           </span>
         </div>
 
-        <p className="text-sm text-muted-foreground truncate">
-          {latestConversation?.last_message_preview || t('inbox.noMessagesYet')}
-        </p>
-
-        <div className="flex items-center gap-1 mt-2 flex-wrap">
-          {channelTypes.map((channelType) => {
-            const unreadCount = group.unreadByChannel[channelType] || 0;
-            const channelConv = group.conversations.find(
-              (c) => c.contact?.channel_type === channelType
-            );
-            return (
-              <div
-                key={channelType}
-                className="relative cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onSelectChannel && channelConv) {
-                    onSelectChannel(group, channelType);
-                  }
-                }}
-              >
-                <ChannelBadge
-                  channelType={channelType}
-                  size="md"
-                  className="hover:ring-2 hover:ring-primary/50 rounded-full transition-all"
-                />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-
-          <div className="flex-1" />
-
-          {isAdmin && assigneeName ? (
-            <span className="text-[10px] text-muted-foreground truncate max-w-20">
-              {assigneeName}
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <p className={cn('text-[13px] truncate', totalUnread > 0 ? 'text-foreground' : 'text-muted-foreground')}>
+            {latestConversation?.last_message_preview || t('inbox.noMessagesYet')}
+          </p>
+          {totalUnread > 0 && (
+            <span className="h-[18px] min-w-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
+              {totalUnread > 99 ? '99+' : totalUnread}
             </span>
-          ) : isAdmin && !latestConversation?.assigned_to ? (
-            <Badge variant="outline" className="h-5 text-[10px]">
-              {t('inbox.filters.unassigned').toLowerCase()}
-            </Badge>
-          ) : null}
-
-          {isAdmin && (
-            <Badge
-              variant={status === 'open' ? 'default' : 'secondary'}
-              className={cn(
-                'h-5 text-[10px]',
-                status === 'open' && 'bg-success text-success-foreground'
-              )}
-            >
-              {t(`common.${status}`)}
-            </Badge>
-          )}
-
-          {groupStatuses.length > 0 && (
-            <div className="flex items-center gap-1">
-              {groupStatuses.slice(0, 3).map((leadStatus) => (
-                <div key={leadStatus.id} title={leadStatus.name} className="flex-shrink-0">
-                  <StatusIndicator
-                    icon={leadStatus.icon}
-                    color={getColorHex(leadStatus.color)}
-                    colorDotClass="h-3 w-3"
-                    iconClass="h-3.5 w-3.5"
-                  />
-                </div>
-              ))}
-              {groupStatuses.length > 3 && (
-                <span className="text-[9px] text-muted-foreground">
-                  +{groupStatuses.length - 3}
-                </span>
-              )}
-            </div>
           )}
         </div>
+
+        {hasMeta && (
+          <div className="flex items-center gap-1.5 mt-1 h-4 min-w-0 text-[10px] text-muted-foreground">
+            {/* Unified contacts: jump straight to one channel's conversation */}
+            {group.isUnified &&
+              channelTypes.map((channelType) => (
+                <span
+                  key={channelType}
+                  role="button"
+                  className="relative flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectChannel?.(group, channelType);
+                  }}
+                >
+                  <ChannelBadge channelType={channelType} size="xs" className="hover:ring-2 hover:ring-primary/40 rounded-full" />
+                  {(group.unreadByChannel[channelType] || 0) > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-destructive ring-1 ring-card" />
+                  )}
+                </span>
+              ))}
+
+            {groupStatuses.slice(0, 3).map((leadStatus) => (
+              <span
+                key={leadStatus.id}
+                className="flex items-center gap-1 h-4 px-1.5 rounded-full bg-muted max-w-24 flex-shrink-0"
+                title={leadStatus.name}
+              >
+                <StatusIndicator
+                  icon={leadStatus.icon}
+                  color={getColorHex(leadStatus.color)}
+                  colorDotClass="h-1.5 w-1.5"
+                  iconClass="h-2.5 w-2.5"
+                />
+                <span className="truncate text-foreground/80">{leadStatus.name}</span>
+              </span>
+            ))}
+            {groupStatuses.length > 3 && <span>+{groupStatuses.length - 3}</span>}
+
+            {isAdmin && (
+              <span className="ml-auto flex items-center gap-1 min-w-0 flex-shrink">
+                {assigneeLabel && <span className="truncate">{assigneeLabel}</span>}
+                {status !== 'open' && (
+                  <>
+                    {assigneeLabel && <span>·</span>}
+                    <span className="flex-shrink-0">{t(`common.${status}`)}</span>
+                  </>
+                )}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </button>
   );
@@ -294,7 +303,7 @@ export function UnifiedConversationList({
   }
 
   return (
-    <div className="flex flex-col divide-y divide-border">
+    <div className="flex flex-col py-1">
       {groupedConversations.map((group) => (
         <ConversationRow key={group.id} group={group} data={rowData} />
       ))}
