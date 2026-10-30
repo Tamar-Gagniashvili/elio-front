@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Inter Tight"', 'system-ui', 'sans-serif'],
+        sans: ['FiraGO', 'system-ui', '-apple-system', 'sans-serif'],
         display: ['"Major Mono Display"', 'ui-monospace', 'monospace'],
       },
       colors: {

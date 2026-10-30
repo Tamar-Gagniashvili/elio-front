@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, Fragment } from 'react';
+import { format, isSameDay, isToday, isYesterday } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Conversation, Message, Contact } from '@/lib/types';
 import { GroupedConversation } from '@/hooks/useUnifiedContacts';
@@ -11,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X, ArrowLeft, Info, RefreshCw, Trash2, Loader2, Smile } from 'lucide-react';
+import { Send, MoreVertical, User, Mail, Phone, Link2, Tag, UserPlus, AlertCircle, X, ArrowLeft, Info, RefreshCw, Trash2, Loader2, Smile, CalendarPlus } from 'lucide-react';
 import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -30,6 +31,9 @@ import { ContactNotes } from './ContactNotes';
 import { ContactStatusesDisplay } from './ContactStatusesDisplay';
 import { ReassignDialog } from './ReassignDialog';
 import { LinkedObjectsPanel } from './LinkedObjectsPanel';
+import { BookingDialog } from '@/components/bookings/BookingDialog';
+import { ContactBookings } from '@/components/bookings/ContactBookings';
+import { EditableContactField } from '@/components/contacts/EditableContactField';
 
 import { useConversationObjects } from '@/hooks/useConversationObjects';
 
@@ -78,6 +82,7 @@ export function ChatView({
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
+  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [pendingMedia, setPendingMedia] = useState<MediaUpload | null>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
@@ -232,6 +237,17 @@ export function ChatView({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
+          {conversation.contact && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsBookingDialogOpen(true)}
+              aria-label={t('bookings.bookSession')}
+              title={t('bookings.bookSession')}
+            >
+              <CalendarPlus className="h-4 w-4" />
+            </Button>
+          )}
           {showDetailsButton && (
             <Button
               variant="ghost"
@@ -259,6 +275,10 @@ export function ChatView({
                     {t('inbox.reassignContact')}
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onClick={() => setIsBookingDialogOpen(true)}>
+                  <CalendarPlus className="h-4 w-4 mr-2" />
+                  {t('bookings.bookSession')}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsLinkDialogOpen(true)}>
                   <Link2 className="h-4 w-4 mr-2" />
                   {t('inbox.linkContact')}
@@ -309,6 +329,13 @@ export function ChatView({
             onOpenChange={setIsStatusDialogOpen}
             contact={conversation.contact}
           />
+          <BookingDialog
+            open={isBookingDialogOpen}
+            onOpenChange={setIsBookingDialogOpen}
+            contact={conversation.contact}
+            conversationId={conversation.id}
+            onSendConfirmation={(message) => onSendMessage(message)}
+          />
         </>
       )}
       {/* Reassignment Reason Alert */}
@@ -340,24 +367,44 @@ export function ChatView({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 scrollbar-thin">
-        {messages.map((message) => {
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 space-y-2 scrollbar-thin">
+        {messages.map((message, index) => {
           const isAgent = message.sender_type === 'agent';
           const isSystem = message.sender_type === 'system';
+          const createdAt = new Date(message.created_at);
+          const previous = messages[index - 1];
+          const showDayDivider = !previous || !isSameDay(createdAt, new Date(previous.created_at));
+          const dayDivider = showDayDivider && (
+            <div className="flex items-center gap-3 py-2">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {isToday(createdAt)
+                  ? t('inbox.today')
+                  : isYesterday(createdAt)
+                    ? t('inbox.yesterday')
+                    : format(createdAt, 'd MMM yyyy')}
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          );
 
           if (isSystem) {
             return (
-              <div key={message.id} className="flex justify-center">
-                <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                  {message.content}
-                </span>
-              </div>
+              <Fragment key={message.id}>
+                {dayDivider}
+                <div className="flex justify-center">
+                  <span className="text-[11px] text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
+                    {message.content}
+                  </span>
+                </div>
+              </Fragment>
             );
           }
 
           return (
+            <Fragment key={message.id}>
+            {dayDivider}
             <ChatMessageBubble
-              key={message.id}
               message={message}
               isAgent={isAgent}
               contactAvatar={conversation.contact?.avatar_url}
@@ -365,6 +412,7 @@ export function ChatView({
               agentAvatar={profile?.avatar_url}
               agentName={profile?.full_name}
             />
+            </Fragment>
           );
         })}
         <div ref={messagesEndRef} />
@@ -422,7 +470,7 @@ export function ChatView({
       )}
 
       {/* Input */}
-      <div className="p-4 border-t bg-card">
+      <div className="px-3 py-2 border-t bg-card">
         {/* Pending media preview */}
         {pendingMedia && (
           <div className="mb-2 flex items-center gap-2 p-2 bg-muted rounded-md">
@@ -475,7 +523,7 @@ export function ChatView({
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('inbox.typeMessage')}
-            className="min-h-[44px] max-h-32 resize-none flex-1"
+            className="min-h-[40px] max-h-32 resize-none flex-1 rounded-xl bg-muted/60 border-transparent focus-visible:bg-background py-2.5"
             rows={1}
           />
           <Button 
@@ -599,16 +647,22 @@ export function ContactDetails({
       </div>
 
       <div className="px-4 space-y-3">
-        {contact?.email && (
-          <div className="flex items-center gap-3 text-sm">
-            <Mail className="h-4 w-4 text-muted-foreground" />
-            <span>{contact.email}</span>
-          </div>
-        )}
-        {contact?.phone && (
-          <div className="flex items-center gap-3 text-sm">
-            <Phone className="h-4 w-4 text-muted-foreground" />
-            <span>{contact.phone}</span>
+        {contact && (
+          <div className="space-y-0.5">
+            <EditableContactField
+              contactId={contact.id}
+              field="phone"
+              value={contact.phone}
+              icon={Phone}
+              placeholder={t('contacts.addPhone')}
+            />
+            <EditableContactField
+              contactId={contact.id}
+              field="email"
+              value={contact.email}
+              icon={Mail}
+              placeholder={t('contacts.addEmail')}
+            />
           </div>
         )}
         <div className="flex items-center gap-3 text-sm">
@@ -725,6 +779,11 @@ export function ContactDetails({
         />
       )} */}
 
+
+      {/* Sessions (bookings) */}
+      {contact && (
+        <ContactBookings contact={contact} conversationId={conversation.id} onSendToChat={onSendToChat} />
+      )}
 
       {/* Contact Notes Section */}
       {contact && tenantId && (

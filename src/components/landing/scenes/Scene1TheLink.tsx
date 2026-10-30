@@ -92,7 +92,7 @@ export default function Scene1TheLink() {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.6, duration: 0.9, ease: 'easeOut' }}
           >
-            Re<span style={{ color: '#99FFCC' }}>Link</span>
+            Eli<span style={{ color: '#99FFCC', textShadow: '0 0 18px #99FFCC, 0 0 42px hsla(153, 100%, 70%, 0.6)' }}>o</span>
           </motion.h1>
 
           <div className="flex gap-2 flex-wrap">

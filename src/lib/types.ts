@@ -175,3 +175,27 @@ export const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: string; 
 };
 
 export const ALL_CHANNELS: ChannelType[] = ['web_chat', 'telegram', 'whatsapp', 'messenger', 'instagram', 'sms', 'offline', 'tiktok', 'email'];
+
+export type BookingStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+
+export const BOOKING_STATUSES: BookingStatus[] = ['scheduled', 'completed', 'cancelled', 'no_show'];
+
+export interface Booking {
+  id: string;
+  tenant_id: string;
+  contact_id: string | null;
+  conversation_id: string | null;
+  staff_user_id: number;
+  title: string | null;
+  starts_at: string;
+  ends_at: string;
+  status: BookingStatus;
+  notes: string | null;
+  /** Session price in GEL */
+  price?: string | null;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+  contact?: Contact | null;
+  staff_profile?: Profile | null;
+}

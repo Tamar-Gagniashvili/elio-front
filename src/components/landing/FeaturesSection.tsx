@@ -101,7 +101,7 @@ export default function FeaturesSection() {
           <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-border/50 bg-card">
             <img 
               src={channelsMockup} 
-              alt="ReLink Multi-Channel Dashboard" 
+              alt="Elio Multi-Channel Dashboard" 
               className="w-full h-auto"
               loading="lazy"
               decoding="async"

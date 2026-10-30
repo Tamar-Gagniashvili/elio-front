@@ -83,15 +83,15 @@ export default function Scene5CTA() {
       <div className="container max-w-screen-xl mt-24 pt-8" style={{ borderTop: '1px solid #1e1e1e' }}>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src={relinkLogo} alt="ReLink" className="h-6 w-6 object-contain rounded-md" />
-            <span className="font-bold" style={{ color: '#e0e0e0' }}>ReLink</span>
+            <img src={relinkLogo} alt="Elio" className="h-6 w-6 object-contain rounded-md" />
+            <span className="font-bold" style={{ color: '#e0e0e0' }}>Elio</span>
           </div>
           <div className="flex items-center gap-6 text-sm" style={{ color: '#555' }}>
             <Link to="/auth" className="hover:text-[#99FFCC] transition-colors">{t('landing.login')}</Link>
             <a href="mailto:contact@relink.io" className="hover:text-[#99FFCC] transition-colors">{t('landing.contactUs')}</a>
           </div>
           <p className="text-sm" style={{ color: '#444' }}>
-            © {new Date().getFullYear()} ReLink. {t('landing.allRightsReserved')}
+            © {new Date().getFullYear()} Elio. {t('landing.allRightsReserved')}
           </p>
         </div>
       </div>

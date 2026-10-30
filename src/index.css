@@ -1,3 +1,45 @@
+/* FiraGO (SIL OFL 1.1, see /fonts/firago/OFL.txt): covers Latin, Cyrillic and Georgian.
+   Each CSS weight maps to the next lighter FiraGO cut; the true weights read too heavy in the UI. */
+@font-face {
+  font-family: 'FiraGO';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/firago/FiraGO-Light.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'FiraGO';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/firago/FiraGO-Book.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'FiraGO';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/firago/FiraGO-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'FiraGO';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/firago/FiraGO-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'FiraGO';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/firago/FiraGO-SemiBold.woff2') format('woff2');
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,7 +49,7 @@
 @layer base {
   :root {
     /* Core backgrounds */
-    --background: 220 20% 97%;
+    --background: 230 35% 96%;
     --foreground: 222 47% 11%;
 
     /* Surface colors */
@@ -74,9 +116,9 @@
     --sidebar-ring: 173 80% 50%;
 
     /* Chat specific */
-    --chat-bubble-agent: 173 60% 94%;
+    --chat-bubble-agent: 173 80% 40%;
     --chat-bubble-contact: 220 14% 96%;
-    --chat-bubble-agent-text: 173 80% 20%;
+    --chat-bubble-agent-text: 0 0% 100%;
     --chat-bubble-contact-text: 222 47% 11%;
   }
 
@@ -124,9 +166,9 @@
     --sidebar-border: 222 30% 12%;
     --sidebar-ring: 173 80% 50%;
 
-    --chat-bubble-agent: 173 40% 15%;
+    --chat-bubble-agent: 173 70% 32%;
     --chat-bubble-contact: 222 30% 15%;
-    --chat-bubble-agent-text: 173 60% 85%;
+    --chat-bubble-agent-text: 0 0% 100%;
     --chat-bubble-contact-text: 220 14% 96%;
   }
 }
@@ -229,3 +271,15 @@
 .channel-offline { background-color: hsl(var(--channel-offline)); }
 .channel-tiktok { background-color: hsl(var(--channel-tiktok)); }
 .channel-email { background-color: hsl(var(--channel-email)); }
+
+/* Landing: satellite gliding along the CRT orbit line */
+@keyframes home-orbit {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+.home-orbit-dot {
+  animation: home-orbit 14s linear 2.4s infinite both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-orbit-dot { animation: none; offset-distance: 70%; }
+}

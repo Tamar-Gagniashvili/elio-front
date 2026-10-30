@@ -1,6 +1,5 @@
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { Message } from '@/lib/types';
-import { Avatar } from '@/components/Avatar';
 import { cn } from '@/lib/utils';
 import { FileText, Download } from 'lucide-react';
 import { useMemo } from 'react';
@@ -52,6 +51,7 @@ export function ChatMessageBubble({
   agentAvatar,
   agentName,
 }: ChatMessageBubbleProps) {
+  const senderName = isAgent ? agentName : contactName;
   const metadata = message.metadata as Record<string, unknown> || {};
   const mediaUrl = metadata.media_url as string | undefined;
   const mediaType = metadata.media_type as 'image' | 'file' | undefined;
@@ -105,44 +105,28 @@ export function ChatMessageBubble({
   };
 
   return (
-    <div
-      className={cn(
-        'flex gap-2 animate-fade-in',
-        isAgent ? 'justify-end' : 'justify-start'
-      )}
-    >
-      {!isAgent && (
-        <Avatar
-          src={contactAvatar}
-          name={contactName}
-          size="sm"
-        />
-      )}
+    <div className={cn('flex flex-col animate-fade-in', isAgent ? 'items-end' : 'items-start')}>
       <div
         className={cn(
-          'max-w-[70%] rounded-2xl px-4 py-2 overflow-hidden',
+          'max-w-[75%] rounded-2xl px-3 py-2 overflow-hidden',
           isAgent
-            ? 'bg-chat-bubble-agent text-chat-bubble-agent-text rounded-br-md'
-            : 'bg-chat-bubble-contact text-chat-bubble-contact-text rounded-bl-md'
+            ? 'bg-chat-bubble-agent text-chat-bubble-agent-text rounded-br-sm'
+            : 'bg-chat-bubble-contact text-chat-bubble-contact-text rounded-bl-sm'
         )}
       >
         {renderMedia()}
         {message.content && !message.content.match(/^\[(Image|File):/) && (
-          <p className={cn('text-sm whitespace-pre-wrap break-words', mediaUrl && 'mt-2')}>
+          <p className={cn('text-sm leading-relaxed whitespace-pre-wrap break-words', mediaUrl && 'mt-2')}>
             {renderTextWithLinks(message.content, isAgent)}
           </p>
         )}
-        <span className="text-[10px] opacity-70 mt-1 block">
-          {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-        </span>
       </div>
-      {isAgent && (
-        <Avatar
-          src={agentAvatar}
-          name={agentName}
-          size="sm"
-        />
-      )}
+      <span
+        className="mt-1 px-1 text-[11px] text-muted-foreground tabular-nums"
+        title={senderName}
+      >
+        {format(new Date(message.created_at), 'HH:mm')}
+      </span>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { ReactNode, useState, useEffect, createContext, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { AppSidebar } from './AppSidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -30,6 +31,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     return stored === 'true';
   });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
@@ -42,6 +44,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // On mobile, treat as "collapsed=false" so children render full-width content
   const effectiveCollapsed = isMobile ? false : collapsed;
+
+  // Every app page requires a signed-in user
+  if (!loading && !user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   return (
     <SidebarContext.Provider value={{ collapsed: effectiveCollapsed, isMobile }}>
@@ -80,8 +87,8 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Menu className="h-5 w-5" />
                 </Button>
                 <Link to="/" className="flex items-center gap-2">
-                  <img src={relinkLogo} alt="ReLink" className="h-7 w-auto" />
-                  <span className="font-bold text-base">ReLink</span>
+                  <img src={relinkLogo} alt="Elio" className="h-7 w-auto" />
+                  <span className="font-bold text-base">Elio</span>
                 </Link>
               </header>
             )}

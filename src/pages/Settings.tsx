@@ -13,6 +13,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EditMemberDialog } from '@/components/settings/EditMemberDialog';
+import { PaymentSettingsCard } from '@/components/settings/PaymentSettingsCard';
+import { AdvancePaymentCard } from '@/components/settings/AdvancePaymentCard';
+import { SmsSettingsCard } from '@/components/settings/SmsSettingsCard';
 import { Pencil } from 'lucide-react';
 
 interface TeamMember extends TenantMembership {
@@ -73,6 +76,8 @@ export default function Settings() {
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="team">{t('settings.team')}</TabsTrigger>
             <TabsTrigger value="workspace">{t('settings.workspace')}</TabsTrigger>
+            {isAdmin && <TabsTrigger value="payments">{t('settings.payments.tab')}</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="sms">{t('settings.sms.tab')}</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="team" className="space-y-6">
@@ -155,6 +160,17 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
+          {isAdmin && (
+            <TabsContent value="payments" className="space-y-6">
+              <PaymentSettingsCard />
+              <AdvancePaymentCard />
+            </TabsContent>
+          )}
+          {isAdmin && (
+            <TabsContent value="sms" className="space-y-6">
+              <SmsSettingsCard />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 

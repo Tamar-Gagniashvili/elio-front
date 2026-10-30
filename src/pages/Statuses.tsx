@@ -1,19 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Tag, Trash2, Edit2, Check, Sparkles, GripVertical, Palette } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { STATUS_ICONS, StatusIndicator, getIconComponent } from '@/components/StatusIcon';
 import { useTranslation } from 'react-i18next';
+import { ChevronRight, MoreHorizontal, Pencil, Plus, Tag, Trash2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusIndicator } from '@/components/StatusIcon';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { StatusDialog, type StatusFormValues } from '@/components/statuses/StatusDialog';
+import { statusHex } from '@/components/statuses/statusColors';
 
 interface LeadStatus {
   id: string;
@@ -41,582 +56,276 @@ export function getStatusColorClasses(color: string) {
 }
 
 export function getColorHex(colorName: string): string {
-  const colorMap: Record<string, string> = {
-    blue: '#3b82f6',
-    green: '#22c55e',
-    yellow: '#eab308',
-    red: '#ef4444',
-    purple: '#a855f7',
-    pink: '#ec4899',
-    orange: '#f97316',
-    cyan: '#06b6d4',
-  };
-  return colorMap[colorName] || '#3b82f6';
+  return statusHex(colorName);
 }
 
-type IndicatorMode = 'color' | 'icon';
+interface ContactStatusRow {
+  status_id: string;
+  contact_id: string;
+}
 
 export default function Statuses() {
   const navigate = useNavigate();
-  const { user, loading: authLoading, currentTenant, currentMembership } = useAuth();
-  const { toast } = useToast();
   const { t } = useTranslation();
-
-  const [statuses, setStatuses] = useState<LeadStatus[]>([]);
-  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [newStatusName, setNewStatusName] = useState('');
-  const [newStatusColor, setNewStatusColor] = useState('blue');
-  const [newStatusIcon, setNewStatusIcon] = useState<string | null>(null);
-  const [newIndicatorMode, setNewIndicatorMode] = useState<IndicatorMode>('color');
-  const [editingStatus, setEditingStatus] = useState<LeadStatus | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editColor, setEditColor] = useState('');
-  const [editIcon, setEditIcon] = useState<string | null>(null);
-  const [editIndicatorMode, setEditIndicatorMode] = useState<IndicatorMode>('color');
-
+  const { toast } = useToast();
+  const { user, loading: authLoading, currentTenant, currentMembership } = useAuth();
   const isAdmin = currentMembership?.role === 'admin' || currentMembership?.role === 'owner';
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    if (!currentTenant) {
-      navigate('/onboarding');
-      return;
-    }
-    fetchStatuses();
-  }, [user, authLoading, currentTenant, navigate]);
+  const [statuses, setStatuses] = useState<LeadStatus[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<LeadStatus | null>(null);
+  const [deleting, setDeleting] = useState<LeadStatus | null>(null);
 
-  const fetchStatuses = async () => {
+  const fetchStatuses = useCallback(async () => {
     if (!currentTenant || !user) return;
-    
-    setIsLoading(true);
-    
+
     try {
-      const statusesData = await api.get<any[]>(`/lead-statuses?tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=asc`);
-      setStatuses(statusesData as LeadStatus[]);
+      const data = await api.get<LeadStatus[]>(`/lead-statuses?tenant_id=${currentTenant.id}&sort_by=created_at&sort_direction=asc`);
+      setStatuses(data || []);
     } catch (error) {
       console.error('Error fetching statuses:', error);
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToFetch'),
-        variant: 'destructive',
-      });
+      toast({ title: t('common.error'), description: t('statuses.failedToFetch'), variant: 'destructive' });
       setIsLoading(false);
       return;
     }
 
-    let contactIdsToCount: string[] | null = null;
-    
-    if (!isAdmin) {
-      try {
-        const assignedConversations = await api.get<any[]>(`/conversations?tenant_id=${currentTenant.id}&assigned_to=${user.id}`);
-        contactIdsToCount = assignedConversations?.map(c => c.contact_id) || [];
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
+    // Sales users only count the clients assigned to them
     try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('tenant_id', currentTenant.id);
-      
-      if (contactIdsToCount !== null) {
-        if (contactIdsToCount.length === 0) {
-          setStatusCounts({});
+      const params = new URLSearchParams({ tenant_id: currentTenant.id });
+      if (!isAdmin) {
+        const assigned = await api.get<{ contact_id: string }[]>(`/conversations?tenant_id=${currentTenant.id}&assigned_to=${user.id}`);
+        const ids = [...new Set((assigned || []).map((c) => c.contact_id))];
+        if (ids.length === 0) {
+          setCounts({});
           setIsLoading(false);
           return;
         }
-        contactIdsToCount.forEach(id => queryParams.append('contact_id[]', id));
+        ids.forEach((id) => params.append('contact_id[]', id));
       }
-
-      const countsResult = await api.get<any[]>(`/contact-statuses?${queryParams.toString()}`);
-      if (countsResult) {
-        const counts: Record<string, number> = {};
-        countsResult.forEach((item) => {
-          counts[item.status_id] = (counts[item.status_id] || 0) + 1;
-        });
-        setStatusCounts(counts);
-      }
-    } catch (e) {
-      console.error(e);
+      const rows = await api.get<ContactStatusRow[]>(`/contact-statuses?${params.toString()}`);
+      const next: Record<string, number> = {};
+      (rows || []).forEach((row) => { next[row.status_id] = (next[row.status_id] || 0) + 1; });
+      setCounts(next);
+    } catch (error) {
+      console.error('Error counting statuses:', error);
     }
 
     setIsLoading(false);
-  };
+  }, [currentTenant, user, isAdmin, toast, t]);
 
-  const handleCreateStatus = async () => {
-    if (!newStatusName.trim() || !currentTenant || !user) return;
-
-    try {
-      await api.post('/lead-statuses', {
-        tenant_id: currentTenant.id,
-        name: newStatusName.trim(),
-        color: newStatusColor,
-        icon: newIndicatorMode === 'icon' ? newStatusIcon : null,
-      });
-
-      toast({
-        title: t('statuses.statusCreated'),
-        description: t('statuses.statusCreatedDesc', { name: newStatusName }),
-      });
-      setNewStatusName('');
-      setNewStatusColor('blue');
-      setNewStatusIcon(null);
-      setNewIndicatorMode('color');
-      setIsAdding(false);
-      fetchStatuses();
-    } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToCreate'),
-        variant: 'destructive',
-      });
+  useEffect(() => {
+    if (authLoading) return;
+    if (user && !currentTenant) {
+      navigate('/onboarding');
+      return;
     }
-  };
+    fetchStatuses();
+  }, [authLoading, user, currentTenant, navigate, fetchStatuses]);
 
-  const handleUpdateStatus = async () => {
-    if (!editingStatus || !editName.trim()) return;
-
-    try {
-      await api.put(`/lead-statuses/${editingStatus.id}`, {
-        name: editName.trim(),
-        color: editColor,
-        icon: editIndicatorMode === 'icon' ? editIcon : null,
-      });
-
-      toast({
-        title: t('statuses.statusUpdated'),
-        description: t('statuses.statusUpdatedDesc'),
-      });
-      setEditingStatus(null);
-      fetchStatuses();
-    } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToUpdate'),
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleDeleteStatus = async (statusId: string, statusName: string) => {
-    try {
-      await api.delete(`/lead-statuses/${statusId}`);
-      toast({
-        title: t('statuses.statusDeleted'),
-        description: t('statuses.statusDeletedDesc', { name: statusName }),
-      });
-      fetchStatuses();
-    } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('statuses.failedToDelete'),
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const startEditing = (status: LeadStatus) => {
-    setEditingStatus(status);
-    setEditName(status.name);
-    setEditColor(status.color);
-    setEditIcon(status.icon || null);
-    setEditIndicatorMode(status.icon ? 'icon' : 'color');
-  };
-
-  if (authLoading || isLoading) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AppLayout>
-    );
-  }
-
-  const selectedColorClasses = getStatusColorClasses(newStatusColor);
-
-  // Icon picker component
-  const IconPicker = ({ 
-    selectedIcon, 
-    onSelect, 
-    color 
-  }: { 
-    selectedIcon: string | null; 
-    onSelect: (icon: string) => void; 
-    color: string;
-  }) => (
-    <ScrollArea className="h-40">
-      <div className="grid grid-cols-8 gap-2 p-1">
-        {STATUS_ICONS.map((iconName) => {
-          const IconComponent = getIconComponent(iconName);
-          if (!IconComponent) return null;
-          return (
-            <button
-              key={iconName}
-              onClick={() => onSelect(iconName)}
-              className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center transition-all',
-                selectedIcon === iconName
-                  ? 'ring-2 ring-primary bg-primary/10 scale-110'
-                  : 'hover:bg-muted'
-              )}
-              style={{ color: selectedIcon === iconName ? getColorHex(color) : undefined }}
-            >
-              <IconComponent className="h-4 w-4" />
-            </button>
-          );
-        })}
-      </div>
-    </ScrollArea>
+  // Stable, so the dialog doesn't reset while it is open
+  const editingValues = useMemo<StatusFormValues | null>(
+    () => (editing ? { name: editing.name, color: editing.color, icon: editing.icon || null } : null),
+    [editing],
   );
 
-  // Color/Icon mode selector
-  const IndicatorModeSelector = ({
-    mode,
-    onModeChange,
-    color,
-    onColorChange,
-    icon,
-    onIconChange,
-  }: {
-    mode: IndicatorMode;
-    onModeChange: (mode: IndicatorMode) => void;
-    color: string;
-    onColorChange: (color: string) => void;
-    icon: string | null;
-    onIconChange: (icon: string) => void;
-  }) => (
-    <div className="space-y-3">
-      <Tabs value={mode} onValueChange={(v) => onModeChange(v as IndicatorMode)}>
-        <TabsList className="w-full">
-          <TabsTrigger value="color" className="flex-1 gap-1.5">
-            <Palette className="h-3.5 w-3.5" />
-            {t('statuses.color')}
-          </TabsTrigger>
-          <TabsTrigger value="icon" className="flex-1 gap-1.5">
-            <Tag className="h-3.5 w-3.5" />
-            {t('statuses.icon')}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+  const maxCount = useMemo(() => Math.max(1, ...Object.values(counts)), [counts]);
 
-      {mode === 'color' ? (
-        <div className="flex flex-wrap gap-2">
-          {STATUS_COLORS.map((c) => (
-            <button
-              key={c.name}
-              onClick={() => onColorChange(c.name)}
-              className={cn(
-                'w-8 h-8 rounded-lg transition-all',
-                c.dot,
-                color === c.name
-                  ? 'ring-2 ring-primary ring-offset-2 scale-110'
-                  : 'hover:scale-105'
-              )}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-2 mb-2">
-            {STATUS_COLORS.map((c) => (
-              <button
-                key={c.name}
-                onClick={() => onColorChange(c.name)}
-                className={cn(
-                  'w-6 h-6 rounded-md transition-all',
-                  c.dot,
-                  color === c.name
-                    ? 'ring-2 ring-primary ring-offset-1 scale-110'
-                    : 'hover:scale-105 opacity-60'
-                )}
-              />
-            ))}
-          </div>
-          <IconPicker selectedIcon={icon} onSelect={onIconChange} color={color} />
-        </div>
-      )}
-    </div>
-  );
+  const openNew = () => {
+    setEditing(null);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (status: LeadStatus) => {
+    setEditing(status);
+    setDialogOpen(true);
+  };
+
+  const handleSubmit = async (values: StatusFormValues) => {
+    try {
+      if (editing) {
+        await api.put(`/lead-statuses/${editing.id}`, values);
+        toast({ title: t('statuses.statusUpdated') });
+      } else {
+        await api.post('/lead-statuses', { ...values, tenant_id: currentTenant?.id });
+        toast({ title: t('statuses.statusCreated'), description: t('statuses.statusCreatedDesc', { name: values.name }) });
+      }
+      fetchStatuses();
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: editing ? t('statuses.failedToUpdate') : t('statuses.failedToCreate'),
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    const status = deleting;
+    setDeleting(null);
+    try {
+      await api.delete(`/lead-statuses/${status.id}`);
+      setStatuses((prev) => prev.filter((s) => s.id !== status.id));
+      toast({ title: t('statuses.statusDeleted'), description: t('statuses.statusDeletedDesc', { name: status.name }) });
+    } catch (error) {
+      toast({ title: t('common.error'), description: t('statuses.failedToDelete'), variant: 'destructive' });
+    }
+  };
+
+  const deletingCount = deleting ? counts[deleting.id] || 0 : 0;
 
   return (
     <AppLayout>
-      <div className="p-4 max-w-4xl mx-auto">
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl gradient-primary flex items-center justify-center shadow-lg flex-shrink-0">
-              <Tag className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t('statuses.title')}</h1>
+              {!isLoading && (
+                <span className="rounded-full border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {statuses.length}
+                </span>
+              )}
             </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t('statuses.title')}</h1>
-              <p className="text-sm text-muted-foreground">
-                {isAdmin 
-                  ? t('statuses.subtitleAdmin')
-                  : t('statuses.subtitleUser')}
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {isAdmin ? t('statuses.subtitleAdmin') : t('statuses.subtitleUser')}
+            </p>
           </div>
-          {isAdmin && !isAdding && statuses.length > 0 && (
-            <Button onClick={() => setIsAdding(true)} size="sm" className="gap-2 self-start sm:self-auto">
+          {isAdmin && statuses.length > 0 && (
+            <Button size="sm" className="gap-2" onClick={openNew}>
               <Plus className="h-4 w-4" />
               {t('statuses.newStatus')}
             </Button>
           )}
         </div>
 
-        {/* Stats Bar */}
-        {statuses.length > 0 && (
-          <div className="mb-6 p-3 sm:p-4 rounded-xl bg-muted/50 border flex items-center gap-4 sm:gap-6 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Tag className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{statuses.length}</p>
-                <p className="text-xs text-muted-foreground">{t('statuses.totalStatuses')}</p>
-              </div>
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          {authLoading || isLoading ? (
+            <div className="divide-y">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-4">
+                  <Skeleton className="h-9 w-9 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-1.5 w-full max-w-xs" />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-1">
-                {statuses.slice(0, 5).map((status) => {
-                  const colorClasses = getStatusColorClasses(status.color);
-                  return (
-                    <div
-                      key={status.id}
-                      className={cn('h-5 w-5 rounded-full border-2 border-background flex items-center justify-center', colorClasses.dot)}
+          ) : statuses.length === 0 ? (
+            <div className="py-6">
+              <EmptyState
+                icon={Tag}
+                title={t('statuses.noStatusesYet')}
+                description={isAdmin ? t('statuses.emptyAdmin') : t('statuses.emptyUser')}
+                action={isAdmin ? { label: t('statuses.createFirstStatus'), onClick: openNew, icon: Plus } : undefined}
+              />
+            </div>
+          ) : (
+            <>
+            <div className="flex items-center gap-2 border-b bg-muted/40 py-2.5 pl-4 pr-2 text-xs font-medium text-muted-foreground">
+              <span className="flex-1 pl-12">{t('contacts.colStatus')}</span>
+              <span className="w-24 sm:w-72 text-right">{t('contacts.clients')}</span>
+              <span className="w-4" />
+              {isAdmin && <span className="w-8" />}
+            </div>
+            <ul className="divide-y">
+              {statuses.map((status) => {
+                const hex = getColorHex(status.color);
+                const count = counts[status.id] || 0;
+                return (
+                  <li key={status.id} className="group flex items-center gap-2 pr-2 transition-colors hover:bg-muted/40">
+                    <button
+                      onClick={() => navigate(`/contacts?status=${status.id}`)}
+                      className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pl-4 text-left"
+                      title={t('statuses.viewClients')}
                     >
-                      {status.icon && (
-                        <StatusIndicator 
-                          icon={status.icon} 
-                          color={getColorHex(status.color)}
-                          iconClass="h-3 w-3 text-white"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-                {statuses.length > 5 && (
-                  <div className="h-5 w-5 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-medium">
-                    +{statuses.length - 5}
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground">{t('statuses.activeStatuses')}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Add New Status Form */}
-        {isAdmin && isAdding && (
-          <Card className={cn(
-            'mb-6 overflow-hidden border-2 animate-fade-in',
-            selectedColorClasses.border
-          )}>
-            <div className={cn('h-2', selectedColorClasses.dot)} />
-            <CardContent className="pt-6 space-y-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-lg">{t('statuses.createNewStatus')}</h3>
-              </div>
-              
-              <div>
-                <Label htmlFor="status-name" className="text-sm font-medium">{t('statuses.statusName')}</Label>
-                <Input
-                  id="status-name"
-                  value={newStatusName}
-                  onChange={(e) => setNewStatusName(e.target.value)}
-                  placeholder={t('statuses.statusNamePlaceholder')}
-                  className="mt-2"
-                  autoFocus
-                />
-              </div>
-              
-              <div>
-                <Label className="text-sm font-medium">{t('statuses.indicatorStyle')}</Label>
-                <div className="mt-2">
-                  <IndicatorModeSelector
-                    mode={newIndicatorMode}
-                    onModeChange={setNewIndicatorMode}
-                    color={newStatusColor}
-                    onColorChange={setNewStatusColor}
-                    icon={newStatusIcon}
-                    onIconChange={setNewStatusIcon}
-                  />
-                </div>
-              </div>
-
-              {/* Preview */}
-              {newStatusName && (
-                <div className="pt-2">
-                  <Label className="text-sm font-medium text-muted-foreground">{t('statuses.preview')}</Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium',
-                      selectedColorClasses.bg,
-                      selectedColorClasses.text,
-                      selectedColorClasses.border,
-                      'border'
-                    )}>
-                      <StatusIndicator 
-                        icon={newIndicatorMode === 'icon' ? newStatusIcon : null} 
-                        color={getColorHex(newStatusColor)}
-                        colorDotClass="w-2 h-2"
-                        iconClass="h-3.5 w-3.5"
-                      />
-                      {newStatusName}
-                    </span>
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex gap-3 pt-2">
-                <Button onClick={handleCreateStatus} disabled={!newStatusName.trim()} className="gap-2">
-                  <Check className="h-4 w-4" />
-                  {t('statuses.createStatus')}
-                </Button>
-                <Button variant="ghost" onClick={() => { setIsAdding(false); setNewStatusName(''); }}>
-                  {t('common.cancel')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Empty State */}
-        {statuses.length === 0 ? (
-          <Card className="border-dashed border-2">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                <Tag className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">{t('statuses.noStatusesYet')}</h3>
-              <p className="text-muted-foreground text-center mb-6 max-w-sm">
-                {isAdmin 
-                  ? t('statuses.emptyAdmin')
-                  : t('statuses.emptyUser')}
-              </p>
-              {isAdmin && (
-                <Button onClick={() => setIsAdding(true)} size="lg" className="gap-2">
-                  <Plus className="h-5 w-5" />
-                  {t('statuses.createFirstStatus')}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          /* Status Grid */
-          <div className="grid gap-3 sm:grid-cols-2">
-            {statuses.map((status, index) => {
-              const colorClasses = getStatusColorClasses(status.color);
-              const isEditing = editingStatus?.id === status.id;
-
-              return (
-                <Card 
-                  key={status.id} 
-                  className={cn(
-                    'group relative overflow-hidden transition-all duration-200 animate-fade-in',
-                    isEditing 
-                      ? 'ring-2 ring-primary shadow-lg' 
-                      : 'hover:shadow-md hover:-translate-y-0.5'
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  {/* Color accent bar */}
-                  <div className={cn('absolute left-0 top-0 bottom-0 w-1', colorClasses.dot)} />
-                  
-                  <CardContent className="py-4 pl-5 pr-4">
-                    {isEditing ? (
-                      <div className="space-y-4">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="font-medium"
-                          autoFocus
-                        />
-                        <IndicatorModeSelector
-                          mode={editIndicatorMode}
-                          onModeChange={setEditIndicatorMode}
-                          color={editColor}
-                          onColorChange={setEditColor}
-                          icon={editIcon}
-                          onIconChange={setEditIcon}
-                        />
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={handleUpdateStatus} className="gap-1">
-                            <Check className="h-3 w-3" />
-                            {t('common.save')}
+                      <span
+                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: `${hex}1f` }}
+                      >
+                        <StatusIndicator icon={status.icon} color={hex} colorDotClass="h-2.5 w-2.5" iconClass="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1 font-medium truncate">{status.name}</span>
+                      {/* How common the status is, relative to the most used one */}
+                      <span className="flex w-24 flex-shrink-0 items-center gap-3 sm:w-72">
+                        <span className="hidden h-1.5 flex-1 overflow-hidden rounded-full bg-muted sm:block">
+                          <span
+                            className="block h-full rounded-full transition-[width] duration-500"
+                            style={{ width: `${(count / maxCount) * 100}%`, backgroundColor: hex }}
+                          />
+                        </span>
+                        <span className="ml-auto text-sm tabular-nums text-muted-foreground whitespace-nowrap sm:w-8 sm:text-right">
+                          {count}
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                    {isAdmin && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              'h-8 w-8 flex-shrink-0 text-muted-foreground',
+                              'sm:opacity-0 sm:group-hover:opacity-100 data-[state=open]:opacity-100',
+                            )}
+                            aria-label={t('statuses.edit')}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setEditingStatus(null)}>
-                            {t('common.cancel')}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <div 
-                          className="flex items-center gap-3 flex-1 cursor-pointer"
-                          onClick={() => navigate(`/contacts?status=${status.id}`)}
-                        >
-                          <GripVertical className="h-4 w-4 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="flex items-center gap-2">
-                            <StatusIndicator 
-                              icon={status.icon} 
-                              color={getColorHex(status.color)}
-                              colorDotClass="w-3 h-3"
-                              iconClass="h-4 w-4"
-                            />
-                            <span className="font-medium">{status.name}</span>
-                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                              {statusCounts[status.id] || 0} {(statusCounts[status.id] || 0) === 1 ? t('statuses.lead') : t('statuses.leads')}
-                            </span>
-                          </div>
-                        </div>
-                        {isAdmin && (
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => { e.stopPropagation(); startEditing(status); }}
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={(e) => { e.stopPropagation(); handleDeleteStatus(status.id, status.name); }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEdit(status)} className="gap-2">
+                            <Pencil className="h-4 w-4" />
+                            {t('statuses.edit')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setDeleting(status)} className="gap-2 text-destructive focus:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                            {t('statuses.delete')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Help Text for Admins */}
-        {isAdmin && statuses.length > 0 && !isAdding && (
-          <div className="mt-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('statuses.tipEdit')} <Edit2 className="h-3 w-3 inline-block mx-1" /> {t('statuses.tipEditIcon')} <Trash2 className="h-3 w-3 inline-block mx-1" /> {t('statuses.tipRemove')}
-            </p>
-          </div>
-        )}
+                  </li>
+                );
+              })}
+            </ul>
+            </>
+          )}
+        </div>
       </div>
+
+      <StatusDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        initial={editingValues}
+        onSubmit={handleSubmit}
+      />
+
+      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('statuses.deleteConfirm', { name: deleting?.name })}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingCount > 0
+                ? t('statuses.deleteConfirmDesc', { count: deletingCount })
+                : t('statuses.deleteConfirmDescNone')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t('statuses.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

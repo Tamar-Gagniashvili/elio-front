@@ -548,15 +548,15 @@ function InboxContent() {
             />
 
             {/* Search */}
-            <div className="p-3 border-b space-y-2 bg-card">
+            <div className="px-3 py-2 border-b space-y-2 bg-card">
               <NotificationBanner />
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Search conversations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="h-9 pl-9 rounded-lg bg-muted/60 border-transparent focus-visible:bg-background"
                 />
               </div>
             </div>
@@ -621,15 +621,15 @@ function InboxContent() {
 
       {/* Conversation List Panel */}
       <div className="w-80 border-r flex flex-col bg-card">
-        <div className="p-3 border-b space-y-2">
+        <div className="px-3 py-2 border-b space-y-2">
           <NotificationBanner />
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="h-9 pl-9 rounded-lg bg-muted/60 border-transparent focus-visible:bg-background"
             />
           </div>
         </div>

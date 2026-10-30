@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { z } from 'zod';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { ChannelType, ALL_CHANNELS, CHANNEL_CONFIG } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -99,22 +99,16 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
 
     try {
       // 1. Create the tenant
-      const { data: tenantData, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({
-          name: parsed.data.tenantName,
-          slug: parsed.data.tenantSlug,
-          pricing_monthly: parseFloat(parsed.data.pricingMonthly) || 0,
-          enabled_channels: enabledChannels,
-          is_active: true,
-        })
-        .select()
-        .single();
-
-      if (tenantError) throw tenantError;
+      const tenantData = await api.post<{ id: string }>('/tenants', {
+        name: parsed.data.tenantName,
+        slug: parsed.data.tenantSlug,
+        pricing_monthly: parseFloat(parsed.data.pricingMonthly) || 0,
+        enabled_channels: enabledChannels,
+        is_active: true,
+      });
 
       // 2. Create the admin user via edge function
-      const { data: userData, error: userError } = await supabase.functions.invoke('create-user', {
+      const { error: userError } = await api.invoke('create-user', {
         body: {
           email: parsed.data.adminEmail,
           password: parsed.data.adminPassword,
@@ -126,7 +120,7 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
 
       if (userError) {
         // Rollback tenant creation
-        await supabase.from('tenants').delete().eq('id', tenantData.id);
+        await api.delete(`/tenants/${tenantData.id}`);
         throw userError;
       }
 

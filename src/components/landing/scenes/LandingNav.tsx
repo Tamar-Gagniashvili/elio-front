@@ -27,7 +27,7 @@ export default function LandingNav() {
         <Link to="/" className="flex items-center gap-2.5 group">
           <img
             src={relinkLogo}
-            alt="ReLink"
+            alt="Elio"
             className="h-9 w-9 object-contain transition-transform group-hover:scale-105"
             style={{ filter: 'drop-shadow(0 0 10px hsla(140 100% 65% / 0.55)) drop-shadow(0 0 22px hsla(140 100% 55% / 0.25))' }}
           />
@@ -39,7 +39,7 @@ export default function LandingNav() {
               textShadow: '0 0 12px hsla(140 100% 65% / 0.45)',
             }}
           >
-            Re<span style={{ color: '#99FFCC' }}>Link</span>
+            Eli<span style={{ color: '#99FFCC', textShadow: '0 0 18px #99FFCC, 0 0 42px hsla(153, 100%, 70%, 0.6)' }}>o</span>
           </span>
         </Link>
         <div className="flex items-center gap-3">

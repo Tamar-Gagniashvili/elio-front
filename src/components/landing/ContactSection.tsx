@@ -22,7 +22,7 @@ export default function ContactSection() {
             </h2>
             
             <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-              Join hundreds of teams already using ReLink to manage their customer conversations and close more deals.
+              Join hundreds of teams already using Elio to manage their customer conversations and close more deals.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">

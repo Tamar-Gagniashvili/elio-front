@@ -47,7 +47,7 @@ export default function HowItWorksSection() {
             How It Works
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Get started in minutes, not days. Here's how ReLink transforms your sales workflow.
+            Get started in minutes, not days. Here's how Elio transforms your sales workflow.
           </p>
         </div>
 
